@@ -1,0 +1,296 @@
+---
+title: "R Notebook"
+output: 
+  html_notebook: 
+    code_folding: hide
+---
+```{r echo=TRUE,class.source = 'fold-show'}
+acc1_cancer_cells <- RunUMAP(acc1_cancer_cells, dims = 1:20,n.neighbors = 5)
+DimPlot(object = acc1_cancer_cells)
+```
+
+# **Option 1- most correlated with cell markers from Bishop et al:**
+
+# **1.Myo markers**
+## 1.a) expression
+```{r}
+myo_protein_markers = c("CNN1", "IL12B", "TP63","ACTA2")
+expression = GetAssayData(object = acc1_cancer_cells,assay = "RNA",slot = "data") %>% as.data.frame()
+myo_markers_expression = expression %>% dplyr::filter(row.names(expression) %in% myo_protein_markers) %>% as.data.frame()
+```
+
+```{r}
+FeaturePlot(object = acc1_cancer_cells,features = myo_protein_markers,min.cutoff = 0)
+```
+
+IL12B is 0 in all cells
+
+## 1.b) top 10 correlated genes with TP63, ACTA2 and CNN1 combined {.tabset}
+
+```{r}
+myo_markers_expression = myo_markers_expression %>% dplyr::filter(rownames(myo_markers_expression) != "IL12B") #remove IL12B since it has all 0
+```
+
+```{r results='hide'}
+cor_mat = cor(expression %>% t(), myo_markers_expression %>% t())
+cor_mat = cor_mat[complete.cases(cor_mat), ] #remove rows with NA in at least one col
+# pheatmap(cor_mat[,1,drop = F],cluster_rows = T,cluster_cols = F,show_rownames = F, show_colnames = T,treeheight_row = 0)
+top_10_TP63 =   cor_mat %>% as.data.frame %>% select(1) %>%  arrange(desc(1)) %>% top_n(10) %>% rownames()
+top_10_ACTA2 =   cor_mat %>% as.data.frame %>% select(2) %>%  arrange(desc(1)) %>% top_n(10) %>% rownames()
+top_10_CNN1 =   cor_mat %>% as.data.frame %>% select(3) %>%  arrange(desc(1)) %>% top_n(10) %>% rownames()
+
+
+all_top_genes = c(top_10_TP63,top_10_ACTA2,top_10_CNN1)
+top_10_expression = expression %>% dplyr::filter(rownames(expression) %in% all_top_genes)
+```
+
+### Top correlated genes
+
+```{r}
+all_top_genes
+```
+
+### Heatmap 1
+
+```{r}
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+pheatmap(mat = cor(top_10_expression %>% t(), myo_markers_expression %>% t()),color = my_palette, breaks = colors)
+```
+
+### Heatmap 2
+
+```{r}
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+pheatmap(mat = cor(top_10_expression %>% t(), top_10_expression %>% t()),color = my_palette, breaks = colors)
+```
+
+### Enrichment analysis
+
+```{r results='hide'}
+genes_vec_enrichment(genes = all_top_genes,background = rownames(cor_mat),gene_sets = "homer_hallmark",convert_background= T,add_bg = F,title = "myo genes enrichment",add_msigdb_to_set = T)
+```
+
+##  {-}
+
+## 1.c) genes that have >0.3 pearson with TP63, ACTA2 and CNN1 combined {.tabset}
+
+
+```{r results='hide'}
+cor_mat = cor(expression %>% t(), myo_markers_expression %>% t())
+cor_mat = cor_mat[complete.cases(cor_mat), ] #remove rows with NA in at least one col
+
+top_10_TP63 =    cor_mat %>% as.data.frame %>% select(1) %>% dplyr::filter(.>0.30) %>% rownames()
+top_10_ACTA2 =   cor_mat %>% as.data.frame %>% select(2) %>% dplyr::filter(.>0.30) %>% rownames()
+top_10_CNN1 =  cor_mat %>% as.data.frame %>% select(3) %>% dplyr::filter(.>0.30) %>% rownames()
+
+
+all_top_genes = c(top_10_TP63,top_10_ACTA2,top_10_CNN1)
+top_10_expression = expression %>% dplyr::filter(rownames(expression) %in% all_top_genes)
+```
+
+### top genes (first 30)
+```{r}
+all_top_genes %>% head(30)
+```
+
+### Heatmap 1
+
+```{r}
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+pheatmap(mat = cor(top_10_expression %>% t(), myo_markers_expression %>% t()),color = my_palette, breaks = colors)
+```
+
+### Heatmap 2
+
+```{r}
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+pheatmap(mat = cor(top_10_expression %>% t(), top_10_expression %>% t()),color = my_palette, breaks = colors)
+```
+
+### Enrichment analysis
+
+```{r results='hide'}
+genes_vec_enrichment(genes = all_top_genes,background = rownames(cor_mat),gene_sets = "homer_hallmark",convert_background= T,add_bg = F,title = "myo genes enrichment",add_msigdb_to_set = T)
+```
+
+
+##  {-}
+
+# **Luminal markers**
+
+
+```{r}
+lum_protein_markers = c("KIT")
+expression = GetAssayData(object = acc1_cancer_cells,assay = "RNA",slot = "data") %>% as.data.frame()
+lum_markers_expression = expression %>% dplyr::filter(row.names(expression) %in% lum_protein_markers) %>% as.data.frame()
+```
+
+## 2.a) KIT expression
+```{r}
+FeaturePlot(object = acc1_cancer_cells,features = lum_protein_markers,min.cutoff = 0)
+```
+
+
+```{r results='hide'}
+cor_mat = cor(expression %>% t(), lum_markers_expression %>% t())
+cor_mat = cor_mat[complete.cases(cor_mat), ] #remove rows with NA in at least one col
+# pheatmap(cor_mat[,1,drop = F],cluster_rows = T,cluster_cols = F,show_rownames = F, show_colnames = T,treeheight_row = 0)
+top_10_KIT =   cor_mat %>% as.data.frame %>% select(1) %>%  arrange(desc(1)) %>% top_n(30) %>% rownames()
+top_10_expression = expression %>% dplyr::filter(rownames(expression) %in% top_10_KIT)
+```
+
+## 2.b)top 30 correlated genes with KIT {.tabset}
+
+### top genes
+```{r}
+top_10_KIT
+```
+### enrichment analysis
+```{r results='hide'}
+# hallmark_gene_set = msigdbr(species = "Homo sapiens")%>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+
+genes_vec_enrichment(genes = top_10_KIT,background = rownames(expression),gene_sets = "homer_hallmark",convert_background= T,add_bg = F,title = "myo genes enrichment",add_msigdb_to_set = T,custom_pathways = luminal_gs)
+```
+## {-}
+
+## 2.c)genes that have >0.3 pearson with KIT {.tabset}
+
+
+
+
+```{r}
+cor_mat = cor(expression %>% t(), lum_markers_expression %>% t())
+cor_mat = cor_mat[complete.cases(cor_mat), ] #remove rows with NA in at least one col
+top_10_KIT =   cor_mat %>% as.data.frame %>% select(1) %>% dplyr::filter(.>0.30) %>% rownames()
+top_10_expression = expression %>% dplyr::filter(rownames(expression) %in% top_10_KIT)
+```
+### top genes
+```{r}
+top_10_KIT
+```
+### enrichment analysis
+
+```{r results='hide'}
+# hallmark_gene_set = msigdbr(species = "Homo sapiens")%>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+
+genes_vec_enrichment(genes = top_10_KIT,background = rownames(expression),gene_sets = "homer_hallmark",convert_background= T,add_bg = F,title = "myo genes enrichment",add_msigdb_to_set = T,custom_pathways = luminal_gs)
+```
+## {-}
+
+
+
+# **Option 2 - choosing from known markers**
+
+## Results {.tabset}
+
+
+### Lum genes expression
+
+```{r fig.height=7, fig.width=11}
+FeaturePlot(object = acc1_cancer_cells,features = lum_genes)
+```
+### Myo genes expression
+
+```{r fig.height=7, fig.width=11}
+FeaturePlot(object = acc1_cancer_cells,features = myo_genes)
+```
+
+### luminal score
+
+```{r}
+myoscore=apply(acc1_cancer_cells@assays[["RNA"]][c("TP63","TP73","CDH3","ACTA2","CDH11","TAGLN","MYLK","DKK3"),],2,mean)
+lescore=apply(acc1_cancer_cells@assays[["RNA"]][c("KIT","CLDN3","ANXA8","ELF5","LCN2","WFDC2","ATP1B1"),],2,mean)
+acc1_cancer_cells=AddMetaData(acc1_cancer_cells,lescore-myoscore,"luminal_over_myo")
+acc1_cancer_cells=AddMetaData(acc1_cancer_cells,lescore,"luminal_score")
+acc1_cancer_cells=AddMetaData(acc1_cancer_cells,myoscore,"myo_score")
+```
+
+
+
+```{r}
+FeaturePlot(acc1_cancer_cells,features = "luminal_score",min.cutoff = 0)
+```
+### myo score
+```{r}
+FeaturePlot(acc1_cancer_cells,features = "myo_score",min.cutoff = 0)
+```
+
+### luminal_over_myo
+```{r}
+FeaturePlot(acc1_cancer_cells,features = "luminal_over_myo",min.cutoff = 0)
+```
+### luminal_over_myo2
+```{r}
+FeaturePlot(acc1_cancer_cells,features = "luminal_over_myo",cols = c("blue","grey","yellow"))
+```
+## {-}
+
+# Option 3-  subset genes fron original ACC
+
+## In HMSC {.tabset}
+
+### Luminal genes:
+
+```{r}
+lum_markers  = FetchData(object = acc1_cancer_cells, vars = lum_genes)
+lum_cor = cor(lum_markers)
+
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+pheatmap(lum_cor,color = my_palette, breaks = colors,display_numbers = T)
+
+```
+
+### Myo genes:
+
+
+```{r}
+myo_markers  = FetchData(object = acc1_cancer_cells, vars = myo_genes)
+myo_cor = cor(myo_markers)
+
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+pheatmap(myo_cor,color = my_palette, breaks = colors,display_numbers = T)
+
+```
+## {-}
+
+## In ACC {.tabset}
+
+### Luminal genes:
+
+```{r}
+lum_markers  = FetchData(object = acc_cancer_cell_no_acc1, vars = lum_genes)
+lum_cor = cor(lum_markers)
+
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+pheatmap(lum_cor,color = my_palette, breaks = colors,display_numbers = T)
+
+```
+
+### Myo genes:
+
+
+```{r}
+myo_markers  = FetchData(object = acc_cancer_cell_no_acc1, vars = myo_genes)
+myo_cor = cor(myo_markers)
+
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+pheatmap(myo_cor,color = my_palette, breaks = colors,display_numbers = T)
+
+```
+## {-}

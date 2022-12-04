@@ -1,0 +1,446 @@
+---
+title: "R Notebook"
+output: 
+  html_notebook: 
+    code_folding: hide
+---
+# All cancer cells UMAP
+
+
+
+```{r}
+acc_all_cells = readRDS("../Data/ACC_with_ACC1_V5.RDS")
+DimPlot(acc_all_cells, reduction = "umap", label = TRUE, pt.size = 1,group.by = "patient.ident") 
+
+```
+
+
+
+```{r}
+acchigh=read.delim("../Data/oncotarget-05-12528-s001_acchigh.txt",skip=0,header=F,sep="\t",stringsAsFactors=F)
+acchigh_s=apply(acc_all_cells@assays$RNA@scale.data[intersect(acchigh$V1,acc_all_cells@assays$RNA@var.features),],2,mean)
+acchigh_s[acchigh_s < -0.5] = -0.5
+acchigh_s[acchigh_s > 0.5] = 0.5
+acc_all_cells=AddMetaData(acc_all_cells,acchigh_s,"kaye_acc_score")
+```
+
+## Markers {.tabset}
+
+### CAF markers
+
+
+```{r fig.width=15}
+FeaturePlot(acc_all_cells, c("COL3A1","COL1A2") ,cols = c("blue","yellow"))
+```
+###  Endothelial markers
+
+
+```{r fig.width=15}
+FeaturePlot(acc_all_cells, c("VWF","PECAM1") ,cols = c("blue","yellow"))
+
+```
+
+
+###  WBC markers
+
+```{r fig.width=15}
+FeaturePlot(acc_all_cells, c("CD79A","PTPRC") ,cols = c("blue","yellow"))
+
+```
+
+### ACC markers
+
+```{r fig.width=15}
+FeaturePlot(acc_all_cells, c("kaye_acc_score","MYB") ,cols = c("blue","yellow"))
+```
+## {-}
+
+## UMAP group by cluster
+```{r}
+DimPlot(acc_all_cells, reduction = "umap", label = TRUE, pt.size = 1) +ggtitle("acc_all_cells")
+```
+
+```{r}
+ElbowPlot(acc_all_cells)
+
+```
+
+## 3.Cluster assignment
+
+                    "ACC", #0
+                     "CAF", #1
+                     "ACC", #2
+                     "ACC", #3
+                     "ACC", #4
+                     "ACC", #5
+                     "Endothelial", #6
+                     "ACC", #7
+                     "CAF", #8
+                     "CAF", #9
+                     "CAF", #10
+                     "ACC", #11
+                     "ACC" #12
+                     
+```{r warning=FALSE}
+new.cluster.ids <- c("ACC", #0
+                     "CAF", #1
+                     "ACC", #2
+                     "ACC", #3
+                     "ACC", #4
+                     "ACC", #5
+                     "Endothelial", #6
+                     "ACC", #7
+                     "CAF", #8
+                     "CAF", #9
+                     "CAF", #10
+                     "ACC", #11
+                     "ACC" #12
+                     )
+names(new.cluster.ids) <- levels(acc_all_cells)
+acc_all_cells = SetIdent(object = acc_all_cells,value = "seurat_clusters")
+acc_all_cells <- RenameIdents(acc_all_cells, new.cluster.ids)
+plot1 = DimPlot(acc_all_cells, reduction = "umap", label = TRUE, pt.size = 0.5) 
+HoverLocator(plot = plot1, information = FetchData(acc_all_cells, vars = c("patient.ident")))
+
+```
+
+
+## 3. Cell types in ACC1
+```{r}
+cell.type <- acc_all_cells@meta.data$seurat_clusters
+levels(cell.type) <- new.cluster.ids
+acc_all_cells <- AddMetaData(object = acc_all_cells, metadata = as.factor(cell.type), col.name = "cell.type")
+
+acc1_all_cells = subset(x = acc_all_cells,subset = patient.ident == "ACC1")
+acc1_types = acc1_all_cells@meta.data[["cell.type"]] %>% table() %>% as.data.frame()
+names(acc1_types)[1] = "type"
+ggplot(data=acc1_types, aes(x=type, y=Freq)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  geom_text(aes(label=Freq), vjust=-0.5, color="black", size=3.5)
+```
+
+```{r}
+DimPlot(object = acc1_all_cells,reduction = "umap",label = T)+ggtitle("acc1_all_cells")
+```
+
+
+## Interactive UMAP Endothelial {.tabset}
+all 8 Endothelial cells have high Endothelial markers
+
+```{r}
+plot1 = FeaturePlot(acc1_all_cells, c("VWF") ,cols = c("blue","yellow"))
+plot2 = FeaturePlot(acc1_all_cells, c("PECAM1") ,cols = c("blue","yellow"))
+```
+
+### VWF
+```{r warning=FALSE}
+HoverLocator(plot = plot1, information = FetchData(acc_all_cells, vars = c("VWF", "PECAM1","cell.type")))
+```
+
+### PECAM1
+```{r warning=FALSE}
+HoverLocator(plot = plot2, information = FetchData(acc_all_cells, vars = c("VWF", "PECAM1","cell.type")))
+```
+
+## {-}
+
+
+```{r}
+plot1 = FeaturePlot(acc1_all_cells, c("COL3A1") ,cols = c("blue","yellow"))
+plot2 = FeaturePlot(acc1_all_cells, c("COL1A2") ,cols = c("blue","yellow"))
+```
+
+
+## Interactive UMAP CAF  {.tabset}
+ACC1.P3_A02 is assigned as ACC, but it looks like a CAF- high COL1A2:
+
+### COL3A1
+```{r warning=FALSE}
+HoverLocator(plot = plot1, information = FetchData(acc1_all_cells, vars = c("COL3A1", "COL1A2","cell.type")))
+```
+
+### COL1A2
+```{r warning=FALSE}
+HoverLocator(plot = plot2, information = FetchData(acc1_all_cells, vars = c("COL3A1", "COL1A2","cell.type")))
+```
+## {-}
+
+
+
+
+
+```{r}
+acc_all_cells = SetIdent(object = acc_all_cells,value = "patient.ident")
+selected_group <- WhichCells(acc_all_cells, idents = "ACC1")
+
+DimPlot(object = acc_all_cells, reduction = "umap", pt.size = 1,cells.highlight= selected_group,
+        group.by = "patient.ident", label = TRUE) +
+  scale_color_manual(labels = c("unselected", "ACC1"), values = c("grey", "red"))
+
+
+
+```
+
+```{r}
+acc_all_cells = SetIdent(object = acc_all_cells,value = "patient.ident")
+selected_group <- WhichCells(acc_all_cells, idents = "ACC1")
+
+acc1_plot = DimPlot(object = acc_all_cells, reduction = "umap", pt.size = 1,cells.highlight= selected_group,
+        group.by = "patient.ident", label = TRUE) +
+  scale_color_manual(labels = c("unselected", "ACC1"), values = c("grey", "red"))
+
+HoverLocator(plot = acc1_plot, information = FetchData(acc1_all_cells, vars = c("cell.type")))
+
+```
+
+It has high correlation to the other CAF (ACC1.P3_E02), so i marked it as CAF:
+```{r fig.height=14, fig.width=10}
+acc1_all_cells.df = acc1_all_cells@assays[["RNA"]]@data %>% as.data.frame()
+acc1_cor = cor(acc1_all_cells.df)
+annotation = FetchData(object = acc1_all_cells,vars = c("cell.type"))
+pheatmap(acc1_cor,annotation_row = annotation,fontsize = 6,clustering_distance_cols = "correlation",clustering_distance_rows  = "correlation")
+```
+
+```{r}
+#show ACC1.P3_A02 on UMAP
+cell_index = which(colnames(acc_all_cells) =="ACC1.P3_A02")
+acc_all_cells@meta.data[["cell.type"]][cell_index] = "CAF"
+
+cell_index = which(colnames(acc1_all_cells) =="ACC1.P3_A02")
+acc1_all_cells@meta.data[["cell.type"]][cell_index] = "CAF"
+```
+
+# Detemine Myo and Lum genes
+```{r}
+myo_genes =  c("TP63","TP73","CDH3","KRT14","KRT5","ACTA2","CDH11","TAGLN","MYLK","DKK3","SPARC","TRIM29")
+lum_genes = c("KIT","CLDN3","ANXA8","EHF","ELF5","KRT7","CLDN4","LCN2","LGALS3","WFDC2","ATP1B1","CD24")
+```
+
+```{r}
+# acc_cancer_cells = subset(x = acc_all_cells,subset = cell.type == "ACC")
+# acc_cancer_cells <- FindVariableFeatures(acc_cancer_cells, selection.method = "vst", nfeatures = 15000)
+# acc_cancer_cells <- ScaleData(acc_cancer_cells, vars.to.regress = c("percent.mt","nCount_RNA"))
+# acc_cancer_cells <- RunPCA(acc_cancer_cells, features = VariableFeatures(object = acc_cancer_cells))
+# acc_cancer_cells <- FindNeighbors(acc_cancer_cells, dims = 1:10)
+# acc_cancer_cells <- FindClusters(acc_cancer_cells, resolution = 1)
+# acc_cancer_cells <- RunUMAP(acc_cancer_cells, dims = 1:10)
+# saveRDS(object = acc_cancer_cells,file = "../Data/acc_cancer_cells_V2.RDS")
+acc_cancer_cells = readRDS("../Data/acc_cancer_cells_V2.RDS")
+
+
+# acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "ACC1")
+# acc1_cancer_cells <- FindVariableFeatures(acc1_cancer_cells, selection.method = "vst", nfeatures = 15000)
+# acc1_cancer_cells <- ScaleData(acc1_cancer_cells, vars.to.regress = c("percent.mt","nCount_RNA"))
+# acc1_cancer_cells <- RunPCA(acc1_cancer_cells, features = VariableFeatures(object = acc_cancer_cells))
+# acc1_cancer_cells <- FindNeighbors(acc1_cancer_cells, dims = 1:10)
+# acc1_cancer_cells <- FindClusters(acc1_cancer_cells, resolution = 1)
+# acc1_cancer_cells <- RunUMAP(acc1_cancer_cells, dims = 1:10)
+# saveRDS(object = acc1_cancer_cells,file = "../Data/acc1_cancer_cells_V2.RDS")
+
+acc1_cancer_cells = readRDS(file = "../Data/acc1_cancer_cells_V2.RDS")
+DimPlot(object = acc_cancer_cells,reduction = "umap",group.by = "patient.ident")+ggtitle("ACC1 cancer cells")
+
+```
+## Luminal/Myo ACC1.P3_A02  {.tabset}
+
+
+### Luminal
+
+```{r fig.height=12, fig.width=12}
+FeaturePlot(object = acc1_cancer_cells,features = lum_genes)
+```
+
+### Myo
+```{r fig.height=12, fig.width=12}
+FeaturePlot(object = acc1_cancer_cells,features = myo_genes)
+```
+
+## {-}
+
+## Correlation of lum/myo markers {.tabset}
+
+
+
+
+
+### Luminal genes:
+
+```{r}
+lum_markers  = FetchData(object = acc1_cancer_cells, vars = lum_genes)
+lum_cor = cor(lum_markers)
+pheatmap(lum_cor)
+
+```
+
+### Myo genes:
+
+
+```{r}
+myo_markers  = FetchData(object = acc1_cancer_cells, vars = myo_genes)
+myo_cor = cor(myo_markers)
+pheatmap(myo_cor)
+
+```
+
+
+## Myo genes- calponin 
+```{r}
+myo_proteins = FetchData(object = acc1_cancer_cells,vars = c("CNN1"))
+myo_proteins_cor = cor(myo_markers,myo_proteins)
+pheatmap(myo_proteins_cor,cluster_cols = F, cluster_rows = T,display_numbers = T)
+```
+## Myo-lum correlation:
+```{r}
+myo_markers  = FetchData(object = acc1_cancer_cells, vars = c(myo_genes,"CNN1"))
+lum_markers  = FetchData(object = acc1_cancer_cells, vars = lum_genes)
+myo_lum_cor = cor(myo_markers,lum_markers)
+pheatmap(myo_lum_cor,cluster_cols = T, cluster_rows = T,display_numbers = T,main = "lum(cols)- myo(rows) correlation")
+```
+
+
+
+
+# 3. UMAP of luminal_over_myo
+
+only cancer cells:
+
+```{r}
+
+DimPlot(object = acc_cancer_cells, reduction = "umap", pt.size = 1, label = F,group.by = "patient.ident")
+
+myoscore=apply(acc_cancer_cells@assays[["RNA"]][c("TP63","TP73","CDH3","KRT14","KRT5","ACTA2","CDH11","TAGLN","MYLK","DKK3","SPARC","TRIM29"),],2,mean)
+lescore=apply(acc_cancer_cells@assays[["RNA"]][c("KIT","CLDN3","ANXA8","EHF","ELF5","KRT7","CLDN4","LCN2","LGALS3","WFDC2","ATP1B1","CD24"),],2,mean)
+acc_cancer_cells=AddMetaData(acc_cancer_cells,lescore-myoscore,"luminal_over_myo")
+FeaturePlot(object = acc_cancer_cells,features = "luminal_over_myo")
+```
+
+You may also use this plot:
+
+```{r}
+lum_or_myo = FetchData(object = acc_cancer_cells,vars = "luminal_over_myo")
+lum_or_myo$luminal_over_myo[lum_or_myo$luminal_over_myo>=1] = "Lum"
+lum_or_myo$luminal_over_myo[lum_or_myo$luminal_over_myo<= (-1)] = "Myo"
+lum_or_myo$luminal_over_myo[lum_or_myo$luminal_over_myo> (-1) & lum_or_myo$luminal_over_myo<1] = "unassigned"
+acc_cancer_cells <- AddMetaData(object = acc_cancer_cells, metadata = lum_or_myo, col.name = "lum_or_myo")
+
+lum_or_myo_by_patient = FetchData(object = acc_cancer_cells,vars = c("lum_or_myo","patient.ident"))
+
+
+lum_or_myo_by_patient %>% 
+  dplyr::count(patient.ident, lum_or_myo) %>% 
+  dplyr::add_count(patient.ident, wt = n, name = "overall") %>% 
+  mutate(proportion = n / overall) 
+
+```
+
+```{r}
+lum_or_myo_by_patient = lum_or_myo_by_patient %>% 
+  dplyr::count(patient.ident, lum_or_myo) %>% 
+  dplyr::add_count(patient.ident, wt = n, name = "overall") %>% 
+  mutate(proportion = n / overall) %>% filter(lum_or_myo == "Myo")
+
+ggplot(data=lum_or_myo_by_patient, aes(x=patient.ident, y=proportion)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal() +ylab("Myo cells %")
+
+```
+
+# 4. UMAPS
+
+```{r fig.height=15, fig.width=10}
+myoscore=apply(acc_cancer_cells@assays[["RNA"]][c("TP63","TP73","CDH3","KRT14","KRT5","ACTA2","CDH11","TAGLN","MYLK","DKK3","SPARC","TRIM29"),],2,mean)
+lescore=apply(acc_cancer_cells@assays[["RNA"]][c("KIT","CLDN3","ANXA8","EHF","ELF5","KRT7","CLDN4","LCN2","LGALS3","WFDC2","ATP1B1","CD24"),],2,mean)
+acc_cancer_cells=AddMetaData(acc_cancer_cells,myoscore,"myo_score")
+acc_cancer_cells=AddMetaData(acc_cancer_cells,lescore,"lum_core")
+FeaturePlot(object = acc_cancer_cells,features = c("IL12B","TP63", "CNN1", "ACTA2","myo_score","lum_core"  ))
+```
+
+
+
+# 6. HPV+ cells UMAP
+
+Only HMSC cancer cells:
+
+```{r}
+HPV33_P3 = fread("../Data/HPV33_P3.txt",col.names = c("plate","reads")) %>% as.data.frame()
+HPV33_P3.df = HPV33_P3 %>% mutate(
+  plate = gsub(x =HPV33_P3$plate, replacement = "",pattern = "_.*$") 
+  %>% gsub(pattern = "-P",replacement = ".P") 
+  %>% gsub(pattern = "-",replacement = "_",)
+  )
+
+
+
+HPV33_P3.df = HPV33_P3.df %>% filter(HPV33_P3.df$plate %in% colnames(acc1_cancer_cells))
+rownames(HPV33_P3.df)  <- HPV33_P3.df$plate
+ HPV33_P3.df$plate = NULL
+acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = HPV33_P3.df,col.name = "HPV33.reads")
+FeaturePlot(acc1_cancer_cells,features = "HPV33.reads",max.cutoff = 40)
+```
+
+# CNV
+
+```{r fig.width=10}
+acc_annotation  = as.data.frame(acc_all_cells@meta.data[,"seurat_clusters",drop = F])
+acc_annotation = acc_annotation %>% rownames_to_column("orig.ident") 
+acc_annotation = acc_annotation %>% mutate(orig.ident = gsub(x = acc_annotation$orig.ident,pattern = "\\.", replacement = "-") %>% 
+  gsub(pattern = "_", replacement = "-"))
+  
+
+
+write.table(acc_annotation, "../Data/CNV/acc_annotation.txt", append = FALSE, 
+            sep = "\t", dec = ".",row.names = FALSE, col.names = F)
+
+infercnv_obj = CreateInfercnvObject(raw_counts_matrix="../Data/CNV/all.4icnv.txt", 
+                                    annotations_file="../Data/CNV/acc_annotation.txt",
+                                    delim="\t",gene_order_file="../Data/CNV/gencode_v19_gene_pos.txt"
+                                    ,ref_group_names=c("0", "6", "7", "8", "9")) #groups of normal cells
+
+infercnv_obj_default = infercnv::run(infercnv_obj, cutoff=1, out_dir='../Data/CNV/infercnv_output',
+                                     cluster_by_groups=TRUE, plot_steps=FALSE,
+                                     denoise=TRUE, HMM=FALSE, no_prelim_plot=TRUE,
+                                     png_res=300,)
+plot_cnv(infercnv_obj_default, output_format = "png",  write_expr_matrix = FALSE,out_dir = "../Data/CNV/",png_res	=800)
+
+# saveRDS(object = infercnv_obj, file = "../Data/CNV/infercnv_obj.rds")
+# saveRDS(object = infercnv_obj_default, file = "../Data/CNV/infercnv_obj_default.rds")
+
+cluster.info=FetchData(acc_all_cells,c("ident","orig.ident","UMAP_1","UMAP_2","nCount_RNA","nFeature_RNA","percent.mt","patient.ident","seurat_clusters"))
+cluster.info$cell=rownames(cluster.info)
+write.table(cluster.info,"../Data/CNV/acc_UMAP_clusters2.txt",sep="\t",row.names=FALSE)
+
+library(limma)
+smoothed=apply(infercnv_obj_default@expr.data,2,tricubeMovingAverage, span=0.01)
+cnsig=sqrt(apply((smoothed-1)^2,2,mean))
+umap=read.table("../Data/CNV/acc_UMAP_clusters2.txt",header = TRUE)
+names(cnsig)=umap$cell
+
+# cnsig[cnsig>0.08]=0.08
+acc_all_cells <- AddMetaData(object = acc_all_cells, metadata = cnsig, col.name = "copynumber")
+cnv_plot <-FeaturePlot(acc_all_cells, "copynumber",pt.size = 1, cols = c("blue","yellow"))
+cnv_plot
+```
+
+```{r warning=FALSE}
+HoverLocator(plot = cnv_plot, information = FetchData(acc_all_cells, vars = c("orig.ident", "copynumber")))
+
+```
+CNV for ACC1:
+```{r}
+acc1_annotation  = as.data.frame(acc1_all_cells@meta.data[,"seurat_clusters",drop = F])
+acc1_annotation = acc1_annotation %>% rownames_to_column("orig.ident") 
+acc1_annotation = acc1_annotation %>% mutate(orig.ident = gsub(x = acc1_annotation$orig.ident,pattern = "\\.", replacement = "-") %>% 
+  gsub(pattern = "_", replacement = "-"))
+  
+
+
+write.table(acc1_annotation, "../Data/CNV/acc1_annotation.txt", append = FALSE, 
+            sep = "\t", dec = ".",row.names = FALSE, col.names = F)
+
+infercnv_obj = CreateInfercnvObject(raw_counts_matrix="../Data/CNV/all.4icnv.txt", 
+                                    annotations_file="../Data/CNV/acc1_annotation.txt",
+                                    delim="\t",gene_order_file="../Data/CNV/gencode_v19_gene_pos.txt"
+                                    ,ref_group_names=c("0", "6", "7", "8", "9")) #groups of normal cells
+```
+
+
