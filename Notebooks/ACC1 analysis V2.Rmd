@@ -4,20 +4,19 @@ output:
   html_notebook: 
     code_folding: hide
 ---
+# This is baes on old data ACC_with_ACC1_V5.RDS (had missing plates)
 # All cancer cells UMAP
 
-
-
 ```{r}
-acc_all_cells = readRDS("../Data/ACC_with_ACC1_V5.RDS")
+source_from_github(repositoy = "DEG_functions",version = "0.1.10")
+acc_all_cells = readRDS("./Data/ACC_with_ACC1_V5.RDS")
 DimPlot(acc_all_cells, reduction = "umap", label = TRUE, pt.size = 1,group.by = "patient.ident") 
-
 ```
 
 
 
 ```{r}
-acchigh=read.delim("../Data/oncotarget-05-12528-s001_acchigh.txt",skip=0,header=F,sep="\t",stringsAsFactors=F)
+acchigh=read.delim("./Data/oncotarget-05-12528-s001_acchigh.txt",skip=0,header=F,sep="\t",stringsAsFactors=F)
 acchigh_s=apply(acc_all_cells@assays$RNA@scale.data[intersect(acchigh$V1,acc_all_cells@assays$RNA@var.features),],2,mean)
 acchigh_s[acchigh_s < -0.5] = -0.5
 acchigh_s[acchigh_s > 0.5] = 0.5
@@ -101,7 +100,6 @@ acc_all_cells = SetIdent(object = acc_all_cells,value = "seurat_clusters")
 acc_all_cells <- RenameIdents(acc_all_cells, new.cluster.ids)
 plot1 = DimPlot(acc_all_cells, reduction = "umap", label = TRUE, pt.size = 0.5) 
 HoverLocator(plot = plot1, information = FetchData(acc_all_cells, vars = c("patient.ident")))
-
 ```
 
 
@@ -224,8 +222,8 @@ lum_genes = c("KIT","CLDN3","ANXA8","EHF","ELF5","KRT7","CLDN4","LCN2","LGALS3",
 # acc_cancer_cells <- FindNeighbors(acc_cancer_cells, dims = 1:10)
 # acc_cancer_cells <- FindClusters(acc_cancer_cells, resolution = 1)
 # acc_cancer_cells <- RunUMAP(acc_cancer_cells, dims = 1:10)
-# saveRDS(object = acc_cancer_cells,file = "../Data/acc_cancer_cells_V2.RDS")
-acc_cancer_cells = readRDS("../Data/acc_cancer_cells_V2.RDS")
+# saveRDS(object = acc_cancer_cells,file = "./Data/acc_cancer_cells_V2.RDS")
+acc_cancer_cells = readRDS("./Data/acc_cancer_cells_V2.RDS")
 
 
 # acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "ACC1")
@@ -235,9 +233,9 @@ acc_cancer_cells = readRDS("../Data/acc_cancer_cells_V2.RDS")
 # acc1_cancer_cells <- FindNeighbors(acc1_cancer_cells, dims = 1:10)
 # acc1_cancer_cells <- FindClusters(acc1_cancer_cells, resolution = 1)
 # acc1_cancer_cells <- RunUMAP(acc1_cancer_cells, dims = 1:10)
-# saveRDS(object = acc1_cancer_cells,file = "../Data/acc1_cancer_cells_V2.RDS")
+# saveRDS(object = acc1_cancer_cells,file = "./Data/acc1_cancer_cells_V2.RDS")
 
-acc1_cancer_cells = readRDS(file = "../Data/acc1_cancer_cells_V2.RDS")
+acc1_cancer_cells = readRDS(file = "./Data/acc1_cancer_cells_V2.RDS")
 DimPlot(object = acc_cancer_cells,reduction = "umap",group.by = "patient.ident")+ggtitle("ACC1 cancer cells")
 
 ```
@@ -362,7 +360,7 @@ FeaturePlot(object = acc_cancer_cells,features = c("IL12B","TP63", "CNN1", "ACTA
 Only HMSC cancer cells:
 
 ```{r}
-HPV33_P3 = fread("../Data/HPV33_P3.txt",col.names = c("plate","reads")) %>% as.data.frame()
+HPV33_P3 = fread("./Data/HPV33_P3.txt",col.names = c("plate","reads")) %>% as.data.frame()
 HPV33_P3.df = HPV33_P3 %>% mutate(
   plate = gsub(x =HPV33_P3$plate, replacement = "",pattern = "_.*$") 
   %>% gsub(pattern = "-P",replacement = ".P") 
@@ -388,31 +386,31 @@ acc_annotation = acc_annotation %>% mutate(orig.ident = gsub(x = acc_annotation$
   
 
 
-write.table(acc_annotation, "../Data/CNV/acc_annotation.txt", append = FALSE, 
+write.table(acc_annotation, "./Data/CNV/acc_annotation.txt", append = FALSE, 
             sep = "\t", dec = ".",row.names = FALSE, col.names = F)
 
-infercnv_obj = CreateInfercnvObject(raw_counts_matrix="../Data/CNV/all.4icnv.txt", 
-                                    annotations_file="../Data/CNV/acc_annotation.txt",
-                                    delim="\t",gene_order_file="../Data/CNV/gencode_v19_gene_pos.txt"
+infercnv_obj = CreateInfercnvObject(raw_counts_matrix="./Data/CNV/all.4icnv.txt", 
+                                    annotations_file="./Data/CNV/acc_annotation.txt",
+                                    delim="\t",gene_order_file="./Data/CNV/gencode_v19_gene_pos.txt"
                                     ,ref_group_names=c("0", "6", "7", "8", "9")) #groups of normal cells
 
-infercnv_obj_default = infercnv::run(infercnv_obj, cutoff=1, out_dir='../Data/CNV/infercnv_output',
+infercnv_obj_default = infercnv::run(infercnv_obj, cutoff=1, out_dir='./Data/CNV/infercnv_output',
                                      cluster_by_groups=TRUE, plot_steps=FALSE,
                                      denoise=TRUE, HMM=FALSE, no_prelim_plot=TRUE,
                                      png_res=300,)
-plot_cnv(infercnv_obj_default, output_format = "png",  write_expr_matrix = FALSE,out_dir = "../Data/CNV/",png_res	=800)
+plot_cnv(infercnv_obj_default, output_format = "png",  write_expr_matrix = FALSE,out_dir = "./Data/CNV/",png_res	=800)
 
-# saveRDS(object = infercnv_obj, file = "../Data/CNV/infercnv_obj.rds")
-# saveRDS(object = infercnv_obj_default, file = "../Data/CNV/infercnv_obj_default.rds")
+# saveRDS(object = infercnv_obj, file = "./Data/CNV/infercnv_obj.rds")
+# saveRDS(object = infercnv_obj_default, file = "./Data/CNV/infercnv_obj_default.rds")
 
 cluster.info=FetchData(acc_all_cells,c("ident","orig.ident","UMAP_1","UMAP_2","nCount_RNA","nFeature_RNA","percent.mt","patient.ident","seurat_clusters"))
 cluster.info$cell=rownames(cluster.info)
-write.table(cluster.info,"../Data/CNV/acc_UMAP_clusters2.txt",sep="\t",row.names=FALSE)
+write.table(cluster.info,"./Data/CNV/acc_UMAP_clusters2.txt",sep="\t",row.names=FALSE)
 
 library(limma)
 smoothed=apply(infercnv_obj_default@expr.data,2,tricubeMovingAverage, span=0.01)
 cnsig=sqrt(apply((smoothed-1)^2,2,mean))
-umap=read.table("../Data/CNV/acc_UMAP_clusters2.txt",header = TRUE)
+umap=read.table("./Data/CNV/acc_UMAP_clusters2.txt",header = TRUE)
 names(cnsig)=umap$cell
 
 # cnsig[cnsig>0.08]=0.08
@@ -434,12 +432,12 @@ acc1_annotation = acc1_annotation %>% mutate(orig.ident = gsub(x = acc1_annotati
   
 
 
-write.table(acc1_annotation, "../Data/CNV/acc1_annotation.txt", append = FALSE, 
+write.table(acc1_annotation, "./Data/CNV/acc1_annotation.txt", append = FALSE, 
             sep = "\t", dec = ".",row.names = FALSE, col.names = F)
 
-infercnv_obj = CreateInfercnvObject(raw_counts_matrix="../Data/CNV/all.4icnv.txt", 
-                                    annotations_file="../Data/CNV/acc1_annotation.txt",
-                                    delim="\t",gene_order_file="../Data/CNV/gencode_v19_gene_pos.txt"
+infercnv_obj = CreateInfercnvObject(raw_counts_matrix="./Data/CNV/all.4icnv.txt", 
+                                    annotations_file="./Data/CNV/acc1_annotation.txt",
+                                    delim="\t",gene_order_file="./Data/CNV/gencode_v19_gene_pos.txt"
                                     ,ref_group_names=c("0", "6", "7", "8", "9")) #groups of normal cells
 ```
 

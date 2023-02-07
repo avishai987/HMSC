@@ -1,0 +1,258 @@
+---
+title: "Cancer_filtering"
+date: 6.12.22
+output: 
+  html_notebook: 
+    code_folding: hide
+---
+## Parameters:
+
+```{r}
+suffix = ""
+data_to_read = "acc_tpm_nCount_mito_no146_15k_with_ACC1_.RDS"
+```
+
+* suffix = `r suffix`
+* data_to_read = `r data_to_read`
+
+```{r}
+source_from_github(repositoy = "DEG_functions",version = "0.2.1")
+acc_all_cells = readRDS("./Data/" %>% paste0(data_to_read))
+```
+
+## UMAP
+```{r fig.width=8}
+DimPlot(acc_all_cells, reduction = "umap", label = TRUE, pt.size = 0.5,group.by = "patient.ident") 
+```
+
+## UMAP by cluster
+```{r fig.width=8}
+DimPlot(acc_all_cells, reduction = "umap", label = TRUE, pt.size = 0.5) 
+```
+
+add kaye_acc_score
+```{r}
+acchigh=read.delim("./Data/oncotarget-05-12528-s001_acchigh.txt",skip=0,header=F,sep="\t",stringsAsFactors=F)
+acchigh_s=apply(acc_all_cells@assays$RNA@scale.data[intersect(acchigh$V1,acc_all_cells@assays$RNA@var.features),],2,mean)
+acchigh_s[acchigh_s < -0.5] = -0.5
+acchigh_s[acchigh_s > 0.5] = 0.5
+acc_all_cells=AddMetaData(acc_all_cells,acchigh_s,"kaye_acc_score")
+```
+
+## Markers {.tabset}
+
+### CAF markers
+
+
+```{r fig.width=15}
+FeaturePlot(acc_all_cells, c("COL3A1","COL1A2") ,cols = c("blue","yellow"))
+```
+###  Endothelial markers
+
+
+```{r fig.width=15}
+FeaturePlot(acc_all_cells, c("VWF","PECAM1") ,cols = c("blue","yellow"))
+```
+
+
+###  WBC markers
+
+```{r fig.width=15}
+FeaturePlot(acc_all_cells, c("CD79A","PTPRC") ,cols = c("blue","yellow"))
+
+```
+
+### ACC markers
+
+```{r fig.width=15}
+FeaturePlot(acc_all_cells, c("kaye_acc_score","MYB") ,cols = c("blue","yellow"))
+```
+## {-}
+
+
+## 3.Cluster assignment
+```{r}
+new.cluster.ids <- c("1" = "ACC", #0
+                     "ACC", #1
+                     "CAF", #2
+                     "ACC", #3
+                     "Endothelial", #4
+                     "ACC", #5
+                     "ACC", #6
+                     "CAF", #7
+                     "CAF", #8
+                     "CAF", #9
+                     "ACC", #10
+                     "CAF", #11
+                     "ACC", #12
+                     "ACC", #13
+                     "ACC", #14
+                     "ACC", #15
+                     "ACC", #16
+                     "WBC", #17
+                     "CAF" #18
+                     )
+```
+
+
+```{r}
+names(new.cluster.ids) <- levels(acc_all_cells)
+acc_all_cells = SetIdent(object = acc_all_cells,value = "seurat_clusters")
+acc_all_cells <- RenameIdents(acc_all_cells, new.cluster.ids)
+DimPlot(acc_all_cells, reduction = "umap", label = F, pt.size = 0.5) 
+```
+
+## Cell types in ACC1
+```{r results='hide'}
+cell.type <- acc_all_cells@meta.data$seurat_clusters
+levels(cell.type) <- new.cluster.ids
+acc_all_cells <- AddMetaData(object = acc_all_cells, metadata = as.factor(cell.type), col.name = "cell.type")
+
+acc1_all_cells = subset(x = acc_all_cells,subset = patient.ident == "ACC1")
+acc1_types = acc1_all_cells@meta.data[["cell.type"]] %>% table() %>% as.data.frame()
+names(acc1_types)[1] = "type"
+ggplot(data=acc1_types, aes(x=type, y=Freq)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  geom_text(aes(label=Freq), vjust=-0.5, color="black", size=3.5)
+```
+
+## ACC cancer cells dim reduction
+```{r}
+acc_cancer_cells = subset(x = acc_all_cells,subset = cell.type == "ACC")
+acc_cancer_cells <- FindVariableFeatures(acc_cancer_cells, selection.method = "vst", nfeatures = 15000)
+acc_cancer_cells <- ScaleData(acc_cancer_cells, vars.to.regress = c("percent.mt","nCount_RNA"))
+acc_cancer_cells <- RunPCA(acc_cancer_cells, features = VariableFeatures(object = acc_cancer_cells))
+ElbowPlot(acc_cancer_cells, ndims = 50) # checking the dimensionality 
+```
+
+```{r}
+pc2use = 1:25
+```
+
+chosen PC = `r max(pc2use)`
+
+```{r}
+acc_cancer_cells <- FindNeighbors(acc_cancer_cells, dims = pc2use)
+acc_cancer_cells <- FindClusters(acc_cancer_cells, resolution = 1)
+acc_cancer_cells <- RunUMAP(acc_cancer_cells, dims = pc2use)
+```
+
+```{r}
+DimPlot(acc_cancer_cells,pt.size = 0.5)
+DimPlot(acc_cancer_cells,pt.size = 0.5,group.by = "patient.ident")
+```
+
+```{r}
+saveRDS(object = acc_cancer_cells,file = "./Data/acc_cancer_cells_V3.RDS")
+```
+
+## ACC1 cancer cells dim reduction
+
+```{r results='hide'}
+acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "ACC1")
+acc1_cancer_cells <- FindVariableFeatures(acc1_cancer_cells, selection.method = "vst", nfeatures = 15000)
+acc1_cancer_cells <- ScaleData(acc1_cancer_cells, vars.to.regress = c("nCount_RNA","percent.mt"))
+acc1_cancer_cells <- RunPCA(acc1_cancer_cells, features = VariableFeatures(object = acc1_cancer_cells))
+ElbowPlot(acc1_cancer_cells, ndims = 50) # checking the dimensionality 
+```
+```{r}
+pc2use = 1:25
+```
+
+chosen PC = `r max(pc2use)`
+
+```{r echo=TRUE}
+acc1_cancer_cells <- FindNeighbors(acc1_cancer_cells, dims = pc2use,k.param  = 5,annoy.metric = "cosine")
+acc1_cancer_cells <- FindClusters(acc1_cancer_cells, resolution = 0.5)
+acc1_cancer_cells <- RunUMAP(acc1_cancer_cells, dims = pc2use,n.neighbors = 5)
+```
+
+```{r}
+DimPlot(acc1_cancer_cells,pt.size = 1)
+```
+
+```{r}
+saveRDS(object = acc1_cancer_cells,file = "./Data/acc1_cancer_cells_V3.RDS")
+```
+
+```{r}
+library(Seurat)
+acc1_cancer_cells.df = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
+acc1_cor = cor(acc1_cancer_cells.df)
+annotation = FetchData(object = acc1_cancer_cells,vars = c("cell.type"))
+pht1 = pheatmap(acc1_cor,annotation_row = annotation,fontsize = 6,silent = T)
+```
+
+```{r}
+acc1_cancer_cells = readRDS(file = "./Data/acc1_cancer_cells_V3.RDS")
+```
+
+```{r}
+library(Seurat)
+acc1_cancer_cells.df = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
+acc1_cor = cor(acc1_cancer_cells.df)
+annotation = FetchData(object = acc1_cancer_cells,vars = c("cell.type"))
+pheatmap(acc1_cor,annotation_row = annotation,fontsize = 6,silent = F)
+```
+
+
+```{r}
+num_of_clusters = 3
+clustering_distance = "euclidean"
+myannotation = as.data.frame(cutree(pht1[["tree_row"]], k = num_of_clusters))
+ 
+names(myannotation)[1] = "cluster"
+  myannotation$cluster = as.factor(myannotation$cluster)
+  
+  palette1 <- palette(brewer.pal(num_of_clusters, "Paired"))
+  palette1 <- palette(brewer.pal(num_of_clusters, "Paired")) #need to do twice to work
+  
+  names(palette1) = unique(myannotation$cluster)
+  ann_colors = list (cluster = palette1)
+  annotation = list(ann_colors = ann_colors, myannotation = myannotation)
+  
+  colors <- c(seq(-1,1,by=0.01))
+  my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+  plate = FetchData(object = acc1_cancer_cells,vars = )
+  pheatmap(mat = acc1_cor,annotation_col =  annotation[["myannotation"]], annotation_colors = annotation[["ann_colors"]], clustering_distance_rows = clustering_distance,clustering_distance_cols = clustering_distance,color = my_palette,breaks = colors,show_rownames = F,show_colnames = F)
+```
+```{r}
+acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = myannotation,col.name = "cor_cluster")
+comparisons <- list(c("1", "2"),c("2","3"))
+VlnPlot(object = acc1_cancer_cells,group.by= "cor_cluster",features = "nCount_RNA")+ stat_compare_means(comparisons = comparisons, label = "p.signif",label.y = 47000)
+```
+
+```{r}
+acc1_cancer_15KnCount = subset(x = acc1_cancer_cells,subset = nCount_RNA > 15000)
+acc1_cancer_15KnCount.df = acc1_cancer_15KnCount@assays[["RNA"]]@data %>% as.data.frame()
+acc1_cor = cor(acc1_cancer_15KnCount.df)
+annotation = FetchData(object = acc1_cancer_15KnCount,vars = c("cell.type"))
+
+colors <- c(seq(-1,1,by=0.01))
+  my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+  
+pht1 = pheatmap(acc1_cor,annotation_row = annotation,fontsize = 6,breaks = colors, color = my_palette,show_colnames = F,show_rownames = F)
+```
+```{r}
+saveRDS(object = acc1_cancer_20KnCount,file = "./Data/acc1_cancer_cells_15KnCount_V3.RDS")
+```
+
+
+```{r eval=FALSE, include=FALSE}
+#save notebook:
+rstudioapi::documentSave() #save doc
+this_notebooke_path = rstudioapi::getSourceEditorContext()$path
+previewed_notebook = gsub(pattern = ".Rmd",replacement = ".nb.html",x = this_notebooke_path)
+final_notebook  = basename(this_notebooke_path) %>% gsub(pattern = ".Rmd",replacement = "")
+new_notebook_path = dirname(this_notebooke_path) %>% paste(final_notebook,sep = "/") %>% paste(suffix,sep = "_") %>% paste0(".html")
+
+if(file.exists(new_notebook_path)){
+  cat ("File exists, override?" )
+  chosen <- readline(prompt=" 1 yes \n 2 no\n")
+    if(chosen == 1){overwrite = T}else{overwrite = F}
+  }
+file.copy(from = previewed_notebook, to = dirname(this_notebooke_path) %>% paste(final_notebook,sep = "/") %>% paste(suffix,sep = "_") %>% paste0(".html"),overwrite = overwrite)
+```
+

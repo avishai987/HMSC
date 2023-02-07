@@ -1,0 +1,309 @@
+---
+title: "Myo_lum_score"
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+---
+## Data
+
+```{r}
+acc1_cancer_cells = readRDS("./Data/" %>% paste0(data_to_read))
+expression = GetAssayData(object = acc1_cancer_cells,assay = "RNA",slot = "data") %>% as.data.frame()
+
+luminal_pathways = c("CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_UP","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_UP","HUPER_BREAST_BASAL_VS_LUMINAL_DN","LIM_MAMMARY_LUMINAL_PROGENITOR_UP","SMID_BREAST_CANCER_LUMINAL_B_UP" )
+
+# add luminal pathways
+luminal_gs = msigdbr(species = "Homo sapiens") %>%as.data.frame() %>% dplyr::filter(gs_name %in% luminal_pathways)%>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+
+```
+
+## Parameters:
+
+```{r}
+suffix = "top_25_pearson_WithDistribution_withMyoAntiCor"
+threshold = 25
+data_to_read = "acc1_cancer_cells_15KnCount_V3.RDS"
+```
+
+-   suffix = `r suffix`
+-   data_to_read = `r data_to_read`
+-   threshold = `r threshold`
+
+## functions
+
+```{r warning=FALSE}
+source("./.Rprofile")
+source_from_github(repositoy = "DEG_functions",version = "0.2.1")
+
+top_correlated <- function(genes, threshold,anti_cor = F) {
+  markers_expression = FetchData(object = acc1_cancer_cells,vars = genes,slot = "data") #get genes expression
+  markers_average = rowMeans(markers_expression) %>% as.data.frame() %>% rename("average" = 1) #average them
+  cor_mat = cor(expression %>% t(), markers_average)%>% as.data.frame() #cor with all genes
+  cor_mat = cor_mat[complete.cases(cor_mat),,drop=F]  %>% as.data.frame %>%  rename("corr" = 1) #remove rows with NA in at least one col
+  if (threshold<1){ #if threshold is based on pearson correlation 
+      if(anti_cor == T){top_genes =   cor_mat %>% as.data.frame %>% select(1) %>% dplyr::filter(.< threshold) %>% rownames()}else{
+          top_genes =   cor_mat %>% as.data.frame %>% select(1) %>% dplyr::filter(.> threshold) %>% rownames()
+      }
+  }else{ #if threshold is based on top correlated genes 
+      if(anti_cor == T){threshold  = threshold*(-1)}
+      top_genes =   cor_mat %>%  top_n(threshold,corr) %>% rownames()
+      }
+  return(top_genes)
+}
+
+top_genes_cor_heatmap <- function(top_genes) {
+  top_expression = expression %>% dplyr::filter(rownames(expression) %in% top_genes)
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+pht = pheatmap(mat = cor(top_expression %>% t(), top_expression %>% t()),color = my_palette, breaks = colors)
+return(pht)
+}
+
+ 
+enriched_score_umap <- function(enrich_res, genes,col,distribution = F) {
+  rownames(enrich_res) = enrich_res$pathway_name
+  enriched_genes = enrich_res[col,"geneID"] %>% strsplit(split = "/") %>% .[[1]] %>% c(.,genes) #add original markers
+  enriched_genes_score=apply(acc1_cancer_cells@assays$RNA@data[enriched_genes,],2,mean)
+  acc1_cancer_cells=AddMetaData(acc1_cancer_cells,enriched_genes_score,"enriched_genes_score")
+  if (distribution == F) {
+      print(FeaturePlot(object = acc1_cancer_cells,features = "enriched_genes_score"))
+    }else{
+        data = FetchData(object = acc1_cancer_cells,vars = "enriched_genes_score")
+        print(
+          data %>% 
+          ggplot(aes( x=enriched_genes_score)) + 
+          geom_density() 
+        )
+    }
+    return(list( score = enriched_genes_score,genes = enriched_genes))
+}
+
+```
+
+
+
+
+# **1.Myo markers**
+
+## 1.a) expression
+
+```{r}
+myo_protein_markers = c("CNN1", "IL12B", "TP63","ACTA2")
+FeaturePlot(object = acc1_cancer_cells,features = myo_protein_markers,min.cutoff = 0)
+```
+
+IL12B is 0 in all cells
+```{r}
+myo_protein_markers = c("CNN1", "TP63","ACTA2")
+```
+
+## 1.b) top `r threshold` correlated genes with TP63+ACTA2+CNN1 {.tabset}
+
+```{r}
+top_myo  = top_correlated(genes = myo_protein_markers,threshold = threshold)
+```
+
+### Top correlated genes
+
+```{r}
+print("Number of genes = " %>% paste(length(top_myo)))
+top_myo %>% head(30)
+```
+
+
+### Correlation
+
+```{r fig.height=6, fig.width=8}
+top_genes_cor_heatmap(top_genes = top_myo)
+```
+
+### Enrichment analysis
+
+```{r results='hide'}
+enrich_res = genes_vec_enrichment(genes = top_myo,background = rownames(acc1_cancer_cells),homer = T,title = "myo top enrichment")
+enrich_res
+```
+
+### UMAP score of enriched genes
+
+```{r}
+lst = enriched_score_umap(enrich_res = enrich_res,genes = myo_protein_markers,col = 1)
+myo_score = lst[["score"]]
+enriched_genes = lst[["genes"]]
+```
+### Distribution of score
+
+```{r}
+lst = enriched_score_umap(enrich_res = enrich_res,genes = myo_protein_markers,col = 1,distribution = T)
+```
+genes in score:
+```{r}
+lst[["genes"]]
+```
+[CALD1](https://journals.sagepub.com/doi/epdf/10.1177/106689690501300108)
+[Lysyl oxidase gene (LOXL2) expression in the stromal reaction to in situ and invasive ductal breast carcinoma](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1858268/)
+TPM2 = tropomyosin 
+##  {.unnumbered}
+
+
+## Anti correlation to myo genes {.tabset}
+
+### KIT anti correlation value
+In all genes score:
+```{r}
+markers_expression = FetchData(object = acc1_cancer_cells,vars = top_myo,slot = "data") #get genes expression
+markers_average = rowMeans(markers_expression) %>% as.data.frame() %>% rename("average" = 1) #average them
+cor_mat = cor(expression %>% t(), markers_average)%>% as.data.frame() #cor with all genes
+cor_mat = cor_mat[complete.cases(cor_mat),,drop=F]  %>% as.data.frame %>%  rename("corr" = 1) #remove rows with NA in at least one col
+cor_mat = cor_mat %>% arrange(.[[1]]) 
+kit_location = which(rownames(cor_mat) == "KIT")
+kit_cor = cor_mat[rownames(cor_mat) == "KIT",1]
+print(paste("location of KIT:", kit_location))
+print(paste("correlation of KIT:", kit_cor))
+
+```
+In enriched genes:
+```{r}
+markers_expression = FetchData(object = acc1_cancer_cells,vars = enriched_genes,slot = "data") #get genes expression
+markers_average = rowMeans(markers_expression) %>% as.data.frame() %>% rename("average" = 1) #average them
+cor_mat = cor(expression %>% t(), markers_average)%>% as.data.frame() #cor with all genes
+cor_mat = cor_mat[complete.cases(cor_mat),,drop=F]  %>% as.data.frame %>%  rename("corr" = 1) #remove rows with NA in at least one col
+cor_mat = cor_mat %>% arrange(.[[1]]) 
+kit_location = which(rownames(cor_mat) == "KIT")
+kit_cor = cor_mat[rownames(cor_mat) == "KIT",1]
+print(paste("location of KIT:", kit_location))
+print(paste("correlation of KIT:", kit_cor))
+
+```
+
+
+### top 25 anti cor to myo score
+```{r}
+lum_threshold = 25
+anti_cor  = top_correlated(genes = top_myo,threshold = lum_threshold,anti_cor = T)
+anti_cor
+if("KIT" %in% anti_cor){
+  message("KIT is in genes list")
+}else{message("KIT is NOT genes list")}
+```
+
+```{r results='hide'}
+enrich_res = genes_vec_enrichment(genes = anti_cor,background = rownames(acc1_cancer_cells),homer = T,title = "lum top enrichment",custom_pathways = luminal_gs)
+enrich_res
+```
+
+### top 50 anti cor to myo score
+
+```{r}
+lum_threshold = 50
+anti_cor  = top_correlated(genes = top_myo,threshold = lum_threshold,anti_cor = T)
+anti_cor
+if("KIT" %in% anti_cor){
+  message("KIT is in genes list")
+}else{message("KIT is NOT genes list")}
+```
+
+```{r results='hide'}
+enrich_res = genes_vec_enrichment(genes = anti_cor,background = rownames(acc1_cancer_cells),homer = T,title = "lum top enrichment",custom_pathways = luminal_gs)
+enrich_res
+```
+
+### top 25 anti cor to myo enriched genes
+```{r}
+lum_threshold = 25
+anti_cor  = top_correlated(genes =  enriched_genes,threshold = lum_threshold,anti_cor = T)
+anti_cor
+if("KIT" %in% anti_cor){
+  message("KIT is in genes list")
+}else{message("KIT is NOT genes list")}
+```
+
+```{r results='hide'}
+enrich_res = genes_vec_enrichment(genes = anti_cor,background = rownames(acc1_cancer_cells),homer = T,title = "lum top enrichment",custom_pathways = luminal_gs)
+enrich_res
+```
+
+### top 50 anti cor to myo enriched genes
+
+```{r}
+lum_threshold = 50
+anti_cor  = top_correlated(genes = enriched_genes,threshold = lum_threshold,anti_cor = T)
+anti_cor
+if("KIT" %in% anti_cor){
+  message("KIT is in genes list")
+}else{message("KIT is NOT genes list")}
+```
+
+```{r results='hide'}
+enrich_res = genes_vec_enrichment(genes = anti_cor,background = rownames(acc1_cancer_cells),homer = T,title = "lum top enrichment",custom_pathways = luminal_gs)
+enrich_res
+```
+
+## {-}
+
+
+# **2. Luminal markers**
+
+## 2.a) expression
+
+```{r}
+lum_protein_markers = c("KIT")
+FeaturePlot(object = acc1_cancer_cells,features = lum_protein_markers,min.cutoff = 0)
+```
+
+## 2 top  correlated genes with KIT {.tabset}
+
+```{r}
+top_kit = top_correlated(genes = lum_protein_markers,threshold = threshold)
+```
+
+### Top correlated genes
+
+```{r}
+print("#genes = " %>% paste(length(top_kit)))
+top_kit
+```
+
+### Correlation
+
+```{r fig.height=6, fig.width=8}
+top_genes_cor_heatmap(top_genes = top_kit)
+```
+
+### Enrichment analysis
+
+```{r results='hide'}
+enrich_res = genes_vec_enrichment(genes = top_kit,background = rownames(expression),homer = T,title = "lum top enrichment",custom_pathways = luminal_gs)
+enrich_res
+```
+
+### UMAP score of enriched genes
+
+```{r}
+lst = enriched_score_umap(enrich_res = enrich_res,genes = lum_protein_markers,col = 1)
+lum_score = lst[["score"]]
+enriched_genes = lst[["genes"]]
+```
+### Distribution of score
+
+```{r}
+lst = enriched_score_umap(enrich_res = enrich_res,genes = lum_protein_markers,col = 1,distribution = T)
+```
+genes in score:
+```{r}
+lst[["genes"]]
+```
+[CCND1 Copy Number Variation in Circulating Tumor DNA from Luminal B Breast Cancer Patients](https://pubmed.ncbi.nlm.nih.gov/35896251/)
+
+##  {.unnumbered}
+
+## Correlation between luminal and myo scores
+```{r}
+cor(lum_score,myo_score)
+```
+
+
+
