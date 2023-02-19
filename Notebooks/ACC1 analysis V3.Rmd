@@ -222,6 +222,7 @@ FeaturePlot(acc_all_cells, "copynumber",pt.size = 1, cols = c("lightblue","orang
 cnv_subtypes = as.data.frame(cutree(infercnv_obj_default@tumor_subclusters[["hc"]][["HMSC"]], k = 2))
 names(cnv_subtypes)[1] = "cnv.cluster"
 rownames(cnv_subtypes) = rownames(cnv_subtypes) %>% gsub(pattern = "-",replacement = "\\.")
+cnv_subtypes [,1] = as.character(cnv_subtypes[,1])
 infercnv.observations = data.frame(fread(file = "./Data/inferCNV/infercnv.observations.txt"), row.names=1)
 names_to_keep = colnames(infercnv.observations) %in% (colnames(acc1_cancer_cells) %>% gsub(pattern = "_",replacement = "\\."))
 infercnv.observations = infercnv.observations[,names_to_keep]
@@ -257,7 +258,7 @@ acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = cnv_subtyp
 ```
 
 ```{r}
-DimPlot(acc1_cancer_cells,group.by = "cnv.cluster",pt.size = 2,cols =colors)
+DimPlot(acc1_cancer_cells,group.by = "cnv.cluster",pt.size = 2)
 ```
 
 
@@ -696,5 +697,108 @@ hpvReads_vs_myb = FetchData(object = acc1_cancer_cells,vars = c("HPV33.reads","M
 corr = cor(hpvReads_vs_myb$HPV33.reads,hpvReads_vs_myb$MYB)
 print("correlation of MYB abd hpv33_reads:" %>% paste(corr %>% round(digits = 2)) )
 ```
+```{r}
+acc1_cancer_cells_data = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
+acc1_cancer_cells_data = cor(acc1_cancer_cells_data)
+annotation = FetchData(object = acc1_cancer_cells,vars = c("orig.ident"))
 
+colors <- c(seq(-1,1,by=0.01))
+  my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+  
+pht1 = pheatmap(acc1_cor,annotation_col  = annotation,fontsize = 6,breaks = colors, color = my_palette,show_colnames = F,show_rownames = F)
+```
+
+```{r}
+acc1_cancer_cells_data = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
+acc1_cancer_cells_data = cor(acc1_cancer_cells_data)
+annotation = FetchData(object = acc1_cancer_cells,vars = c("cnv.cluster"))
+
+colors <- c(seq(-1,1,by=0.01))
+  my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+  
+pht1 = pheatmap(acc1_cor,annotation_col  = annotation,fontsize = 6,breaks = colors, color = my_palette,show_colnames = F,show_rownames = F)
+```
+
+
+```{r}
+cnv_vs_plate = FetchData(object = acc1_cancer_cells,vars = c("cnv.cluster","orig.ident"))
+test <- fisher.test(table(cnv_vs_plate))
+ggbarstats(
+  cnv_vs_plate, cnv.cluster, orig.ident,
+  results.subtitle = FALSE,
+  subtitle = paste0(
+    "Fisher's exact test", ", p-value = ",
+    ifelse(test$p.value < 0.001, "< 0.001", round(test$p.value, 3))
+  )
+)
+
+```
+```{r}
+plate3 = cnv_vs_plate %>% dplyr::filter( orig.ident == "ACC1.P3") %>% rownames() %>% gsub(pattern = "_",replacement = ".")
+plate2 = cnv_vs_plate %>% dplyr::filter( (orig.ident == "ACC.plate2")) %>% rownames() %>% gsub(pattern = "_",replacement = ".")
+```
+
+
+```{r}
+cnv_subtypes = cnv_subtypes %>% mutate(plate = case_when(
+         rownames(cnv_subtypes)[row_number()] %in% plate3 ~ "plate_3",
+         rownames(cnv_subtypes)[row_number()] %in% plate2 ~ "plate_2",
+         TRUE  ~ "ok"))
+
+# creat colours for each group
+annoCol <- list(plate = c(plate_3 = "green",plate_2 = "red"),cnv.cluster =c("1"="green","2" = "red"))
+
+
+pheatmap(infercnv.observations2,cluster_cols = F,cluster_rows = F, show_rownames = F,show_colnames = F, breaks = breaks,color = colorRampPalette(rev(c("darkred", "white", "darkblue")))(15),annotation_row = cnv_subtypes,annotation_colors = annoCol)
+
+```
+
+```{r}
+cnmf_vs_plate = FetchData(object = acc1_cancer_cells,vars = c("program.assignment","orig.ident"))
+cnmf_vs_plate= cnmf_vs_plate %>% dplyr::filter(program.assignment == "1" | program.assignment == "2")
+test <- fisher.test(table(cnmf_vs_plate))
+ggbarstats(
+  cnmf_vs_plate, program.assignment, orig.ident,
+  results.subtitle = FALSE,
+  subtitle = paste0(
+    "Fisher's exact test", ", p-value = ",
+    ifelse(test$p.value < 0.001, "< 0.001", round(test$p.value, 3))
+  )
+)
+
+```
+```{r}
+plate_3 = cnmf_vs_plate %>% dplyr::filter((program.assignment == 1 & orig.ident == "ACC1.P3") ) %>% rownames() 
+plate_2 = cnmf_vs_plate %>% dplyr::filter((program.assignment == 2 & orig.ident == "ACC.plate2")) %>% rownames()
+cells = list(plate_3 = plate_3,plate_2  = plate_2)
+```
+## Results {.tabset}
+
+
+### exceptions
+
+```{r}
+DimPlot(object = acc1_cancer_cells, cells.highlight = cells, cols.highlight = c("green","red"), cols = "gray", order = TRUE,pt.size = 2,sizes.highlight = 2) + ggtitle("exceptions")
+
+```
+### program.assignment
+
+```{r}
+DimPlot(acc1_cancer_cells,group.by = "program.assignment",pt.size = 2,cols =colors)
+```
+### metagene.1
+
+```{r}
+FeaturePlot(object = acc1_cancer_cells,features = c("metagene.1"))
+
+```
+### metagene.2
+
+```{r fig.width=8}
+
+FeaturePlot(object = acc1_cancer_cells,features = c("metagene.2"))
+
+```
 
