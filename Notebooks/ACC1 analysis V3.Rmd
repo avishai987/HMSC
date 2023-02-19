@@ -38,7 +38,7 @@ data_to_read = ""
 ```{r warning=FALSE}
 source_from_github(repositoy = "DEG_functions",version = "0.2.24")
 source_from_github(repositoy = "HMSC_functions",version = "0.1.12",script_name = "functions.R")
-source_from_github(repositoy = "cNMF_functions",version = "0.3.53",script_name = "cnmf_function_Harmony.R")
+source_from_github(repositoy = "cNMF_functions",version = "0.3.58",script_name = "cnmf_function_Harmony.R")
 ```
 ## UMAP
 ```{r }
@@ -471,8 +471,7 @@ print(
 )
 ```
 ```{r}
-hpv33_positive = HPV33 %>% dplyr::mutate(hpv33_positive = case_when(reads >= 750 ~"strong positive",
-                                                                    reads < 750 & reads > 10 ~ "positive",
+hpv33_positive = HPV33 %>% dplyr::mutate(hpv33_positive = case_when(reads >= 10 ~ "positive",
                                                                     reads < 10 ~ "negative")
 )
 
@@ -607,6 +606,7 @@ colors =  rainbow(selected_k)
 colors = c(colors,"grey")
 DimPlot(acc1_cancer_cells,group.by = "program.assignment",pt.size = 2,cols =colors)
 ``` 
+
 show cell cycle program:
 ```{r warning=FALSE}
 hallmark_name = "GO_MITOTIC_CELL_CYCLE"
@@ -689,13 +689,13 @@ myb_vs_hpv $hpv33_positive = as.character(myb_vs_hpv $hpv33_positive )
 
 ggboxplot(myb_vs_hpv, x = "hpv33_positive", y = "MYB",
           palette = "jco",
-          add = "jitter")+ stat_compare_means(method = "wilcox.test",comparisons = list(c("positive","negative"),c("strong positive", "positive"),c("strong positive", "negative")))+ stat_summary(fun.data = function(x) data.frame(y=15, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("log2(MYB)")
+          add = "jitter")+ stat_compare_means(method = "wilcox.test",comparisons = list(c("positive","negative")))+ stat_summary(fun.data = function(x) data.frame(y=15, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("log2(MYB)")
 ```
 
 ```{r}
 hpvReads_vs_myb = FetchData(object = acc1_cancer_cells,vars = c("HPV33.reads","MYB"))
 corr = cor(hpvReads_vs_myb$HPV33.reads,hpvReads_vs_myb$MYB)
-print("correlation of MYB abd hpv33_reads:" %>% paste(corr %>% round(digits = 2)) )
+print("correlation of MYB abd hpv33_reads:" %>% paste(corr %>% round(digits = 2)))
 ```
 ```{r}
 acc1_cancer_cells_data = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
@@ -735,23 +735,19 @@ ggbarstats(
 )
 
 ```
-```{r}
-plate3 = cnv_vs_plate %>% dplyr::filter( orig.ident == "ACC1.P3") %>% rownames() %>% gsub(pattern = "_",replacement = ".")
-plate2 = cnv_vs_plate %>% dplyr::filter( (orig.ident == "ACC.plate2")) %>% rownames() %>% gsub(pattern = "_",replacement = ".")
-```
+
 
 
 ```{r}
-cnv_subtypes = cnv_subtypes %>% mutate(plate = case_when(
-         rownames(cnv_subtypes)[row_number()] %in% plate3 ~ "plate_3",
-         rownames(cnv_subtypes)[row_number()] %in% plate2 ~ "plate_2",
-         TRUE  ~ "ok"))
-
 # creat colours for each group
-annoCol <- list(plate = c(plate_3 = "green",plate_2 = "red"),cnv.cluster =c("1"="green","2" = "red"))
+cnv_vs_plate = FetchData(object = acc1_cancer_cells,vars = c("cnv.cluster","orig.ident"))
 
+rownames(cnv_vs_plate) = rownames(cnv_vs_plate) %>% gsub(pattern = "_",replacement = "\\.")
+cnv_vs_plate$cnv.cluster = as.character(cnv_vs_plate$cnv.cluster)
+cnv_vs_plate = cnv_vs_plate %>% dplyr::rename(plate = "orig.ident")
+annoCol <- list(plate = c(ACC1.P3 = "red",ACC.plate2 = "green"),cnv.cluster =c("1"="green","2" = "red"))
 
-pheatmap(infercnv.observations2,cluster_cols = F,cluster_rows = F, show_rownames = F,show_colnames = F, breaks = breaks,color = colorRampPalette(rev(c("darkred", "white", "darkblue")))(15),annotation_row = cnv_subtypes,annotation_colors = annoCol)
+pheatmap(infercnv.observations2,cluster_cols = F,cluster_rows = F, show_rownames = F,show_colnames = F, breaks = breaks,color = colorRampPalette(rev(c("darkred", "white", "darkblue")))(15),annotation_row = cnv_vs_plate,annotation_colors = annoCol)
 
 ```
 
@@ -772,33 +768,94 @@ ggbarstats(
 ```{r}
 plate_3 = cnmf_vs_plate %>% dplyr::filter((program.assignment == 1 & orig.ident == "ACC1.P3") ) %>% rownames() 
 plate_2 = cnmf_vs_plate %>% dplyr::filter((program.assignment == 2 & orig.ident == "ACC.plate2")) %>% rownames()
-cells = list(plate_3 = plate_3,plate_2  = plate_2)
+cells = list(ACC1.P3 = plate_3,ACC.plate2  = plate_2)
 ```
 ## Results {.tabset}
 
 
 ### exceptions
 
+```{r results='asis'}
+exceptions_plt = DimPlot(object = acc1_cancer_cells, cells.highlight = cells, cols.highlight = c("green","red"), cols = "gray", order = TRUE,pt.size = 2,sizes.highlight = 2,combine = F) 
+colors = c("green","red","cyan","purple","grey")
+program.assignment_plt = DimPlot(acc1_cancer_cells,group.by = "program.assignment",pt.size = 2,cols = colors,combine = F)
+metagene.1_plt <- FeaturePlot(object = acc1_cancer_cells,features = c("metagene.1"),combine = F)
+metagene.2_plt = FeaturePlot(object = acc1_cancer_cells,features = c("metagene.2"),combine = F)
+
+lst = list(exceptions = exceptions_plt, program.assignment = program.assignment_plt,metagene.1 = metagene.1_plt,metagene.2 = metagene.2_plt)
+
+for (i in 1:length(lst)) {
+  cat("### ",names(lst)[i]," \n")
+  print(
+    lst[[i]]
+    )
+  plot.new()
+  dev.off()
+  cat(' \n\n')
+}
+```
 ```{r}
-DimPlot(object = acc1_cancer_cells, cells.highlight = cells, cols.highlight = c("green","red"), cols = "gray", order = TRUE,pt.size = 2,sizes.highlight = 2) + ggtitle("exceptions")
+no_neg <- function(x) {
+  x = x + abs(min(x))
+  x
+}
+# gep_scores_norm = apply(gep_scores, MARGIN = 2, FUN = min_max_normalize)%>% as.data.frame()
+gep_scores_norm = apply(gep_scores, MARGIN = 2, FUN = no_neg)%>% as.data.frame()
+gep_scores_norm = sum2one(gep_scores_norm)
+all_metagenes = expression_mult(gep_scores = gep_scores_norm,dataset = all_acc_cancer_cells,top_genes = T,z_score = F)
+```
+
+```{r fig.height=10, fig.width=10}
+# Make metagene names
+for (i in 1:ncol(all_metagenes)) {
+  colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
+}
+
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes)) {
+  metage_metadata = all_metagenes %>% select(i)
+  all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = metage_metadata)
+}
+
+FeaturePlot(object = all_acc_cancer_cells,features = colnames(all_metagenes))
 
 ```
-### program.assignment
+```{r}
+all_acc_cancer_cells = program_assignment(dataset = all_acc_cancer_cells,larger_by = 1.25,program_names = colnames(all_metagenes))
+```
 
 ```{r}
-DimPlot(acc1_cancer_cells,group.by = "program.assignment",pt.size = 2,cols =colors)
+  original_myo_genes = c("TP63", "TP73", "CAV1", "CDH3", "KRT5", "KRT14", "ACTA2", "TAGLN", "MYLK", "DKK3")
+  original_lum_genes = c("KIT", "EHF", "ELF5", "KRT7", "CLDN3", "CLDN4", "CD24", "LGALS3", "LCN2", "SLPI")
+  orig_myoscore=apply(all_acc_cancer_cells@assays[["RNA"]][original_myo_genes,],2,mean)
+  orig_lescore=apply(all_acc_cancer_cells@assays[["RNA"]][original_lum_genes,],2,mean)
+  all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = orig_lescore-orig_myoscore,col.name = "lum_over_myo")
 ```
-### metagene.1
 
 ```{r}
-FeaturePlot(object = acc1_cancer_cells,features = c("metagene.1"))
-
-```
-### metagene.2
-
-```{r fig.width=8}
-
-FeaturePlot(object = acc1_cancer_cells,features = c("metagene.2"))
+colors =  rainbow(4)
+colors = c(colors,"grey")
+DimPlot(object = all_acc_cancer_cells,group.by = "program.assignment",cols =colors)
+DimPlot(object = all_acc_cancer_cells,group.by = "patient.ident")
+  FeaturePlot(object = all_acc_cancer_cells,features = "lum_over_myo")
 
 ```
 
+
+```{r}
+dataset <- iris %>% 
+  group_by(Species) %>% 
+  tidyr::nest() %>% 
+  mutate(
+    .plot = purrr::map(data, ~ ggplot(.x, aes(x = Sepal.Length, y = Petal.Length)) + geom_point())
+  ) %>% 
+  ungroup()
+```
+
+```{r}
+automagic_tabs(input_data = dataset, panel_name = "Species", .output = ".plot", fig.align='center')
+unlink("figure", recursive = TRUE)
+```
+
+#`r automagic_tabs(input_data = dataset, panel_name = "Species", .output = ".plot", fig.align='center')`

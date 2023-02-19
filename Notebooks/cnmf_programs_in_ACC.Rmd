@@ -1,0 +1,80 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.Date()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+---
+
+## Enrichment analysis by top 200 genes of each program
+```{r fig.height=8, fig.width=8, results='hide'}
+plt_list = list()
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  res = genes_vec_enrichment(genes = top,background = rownames(gep_scores),homer = T,title = 
+                    i,silent = T,return_all = T)
+   
+  plt_list[[i]] = res$plt
+}
+gridExtra::grid.arrange(grobs = plt_list)
+```
+## score expression in all acc cancer cells
+```{r fig.height=10, fig.width=10}
+# Make metagene names
+for (i in 1:ncol(all_metagenes)) {
+  colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
+}
+
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes)) {
+  metage_metadata = all_metagenes %>% select(i)
+  all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = metage_metadata)
+}
+
+FeaturePlot(object = all_acc_cancer_cells,features = colnames(all_metagenes))
+
+```
+
+```{r}
+print_tab <- function(plt,title) {
+   cat("### ",title," \n")
+  print(
+    plt
+    )
+  plot.new()
+  dev.off()
+  cat(' \n\n')
+}
+```
+
+
+## Program assignment {.tabset}
+
+
+```{r results='asis'}
+print_tab(plt = DimPlot(object = all_acc_cancer_cells,group.by = "program.assignment",cols =colors),title = "program.assignment")
+print_tab(plt = DimPlot(object = all_acc_cancer_cells,group.by = "patient.ident"),title = "patient.ident")
+
+```
+## luminal_over_myo correlation {.tabset}
+
+```{r}
+lumScore_vs_program = FetchData(object = all_acc_cancer_cells,vars = c("lum_over_myo","program.assignment"))
+lumScore_vs_program = lumScore_vs_program %>% dplyr::filter(program.assignment %in% c("metagene.1","metagene.2","metagene.4"))
+plt = ggboxplot(lumScore_vs_program, x = "program.assignment", y = "lum_over_myo",
+          palette = "jco",
+          add = "jitter")+ stat_compare_means(method = "wilcox.test",comparisons = list(c("metagene.1","metagene.2"),c("metagene.2","metagene.4")))
+```
+
+```{r results='asis'}
+print_tab(plt = FeaturePlot(object = all_acc_cancer_cells,features = "lum_over_myo"),title = "lum_over_myo")
+print_tab(plt = plt,title = "wilcox")
+```
+
