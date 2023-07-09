@@ -460,7 +460,7 @@ HPV33_P2.df$plate = NULL
 
 HPV33 = rbind(HPV33_P3.df,HPV33_P2.df)
 acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = HPV33,col.name = "HPV33.reads")
-FeaturePlot(acc1_cancer_cells,features = "HPV33.reads",max.cutoff = 40)
+FeaturePlot(acc1_cancer_cells,features = "HPV33.reads",max.cutoff = 10)
 ```
 ```{r}
 data = FetchData(object = acc1_cancer_cells,vars = "HPV33.reads")
@@ -493,25 +493,29 @@ library(reticulate)
 
 ```{r}
 #write expression
-acc1_cancer_cells = FindVariableFeatures(object = acc1_cancer_cells,nfeatures = 2000)
+nfeatures = 10000
+nfeatures_name = (nfeatures/1000) %>% as.character()
+acc1_cancer_cells = FindVariableFeatures(object = acc1_cancer_cells,nfeatures = nfeatures)
 vargenes = VariableFeatures(object = acc1_cancer_cells)
 hmsc_expression = t(as.matrix(GetAssayData(acc1_cancer_cells,slot='data')))
 hmsc_expression = 2**hmsc_expression #convert from log2(tpm+1) to tpm
 hmsc_expression = hmsc_expression-1
-# hmsc_expression = hmsc_expression[,!colSums(hmsc_expression==0, na.rm=TRUE)==nrow(hmsc_expression)] #delete rows that have all 0
+hmsc_expression = hmsc_expression[,!colSums(hmsc_expression==0, na.rm=TRUE)==nrow(hmsc_expression)] #delete rows that have all 0
 hmsc_expression = hmsc_expression[,vargenes]
-write.table(x = hmsc_expression ,file = './Data/cNMF/hmsc_expressionData_2Kvargenes.txt',sep = "\t")
+write.table(x = hmsc_expression ,file = paste0('./Data/cNMF/hmsc_expressionData_',nfeatures_name,'Kvargenes.txt'),sep = "\t")
 ```
 
 
 
 ```{python eval=F}
 from cnmf import cNMF
-name = 'HMSC_cNMF_2Kvargenes'
+import numpy as np
+nfeatures_name = r.nfeatures_name
+name = 'HMSC_cNMF_'+nfeatures_name+'Kvargenes'
 outdir = './Data/cNMF'
 K_range = np.arange(3,10)
 cnmf_obj = cNMF(output_dir=outdir, name=name)
-counts_fn='./Data/cNMF/hmsc_expressionData_2Kvargenes.txt'
+counts_fn='./Data/cNMF/hmsc_expressionData_'+nfeatures_name+'Kvargenes.txt'
 tpm_fn = counts_fn ## This is a weird case where because this dataset is not 3' end umi sequencing, we opted to use the TPM matrix as the input matrix rather than the count matrix
 
 cnmf_obj.prepare(counts_fn=counts_fn, components=K_range, seed=14,tpm_fn=tpm_fn)
@@ -527,10 +531,10 @@ cnmf_obj.k_selection_plot()
 ```
 ## Save object
 ```{python eval=F}
-import pickle
-f = open('./Data/cNMF/HMSC_cNMF_2Kvargenes/cnmf_obj.pckl', 'wb')
-pickle.dump(cnmf_obj, f)
-f.close()
+# import pickle
+# f = open('./Data/cNMF/HMSC_cNMF_'+nfeatures_name+'Kvargenes/cnmf_obj.pckl', 'wb')
+# pickle.dump(cnmf_obj, f)
+# f.close()
 ```
 
 
@@ -538,7 +542,8 @@ f.close()
 ```{python}
 from cnmf import cNMF
 import pickle
-f = open('./Data/cNMF/HMSC_cNMF_2Kvargenes/cnmf_obj.pckl', 'rb')
+nfeatures = "2K"
+f = open('./Data/cNMF/HMSC_cNMF_' + nfeatures+ 'vargenes/cnmf_obj.pckl', 'rb')
 cnmf_obj = pickle.load(f)
 f.close()
 ```
@@ -552,8 +557,8 @@ usage_norm, gep_scores, gep_tpm, topgenes = cnmf_obj.load_results(K=selected_k, 
 ```
 
 ```{r}
-# calculate usage by expression*genes coefs:
 gep_scores = py$gep_scores
+gep_tpm = py$gep_tpm
 all_metagenes= py$usage_norm
 ```
 
@@ -570,6 +575,63 @@ for (i in 1:ncol(gep_scores)) {
 }
 gridExtra::grid.arrange(grobs = plt_list)
 ```
+```{r fig.height=8, fig.width=8, results='hide'}
+
+canonical_pathways = msigdbr(species = "Homo sapiens", category = "C2") %>% dplyr::filter(gs_subcat != "CGP") %>%  dplyr::distinct(gs_name, gene_symbol) 
+
+plt_list = list()
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  res = genes_vec_enrichment(genes = top,background = rownames(gep_scores),homer = T,title = 
+                    i,silent = T,return_all = T,custom_pathways = canonical_pathways)
+   
+  plt_list[[i]] = res$plt
+}
+gridExtra::grid.arrange(grobs = plt_list)
+```
+
+
+```{r}
+# lum genes in metagenes
+message("lum genes in metagenes")
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  cat(paste0("metagene ",i,": "))
+  print(original_lum_genes[original_lum_genes %in% top])
+
+}
+cat("\n")
+
+
+# myo genes in metagenes
+message("myo genes in metagenes")
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  cat(paste0("metagene ",i,": "))
+  print(original_myo_genes[original_myo_genes %in% top])
+
+}
+cat("\n")
+
+notch_genes = c("JAG1","JAG2","NOTCH3","NOTCH2","NOTCH1","DLL1","MYB","HES4","HEY1","HEY2","NRARP")
+# notch genes in metagenes
+message("myo genes in metagenes")
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  cat(paste0("metagene ",i,": "))
+  print(notch_genes[notch_genes %in% top])
+
+}
+cat("\n")
+```
+
+
+
+
 ```{r}
 plt_list = list()
 for (i in 1:ncol(gep_scores)) {
@@ -593,9 +655,49 @@ for (i in 1:ncol(all_metagenes)) {
   acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = metage_metadata)
 }
 
-FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes))
+FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes),max.cutoff = 1)
 
 ```
+```{r fig.height=6, fig.width=10}
+ 
+```
+
+```{r}
+meta3 = FetchData(object = acc1_cancer_cells,vars = c("metagene.3"))
+ggplot(meta3, aes(x=metagene.3)) + 
+  geom_density()
+meta3[,1] = as.numeric(meta3[,1])
+sum(meta3[,1]>0,na.rm = T )
+sum(meta3[,1]==0,na.rm = T )
+
+```
+```{r fig.height=10, fig.width=10}
+
+no_neg <- function(x) {
+  x = x + abs(min(x))
+  x
+}
+
+sum_2_one <- function(x) {
+  x =x/sum(x)
+  x
+}
+all_metagenes_norm= scale(all_metagenes) %>% as.data.frame()
+# Make metagene names
+for (i in 1:ncol(all_metagenes_norm)) {
+  colnames(all_metagenes_norm)[i] = "metagene." %>% paste0(i)
+}
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes_norm)) {
+  metage_metadata = all_metagenes_norm %>% select(i)
+  acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = metage_metadata)
+}
+
+FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes_norm),max.cutoff = 0.5)
+
+```
+
 ## assignment UMAP
 ```{r}
 larger_by = 2
@@ -616,6 +718,7 @@ geneIds= genesets[[hallmark_name]]@geneIds
 score <- apply(acc1_cancer_cells@assays$RNA@data[intersect(geneIds,var_features),],2,mean)
 acc1_cancer_cells=AddMetaData(acc1_cancer_cells,score,hallmark_name)
 ```
+
 ```{r}
 FeaturePlot(object = acc1_cancer_cells,features = hallmark_name)
 
@@ -697,6 +800,8 @@ hpvReads_vs_myb = FetchData(object = acc1_cancer_cells,vars = c("HPV33.reads","M
 corr = cor(hpvReads_vs_myb$HPV33.reads,hpvReads_vs_myb$MYB)
 print("correlation of MYB abd hpv33_reads:" %>% paste(corr %>% round(digits = 2)))
 ```
+
+
 ```{r}
 acc1_cancer_cells_data = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
 acc1_cancer_cells_data = cor(acc1_cancer_cells_data)
@@ -765,6 +870,8 @@ ggbarstats(
 )
 
 ```
+
+
 ```{r}
 plate_3 = cnmf_vs_plate %>% dplyr::filter((program.assignment == 1 & orig.ident == "ACC1.P3") ) %>% rownames() 
 plate_2 = cnmf_vs_plate %>% dplyr::filter((program.assignment == 2 & orig.ident == "ACC.plate2")) %>% rownames()
@@ -794,16 +901,21 @@ for (i in 1:length(lst)) {
   cat(' \n\n')
 }
 ```
+
+
+
 ```{r}
 no_neg <- function(x) {
   x = x + abs(min(x))
   x
 }
 # gep_scores_norm = apply(gep_scores, MARGIN = 2, FUN = min_max_normalize)%>% as.data.frame()
+# gep_scores_norm = gep_scores
 gep_scores_norm = apply(gep_scores, MARGIN = 2, FUN = no_neg)%>% as.data.frame()
 gep_scores_norm = sum2one(gep_scores_norm)
 all_metagenes = expression_mult(gep_scores = gep_scores_norm,dataset = all_acc_cancer_cells,top_genes = T,z_score = F)
 ```
+
 
 ```{r fig.height=10, fig.width=10}
 # Make metagene names
@@ -818,44 +930,24 @@ for (i in 1:ncol(all_metagenes)) {
   all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = metage_metadata)
 }
 
-FeaturePlot(object = all_acc_cancer_cells,features = colnames(all_metagenes))
-
-```
-```{r}
-all_acc_cancer_cells = program_assignment(dataset = all_acc_cancer_cells,larger_by = 1.25,program_names = colnames(all_metagenes))
-```
-
-```{r}
-  original_myo_genes = c("TP63", "TP73", "CAV1", "CDH3", "KRT5", "KRT14", "ACTA2", "TAGLN", "MYLK", "DKK3")
-  original_lum_genes = c("KIT", "EHF", "ELF5", "KRT7", "CLDN3", "CLDN4", "CD24", "LGALS3", "LCN2", "SLPI")
-  orig_myoscore=apply(all_acc_cancer_cells@assays[["RNA"]][original_myo_genes,],2,mean)
-  orig_lescore=apply(all_acc_cancer_cells@assays[["RNA"]][original_lum_genes,],2,mean)
-  all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = orig_lescore-orig_myoscore,col.name = "lum_over_myo")
-```
-
-```{r}
-colors =  rainbow(4)
-colors = c(colors,"grey")
-DimPlot(object = all_acc_cancer_cells,group.by = "program.assignment",cols =colors)
-DimPlot(object = all_acc_cancer_cells,group.by = "patient.ident")
-  FeaturePlot(object = all_acc_cancer_cells,features = "lum_over_myo")
+FeaturePlot(object = all_acc_cancer_cells,features = colnames(all_metagenes),max.cutoff = 100)
 
 ```
 
 
-```{r}
-dataset <- iris %>% 
-  group_by(Species) %>% 
-  tidyr::nest() %>% 
-  mutate(
-    .plot = purrr::map(data, ~ ggplot(.x, aes(x = Sepal.Length, y = Petal.Length)) + geom_point())
-  ) %>% 
-  ungroup()
-```
 
-```{r}
-automagic_tabs(input_data = dataset, panel_name = "Species", .output = ".plot", fig.align='center')
-unlink("figure", recursive = TRUE)
-```
 
-#`r automagic_tabs(input_data = dataset, panel_name = "Species", .output = ".plot", fig.align='center')`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
