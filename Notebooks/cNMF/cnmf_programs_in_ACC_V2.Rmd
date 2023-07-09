@@ -1,0 +1,282 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+---
+
+# Data
+```{r}
+all_acc_cancer_cells = readRDS("./Data/acc_cancer_cells_V4.RDS")
+acc_cancerCells_noACC1 = readRDS("./Data/acc_cancer_no146_primaryonly15k_cancercells.rds")
+```
+
+
+
+# Functions
+
+```{r warning=FALSE}
+source_from_github(repositoy = "DEG_functions",version = "0.2.24")
+source_from_github(repositoy = "HMSC_functions",version = "0.1.12",script_name = "functions.R")
+source_from_github(repositoy = "cNMF_functions",version = "0.3.75",script_name = "cnmf_function_Harmony.R")
+
+no_neg <- function(x) {
+  x = x + abs(min(x))
+  x
+}
+
+sum_2_one <- function(x) {
+  x =x/sum(x)
+  x
+}
+
+```
+
+
+```{python}
+# import python functions:
+import types
+
+get_norm_counts  = r.get_norm_counts
+code_obj = compile(get_norm_counts, '<string>', 'exec')
+get_norm_counts = types.FunctionType(code_obj.co_consts[0], globals())
+
+get_usage_from_score  = r.get_usage_from_score
+code_obj = compile(get_usage_from_score, '<string>', 'exec')
+get_usage_from_score = types.FunctionType(code_obj.co_consts[0], globals())
+
+```
+
+```{r}
+  original_myo_genes = c("TP63", "TP73", "CAV1", "CDH3", "KRT5", "KRT14", "ACTA2", "TAGLN", "MYLK", "DKK3")
+  original_lum_genes = c("KIT", "EHF", "ELF5", "KRT7", "CLDN3", "CLDN4", "CD24", "LGALS3", "LCN2", "SLPI")
+  notch_targets_genes = c("NRARP", "NOTCH3", "HES4", "HEY1", "HEY2")
+  notch_ligands = c("DLL1", "JAG1", "JAG2", "HEY1")
+
+  orig_myoscore=apply(acc_cancerCells_noACC1@assays[["RNA"]][original_myo_genes,],2,mean)
+  orig_lescore=apply(acc_cancerCells_noACC1@assays[["RNA"]][original_lum_genes,],2,mean)
+  notch_score=apply(acc_cancerCells_noACC1@assays[["RNA"]][notch_targets_genes,],2,mean)
+  notch_ligands_score=apply(acc_cancerCells_noACC1@assays[["RNA"]][notch_ligands,],2,mean)
+
+  acc_cancerCells_noACC1 = AddMetaData(object = acc_cancerCells_noACC1,metadata = orig_myoscore,col.name = "myo_score")
+  acc_cancerCells_noACC1 = AddMetaData(object = acc_cancerCells_noACC1,metadata = orig_lescore,col.name = "lum_score")
+  acc_cancerCells_noACC1 = AddMetaData(object = acc_cancerCells_noACC1,metadata = notch_score,col.name = "notch_score")
+    
+  acc_cancerCells_noACC1 = AddMetaData(object = acc_cancerCells_noACC1,metadata = notch_ligands_score,col.name = "notch_ligands_score")
+
+
+```
+## Load object
+```{python}
+from cnmf import cNMF
+import pickle
+nfeatures = "2K"
+f = open('./Data/cNMF/HMSC_cNMF_' + nfeatures+ 'vargenes/cnmf_obj.pckl', 'rb')
+cnmf_obj = pickle.load(f)
+f.close()
+```
+
+```{python}
+selected_k = 4
+density_threshold = 0.1
+cnmf_obj.consensus(k=selected_k, density_threshold=density_threshold,show_clustering=True)
+usage_norm, gep_scores, gep_tpm, topgenes = cnmf_obj.load_results(K=selected_k, density_threshold=density_threshold)
+```
+
+```{r}
+gep_scores = py$gep_scores
+gep_tpm = py$gep_tpm
+all_metagenes= py$usage_norm
+```
+
+
+
+
+# Get expression
+
+```{r}
+acc1_cancer_cells = FindVariableFeatures(object = acc1_cancer_cells,nfeatures = 2000)
+vargenes = VariableFeatures(object = acc1_cancer_cells)
+
+acc_expression = t(as.matrix(GetAssayData(acc_cancerCells_noACC1,slot='data')))
+acc_expression = acc_expression[,vargenes]
+acc_expression = 2**acc_expression #convert from log2(tpm+1) to tpm
+acc_expression = acc_expression-1
+acc_expression = acc_expression  %>% as.data.frame()
+
+all_0_genes = colnames(acc_expression)[colSums(acc_expression==0, na.rm=TRUE)==nrow(acc_expression)] #delete rows that have all 0
+vargenes = vargenes[!vargenes %in% all_0_genes]
+```
+
+# Calculate usage
+```{python}
+import numpy as np
+acc_expression = r.acc_expression
+vargenes = r.vargenes
+usage_by_calc = get_usage_from_score(counts=acc_expression,tpm=acc_expression,genes=np.array(vargenes),cnmf_obj=cnmf_obj)
+```
+
+```{r}
+all_metagenes= py$usage_by_calc
+all_metagenes = all_metagenes[,c(1,4,3,2)]
+
+```
+
+
+
+# Metagenes on ACC  {.tabset}
+
+```{r fig.height=10, fig.width=10, results='asis'}
+
+# Make metagene names
+for (i in 1:ncol(all_metagenes)) {
+  colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
+}
+
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes)) {
+  metage_metadata = all_metagenes %>% select(i)
+  acc_cancerCells_noACC1 = AddMetaData(object = acc_cancerCells_noACC1,metadata = metage_metadata)
+}
+
+print_tab(plt = 
+            FeaturePlot(object = acc_cancerCells_noACC1,features = colnames(all_metagenes))
+          ,title = "metagenes expression")
+
+all_metagenes= scale(all_metagenes) %>% as.data.frame()
+for (i in 1:ncol(all_metagenes)) {
+  colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
+}
+
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes)) {
+  metage_metadata = all_metagenes %>% select(i)
+  acc_cancerCells_noACC1 = AddMetaData(object = acc_cancerCells_noACC1,metadata = metage_metadata)
+}
+
+print_tab(plt = 
+            FeaturePlot(object = acc_cancerCells_noACC1,features = colnames(all_metagenes))
+          ,title = "metagenes z-score expression")
+
+```
+
+# Assign to programs by z-scored metagenes
+```{r}
+acc_cancerCells_noACC1 = program_assignment(dataset = acc_cancerCells_noACC1,larger_by = 2,program_names = colnames(all_metagenes))
+```
+
+
+
+# UMAPS {.tabset}
+
+```{r echo=TRUE, results='asis'}
+colors =  rainbow(acc_cancerCells_noACC1$program.assignment %>% unique() %>% length()-1)
+colors = c(colors,"grey")
+print_tab(plt = DimPlot(object = acc_cancerCells_noACC1,group.by = "program.assignment",cols =colors),title = "program.assignment")
+print_tab(plt = DimPlot(object = acc_cancerCells_noACC1,group.by = "patient.ident"),title = "patient.ident")
+
+print_tab(plt = FeaturePlot(object = acc_cancerCells_noACC1,features = "lum_score"),title = "lum_score")
+
+print_tab(plt = FeaturePlot(object = acc_cancerCells_noACC1,features = "myo_score"),title = "myo_score")
+
+
+
+```
+# metagenes by lum_over_myo
+```{r}
+acc_cancerCells_noACC1 = subset(acc_cancerCells_noACC1,subset = patient.ident!= "ACC1")
+
+lumScore_vs_program = FetchData(object = acc_cancerCells_noACC1,vars = c("lum_over_myo","program.assignment"))
+lumScore_vs_program$program.assignment <- factor(lumScore_vs_program$program.assignment, levels = c("metagene.1","metagene.2","metagene.4"))
+
+lumScore_vs_program = lumScore_vs_program %>% dplyr::filter(program.assignment %in% c("metagene.1","metagene.2","metagene.4"))
+ggboxplot(lumScore_vs_program, x = "program.assignment", y = "lum_over_myo",
+          palette = "jco",
+          add = "jitter")+ stat_compare_means(method = "wilcox.test",comparisons = list(c("metagene.1","metagene.2"),c("metagene.2","metagene.4")))
+```
+# Metagenes correlation with myo score {.tabset}
+
+
+
+```{r echo=TRUE, results='asis'}
+for (metagene in c("metagene.1","metagene.2","metagene.3","metagene.4")) {
+   lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c(metagene,"myo_score"))
+  print_tab(plt = 
+    ggscatter(lum_score_vs_programScore, x = metagene, y = "myo_score", 
+            add = "reg.line", conf.int = TRUE, 
+            cor.coef = TRUE, cor.method = "pearson")
+  ,title = metagene)
+}
+ 
+```
+
+
+# Metagenes correlation with lum score {.tabset}
+```{r echo=TRUE, results='asis'}
+for (metagene in c("metagene.1","metagene.2","metagene.3","metagene.4")) {
+   lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c(metagene,"lum_score"))
+  print_tab(plt = 
+    ggscatter(lum_score_vs_programScore, x = metagene, y = "lum_score", 
+            add = "reg.line", conf.int = TRUE, 
+            cor.coef = TRUE, cor.method = "pearson")
+  ,title = metagene)
+}
+ 
+```
+
+
+
+# Notch score {.tabset}
+```{r echo=TRUE, results='asis'}
+for (metagene in c("metagene.1","metagene.2","metagene.3","metagene.4")) {
+   lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c(metagene,"notch_score"))
+  print_tab(plt = 
+    ggscatter(lum_score_vs_programScore, x = metagene, y = "notch_score", 
+            add = "reg.line", conf.int = TRUE, 
+            cor.coef = TRUE, cor.method = "pearson")
+  ,title = metagene)
+}
+ 
+```
+
+
+
+# Notch  ligands score {.tabset}
+```{r echo=TRUE, results='asis'}
+for (metagene in c("metagene.1","metagene.2","metagene.3","metagene.4")) {
+   lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c(metagene,"notch_ligands_score"))
+  print_tab(plt = 
+    ggscatter(lum_score_vs_programScore, x = metagene, y = "notch_ligands_score", 
+            add = "reg.line", conf.int = TRUE, 
+            cor.coef = TRUE, cor.method = "pearson")
+  ,title = metagene)
+}
+ 
+```
+
+
+
+
+
+```{r}
+acc1_cancer.df = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
+acc1_cor = cor(acc1_cancer.df)
+annotation = FetchData(object = acc1_cancer_cells,vars = c("orig.ident"))
+
+colors <- c(seq(-1,1,by=0.01))
+  my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+  clustering_distance = "euclidean"
+pht1 = pheatmap(acc1_cor,annotation_col = annotation,fontsize = 6,breaks = colors, color = my_palette,show_colnames = F,show_rownames = F,clustering_distance_cols = clustering_distance,clustering_distance_rows = clustering_distance,clustering_method = "ward.D2")
+```
+

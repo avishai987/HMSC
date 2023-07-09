@@ -1,0 +1,331 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.Date()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+---
+
+
+```{r}
+all_acc_cancer_cells = readRDS("./Data/acc_cancer_cells_V3.RDS")
+```
+
+```{r}
+  original_myo_genes = c("TP63", "TP73", "CAV1", "CDH3", "KRT5", "KRT14", "ACTA2", "TAGLN", "MYLK", "DKK3")
+  original_lum_genes = c("KIT", "EHF", "ELF5", "KRT7", "CLDN3", "CLDN4", "CD24", "LGALS3", "LCN2", "SLPI")
+  notch_targets_genes = c("NRARP", "NOTCH3", "HES4", "HEY1", "HEY2")
+  notch_ligands = c("DLL1", "JAG1", "JAG2", "HEY1")
+
+  orig_myoscore=apply(all_acc_cancer_cells@assays[["RNA"]][original_myo_genes,],2,mean)
+  orig_lescore=apply(all_acc_cancer_cells@assays[["RNA"]][original_lum_genes,],2,mean)
+  notch_score=apply(all_acc_cancer_cells@assays[["RNA"]][notch_targets_genes,],2,mean)
+  notch_ligands_score=apply(all_acc_cancer_cells@assays[["RNA"]][notch_ligands,],2,mean)
+
+  all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = orig_lescore-orig_myoscore,col.name = "lum_over_myo")
+    all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = orig_myoscore,col.name = "myo_score")
+    all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = orig_lescore,col.name = "lum_score")
+    all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = notch_score,col.name = "notch_score")
+    
+  all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = notch_ligands_score,col.name = "notch_ligands_score_score")
+
+
+```
+## Load object
+```{python}
+from cnmf import cNMF
+import pickle
+nfeatures = "2K"
+f = open('./Data/cNMF/HMSC_cNMF_' + nfeatures+ 'vargenes/cnmf_obj.pckl', 'rb')
+cnmf_obj = pickle.load(f)
+f.close()
+```
+
+```{python}
+selected_k = 4
+density_threshold = 0.1
+cnmf_obj.consensus(k=selected_k, density_threshold=density_threshold,show_clustering=True)
+usage_norm, gep_scores, gep_tpm, topgenes = cnmf_obj.load_results(K=selected_k, density_threshold=density_threshold)
+```
+
+```{r}
+gep_scores = py$gep_scores
+gep_tpm = py$gep_tpm
+all_metagenes= py$usage_norm
+```
+
+
+
+
+```{r}
+no_neg <- function(x) {
+  x = x + abs(min(x))
+  x
+}
+
+sum_2_one <- function(x) {
+  x =x/sum(x)
+  x
+}
+
+gep_scores_norm = gep_scores
+# gep_scores_norm = scale(gep_scores_norm) %>% as.data.frame()
+
+#or:
+gep_scores_norm = apply(gep_scores, MARGIN = 2, FUN = no_neg)%>% as.data.frame()
+# 
+gep_scores_norm = sum2one(gep_scores_norm)
+all_metagenes = expression_mult(gep_scores = gep_scores_norm,dataset = all_acc_cancer_cells,top_genes = T,z_score = F)
+# normalize metagenes:
+all_metagenes = apply(all_metagenes, MARGIN = 2, FUN = no_neg)  %>% as.data.frame()
+all_metagenes = apply(all_metagenes, 1, sum_2_one) %>% t() %>% as.data.frame()
+```
+
+
+# Programs enrichments {.tabset}
+
+```{r fig.height=8, fig.width=8, results='asis'}
+#Hallmarks:
+plt_list = list()
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  res = genes_vec_enrichment(genes = top,background = rownames(gep_scores),homer = T,title = 
+                    i,silent = T,return_all = T)
+   
+  plt_list[[i]] = res$plt
+}
+p = ggarrange(plotlist  = plt_list)
+print_tab(plt = p,title = "HALLMARK enrichment")
+
+#Canonical:
+canonical_pathways = msigdbr(species = "Homo sapiens", category = "C2") %>% dplyr::filter(gs_subcat != "CGP") %>%  dplyr::distinct(gs_name, gene_symbol) 
+
+plt_list = list()
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  res = genes_vec_enrichment(genes = top,background = rownames(gep_scores),homer = T,title = 
+                    i,silent = T,return_all = T,custom_pathways = canonical_pathways)
+   
+  plt_list[[i]] = res$plt
+}
+p = ggarrange(plotlist  = plt_list)
+print_tab(plt = p,title = "canonical pathway enrichment")
+
+
+
+```
+## luminal and myo genes in score
+```{r results='hold',collapse=TRUE}
+# lum genes in metagenes
+message("lum genes in metagenes:")
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  cat(paste0("metagene ",i,": "))
+  print(original_lum_genes[original_lum_genes %in% top])
+
+}
+cat("\n")
+
+
+# myo genes in metagenes
+message("myo genes in metagenes:")
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  cat(paste0("metagene ",i,": "))
+  print(original_myo_genes[original_myo_genes %in% top])
+
+}
+cat("\n")
+
+notch_genes = c("JAG1","JAG2","NOTCH3","NOTCH2","NOTCH1","DLL1","MYB","HES4","HEY1","HEY2","NRARP")
+# notch genes in metagenes
+message("notch genes in metagenes:")
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  cat(paste0("metagene ",i,": "))
+  print(notch_genes[notch_genes %in% top])
+
+}
+cat("\n")
+```
+
+
+
+# Metagenes on ACC
+
+```{r fig.height=10, fig.width=10}
+# Make metagene names
+for (i in 1:ncol(all_metagenes)) {
+  colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
+}
+
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes)) {
+  metage_metadata = all_metagenes %>% select(i)
+  all_acc_cancer_cells = AddMetaData(object = all_acc_cancer_cells,metadata = metage_metadata)
+}
+
+FeaturePlot(object = all_acc_cancer_cells,features = colnames(all_metagenes),max.cutoff = 100)
+
+```
+
+```{r}
+all_acc_cancer_cells = program_assignment(dataset = all_acc_cancer_cells,larger_by = 1.25,program_names = colnames(all_metagenes))
+```
+
+
+
+
+
+
+
+# UMAPS {.tabset}
+
+```{r echo=TRUE, results='asis'}
+colors =  rainbow(all_acc_cancer_cells$program.assignment %>% unique() %>% length()-1)
+colors = c(colors,"grey")
+print_tab(plt = DimPlot(object = all_acc_cancer_cells,group.by = "program.assignment",cols =colors),title = "program.assignment")
+print_tab(plt = DimPlot(object = all_acc_cancer_cells,group.by = "patient.ident"),title = "patient.ident")
+
+print_tab(plt = FeaturePlot(object = all_acc_cancer_cells,features = "lum_score"),title = "lum_score")
+
+print_tab(plt = FeaturePlot(object = all_acc_cancer_cells,features = "myo_score"),title = "myo_score")
+
+
+
+```
+# metagenes by lum_over_myo
+```{r}
+acc_cancerCells_noACC1 = subset(all_acc_cancer_cells,subset = patient.ident!= "ACC1")
+
+lumScore_vs_program = FetchData(object = acc_cancerCells_noACC1,vars = c("lum_over_myo","program.assignment"))
+lumScore_vs_program$program.assignment <- factor(lumScore_vs_program$program.assignment, levels = c("metagene.1","metagene.2","metagene.4"))
+
+lumScore_vs_program = lumScore_vs_program %>% dplyr::filter(program.assignment %in% c("metagene.1","metagene.2","metagene.4"))
+ggboxplot(lumScore_vs_program, x = "program.assignment", y = "lum_over_myo",
+          palette = "jco",
+          add = "jitter")+ stat_compare_means(method = "wilcox.test",comparisons = list(c("metagene.1","metagene.2"),c("metagene.2","metagene.4")))
+```
+# Metagenes correlation with myo score {.tabset}
+
+
+
+```{r echo=TRUE, results='asis'}
+for (metagene in c("metagene.1","metagene.2","metagene.4")) {
+   lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c(metagene,"myo_score"))
+  print_tab(plt = 
+    ggscatter(lum_score_vs_programScore, x = metagene, y = "myo_score", 
+            add = "reg.line", conf.int = TRUE, 
+            cor.coef = TRUE, cor.method = "pearson")
+  ,title = metagene)
+}
+ 
+```
+
+
+# Metagenes correlation with lum score {.tabset}
+```{r echo=TRUE, results='asis'}
+for (metagene in c("metagene.1","metagene.2","metagene.4")) {
+   lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c(metagene,"lum_score"))
+  print_tab(plt = 
+    ggscatter(lum_score_vs_programScore, x = metagene, y = "lum_score", 
+            add = "reg.line", conf.int = TRUE, 
+            cor.coef = TRUE, cor.method = "pearson")
+  ,title = metagene)
+}
+ 
+```
+
+
+
+# Notch score {.tabset}
+```{r echo=TRUE, results='asis'}
+for (metagene in c("metagene.1","metagene.2","metagene.4")) {
+   lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c(metagene,"notch_score"))
+  print_tab(plt = 
+    ggscatter(lum_score_vs_programScore, x = metagene, y = "notch_score", 
+            add = "reg.line", conf.int = TRUE, 
+            cor.coef = TRUE, cor.method = "pearson")
+  ,title = metagene)
+}
+ 
+```
+
+
+
+# Notch  ligands score {.tabset}
+```{r echo=TRUE, results='asis'}
+for (metagene in c("metagene.1","metagene.2","metagene.4")) {
+   lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c(metagene,"notch_ligands_score_score"))
+  print_tab(plt = 
+    ggscatter(lum_score_vs_programScore, x = metagene, y = "notch_ligands_score_score", 
+            add = "reg.line", conf.int = TRUE, 
+            cor.coef = TRUE, cor.method = "pearson")
+  ,title = metagene)
+}
+ 
+```
+
+# metagene 1 with myo genes {.tabset}
+
+
+```{r echo=TRUE, results='asis'}
+
+for (gene in original_myo_genes) {
+  
+  lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c("metagene.1",gene))
+p = ggscatter(lum_score_vs_programScore, x = "metagene.1", y = gene, 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson")
+print_tab(plt = p,title = gene)
+}
+
+```
+# metagene 2 with myo genes {.tabset}
+
+
+
+```{r echo=TRUE, results='asis'}
+
+for (gene in original_myo_genes) {
+  
+  lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c("metagene.2",gene))
+p = ggscatter(lum_score_vs_programScore, x = "metagene.2", y = gene, 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson")
+print_tab(plt = p,title = gene)
+}
+
+```
+
+# metagene 2 with acc genes {.tabset}
+
+
+
+```{r echo=TRUE, results='asis'}
+notch_genes = c("JAG1","JAG2","NOTCH3","NOTCH2","NOTCH1","DLL1","MYB","HES4","HEY1","HEY2","NRARP")
+
+acc_cancerCells_noACC1 = subset(all_acc_cancer_cells,subset = patient.ident!= "ACC1")
+for (gene in notch_genes) {
+  
+  lum_score_vs_programScore = FetchData(object = acc_cancerCells_noACC1,vars = c("metagene.2",gene))
+p = ggscatter(lum_score_vs_programScore, x = "metagene.2", y = gene, 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson")
+print_tab(plt = p,title = gene)
+}
+
+```
+
+

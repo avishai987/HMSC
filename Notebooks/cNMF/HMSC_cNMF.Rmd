@@ -1,0 +1,421 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+---
+
+## Parameters
+
+```{r warning=FALSE}
+suffix = ""
+data_to_read = ""
+```
+
+
+## functions
+
+```{r warning=FALSE}
+source_from_github(repositoy = "DEG_functions",version = "0.2.24")
+source_from_github(repositoy = "HMSC_functions",version = "0.1.12",script_name = "functions.R")
+source_from_github(repositoy = "cNMF_functions",version = "0.3.72",script_name = "cnmf_function_Harmony.R")
+
+no_neg <- function(x) {
+  x = x + abs(min(x))
+  x
+}
+
+sum_2_one <- function(x) {
+  x =x/sum(x)
+  x
+}
+
+```
+
+## Data
+
+```{r}
+
+```
+
+
+
+## Load object
+```{python}
+from cnmf import cNMF
+import pickle
+nfeatures = "2K"
+f = open('./Data/cNMF/HMSC_cNMF_' + nfeatures+ 'vargenes/cnmf_obj.pckl', 'rb')
+cnmf_obj = pickle.load(f)
+f.close()
+```
+
+
+```{python}
+selected_k = 4
+density_threshold = 0.1
+# cnmf_obj.consensus(k=selected_k, density_threshold=density_threshold,show_clustering=True)
+usage_norm, gep_scores, gep_tpm, topgenes = cnmf_obj.load_results(K=selected_k, density_threshold=density_threshold)
+```
+
+```{r}
+gep_scores = py$gep_scores
+gep_tpm = py$gep_tpm
+all_metagenes= py$usage_norm
+```
+
+
+```{r}
+nfeatures = 2000
+acc1_cancer_cells = FindVariableFeatures(object = acc1_cancer_cells,nfeatures = nfeatures)
+vargenes = VariableFeatures(object = acc1_cancer_cells)
+hmsc_expression = t(as.matrix(GetAssayData(acc1_cancer_cells,slot='data')))
+hmsc_expression = 2**hmsc_expression #convert from log2(tpm+1) to tpm
+hmsc_expression = hmsc_expression-1
+hmsc_expression = hmsc_expression[,!colSums(hmsc_expression==0, na.rm=TRUE)==nrow(hmsc_expression)] #delete rows that have all 0
+hmsc_expression = hmsc_expression[,vargenes]
+hmsc_expression = hmsc_expression  %>% as.data.frame()
+
+
+```
+
+
+
+
+
+
+```{python}
+def get_norm_counts(counts, tpm,high_variance_genes_filter): #from cnmf.py
+    import numpy as np
+    import scipy.sparse as sp
+    ## Subset out high-variance genes
+    norm_counts = counts[:, high_variance_genes_filter].copy()
+  
+    ## Scale genes to unit variance
+    if sp.issparse(tpm.X):
+        sc.pp.scale(norm_counts, zero_center=False)
+        if np.isnan(norm_counts.X.data).sum() > 0:
+            print('Warning NaNs in normalized counts matrix')                       
+    else:
+        norm_counts.X /= norm_counts.X.std(axis=0, ddof=1)
+        if np.isnan(norm_counts.X).sum().sum() > 0:
+            print('Warning NaNs in normalized counts matrix')                    
+    
+  
+    ## Check for any cells that have 0 counts of the overdispersed genes
+    zerocells = norm_counts.X.sum(axis=1)==0
+    if zerocells.sum()>0:
+        examples = norm_counts.obs.index[zerocells]
+        print('Warning: %d cells have zero counts of overdispersed genes. E.g. %s' % (zerocells.sum(), examples[0]))
+        print('Consensus step may not run when this is the case')
+    
+    return(norm_counts)
+  
+def get_usage_from_score(counts,tpm, genes,cnmf_obj):
+      import anndata as ad
+      import scanpy as sc
+      import numpy as np
+      from sklearn.decomposition import non_negative_factorization
+      import pandas as pd
+      counts_adata = ad.AnnData(counts)
+      tpm_adata = ad.AnnData(tpm)
+      norm_counts = get_norm_counts(counts=counts_adata,tpm=tpm_adata,high_variance_genes_filter=np.array(genes)) #norm counts as cnmf
+      spectra = cnmf_obj.get_median_spectra(k=4) #get score 
+      spectra = spectra[spectra.columns.intersection(genes)] #remove genes not in @genes
+      usage_by_calc,_,_ = non_negative_factorization(X=norm_counts.X, H = spectra.values, update_H=False,n_components = 4,max_iter=1000,init ="random")
+      usage_by_calc = pd.DataFrame(usage_by_calc, index=counts.index, columns=spectra.index) #insert to df+add names
+      usage_by_calc = usage_by_calc.div(usage_by_calc.sum(axis=1), axis=0) # sum rows to 1 
+      return(usage_by_calc)
+
+```
+
+```{python}
+
+hmsc_expression = r.hmsc_expression
+vargenes = r.vargenes
+usage_by_calc = get_usage_from_score(counts=hmsc_expression,tpm=hmsc_expression,genes= vargenes,cnmf_obj=cnmf_obj)
+```
+
+```{r}
+all_metagenes= py$usage_norm
+all_metagenes_by_calc= py$usage_by_calc
+all_metagenes_by_calc = all_metagenes_by_calc[,c(1,4,3,2)]
+cor(all_metagenes,all_metagenes_by_calc)
+```
+
+
+
+
+
+
+
+
+```{r}
+acc1_cancer_cells = FindVariableFeatures(object = acc1_cancer_cells,nfeatures = 2000)
+vargenes = VariableFeatures(object = acc1_cancer_cells)
+
+acc_expression = t(as.matrix(GetAssayData(acc_cancerCells_noACC1,slot='data')))
+acc_expression = acc_expression[,vargenes]
+acc_expression = 2**acc_expression #convert from log2(tpm+1) to tpm
+acc_expression = acc_expression-1
+# acc_expression = acc_expression[,!colSums(acc_expression==0, na.rm=TRUE)==nrow(acc_expression)] #delete rows that have all 0
+acc_expression = acc_expression  %>% as.data.frame()
+
+all_0_genes = colnames(acc_expression)[colSums(acc_expression==0, na.rm=TRUE)==nrow(acc_expression)] #delete rows that have all 0
+vargenes = vargenes[!vargenes %in% all_0_genes]
+```
+
+
+```{python}
+acc_expression = r.acc_expression
+vargenes = r.vargenes
+usage_by_calc = get_usage_from_score(counts=acc_expression,tpm=acc_expression,genes=np.array(vargenes),cnmf_obj=cnmf_obj)
+```
+
+
+
+# Hallmark Enrichment analysis by top 200 genes of each program
+```{r fig.height=8, fig.width=8, results='hide'}
+plt_list = list()
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  res = genes_vec_enrichment(genes = top,background = rownames(gep_scores),homer = T,title = 
+                    i,silent = T,return_all = T)
+   
+  plt_list[[i]] = res$plt
+}
+gridExtra::grid.arrange(grobs = plt_list)
+```
+
+# Hallmark + canonical Enrichment analysis by top 200 genes of each program
+
+```{r fig.height=8, fig.width=8, results='hide'}
+
+canonical_pathways = msigdbr(species = "Homo sapiens", category = "C2") %>% dplyr::filter(gs_subcat != "CGP") %>%  dplyr::distinct(gs_name, gene_symbol) 
+
+plt_list = list()
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),200) #take top top_genes_num
+  res = genes_vec_enrichment(genes = top,background = rownames(gep_scores),homer = T,title = 
+                    i,silent = T,return_all = T,custom_pathways = canonical_pathways)
+   
+  plt_list[[i]] = res$plt
+}
+gridExtra::grid.arrange(grobs = plt_list)
+```
+# Expression by scores from cnmf {.tabset}
+```{r fig.height=10, fig.width=10, results='asis'} 
+all_metagenes = py$usage_by_calc
+all_metagenes = scale(all_metagenes) %>% as.data.frame()
+# Make metagene names
+for (i in 1:ncol(all_metagenes)) {
+  colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
+}
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes)) {
+  metage_metadata = all_metagenes %>% select(i)
+  acc_cancerCells_noACC1 = AddMetaData(object = acc_cancerCells_noACC1,metadata = metage_metadata)
+}
+
+print_tab(plt = 
+            FeaturePlot(object = acc_cancerCells_noACC1,features = colnames(all_metagenes))
+,title = "expression",subtitle_num = 2)
+
+
+print_tab(
+  plt = FeaturePlot(object = acc_cancerCells_noACC1,features = colnames(all_metagenes),max.cutoff = 0.2)
+          ,title = "max.cutoff = 0.2",subtitle_num = 2)
+
+```
+```{r}
+FeaturePlot(object = acc_cancerCells_noACC1,features = "nFeature_RNA")
+FeaturePlot(object = acc_cancerCells_noACC1,features = "MYB")
+DimPlot(object = acc_cancerCells_noACC1,group.by = "orig.ident")
+```
+
+
+
+
+```{r}
+acc_cancerCells_noACC1 = program_assignment(dataset = acc_cancerCells_noACC1,larger_by = 1.25,program_names = colnames(all_metagenes))
+```
+
+
+
+# UMAPS {.tabset}
+
+```{r echo=TRUE, results='asis'}
+colors =  rainbow(acc_cancerCells_noACC1$program.assignment %>% unique() %>% length()-1)
+colors = c(colors,"grey")
+print_tab(plt = DimPlot(object = acc_cancerCells_noACC1,group.by = "program.assignment",cols =colors),title = "program.assignment")
+print_tab(plt = DimPlot(object = acc_cancerCells_noACC1,group.by = "patient.ident"),title = "patient.ident")
+
+print_tab(plt = FeaturePlot(object = acc_cancerCells_noACC1,features = "lum_score"),title = "lum_score")
+ 
+
+# Expression by scores from cnmf {.tabset}
+```
+
+```{r fig.height=10, fig.width=10, results='asis'} 
+all_metagenes = py$usage_by_calc
+
+# Make metagene names
+for (i in 1:ncol(all_metagenes)) {
+  colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
+}
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes)) {
+  metage_metadata = all_metagenes %>% select(i)
+  acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = metage_metadata)
+}
+
+print_tab(plt = 
+            FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes))
+,title = "expression",subtitle_num = 2)
+
+
+print_tab(
+  plt = FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes),max.cutoff = 0.05)
+          ,title = "max.cutoff = 0.05",subtitle_num = 2)
+
+```
+
+
+# Expression by scores from cnmf + Z score {.tabset}
+```{r fig.height=10, fig.width=10, results='asis'} 
+
+
+all_metagenes_norm= scale(all_metagenes) %>% as.data.frame()
+
+# Make metagene names
+for (i in 1:ncol(all_metagenes_norm)) {
+  colnames(all_metagenes_norm)[i] = "metagene." %>% paste0(i)
+}
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes_norm)) {
+  metage_metadata = all_metagenes_norm %>% select(i)
+  acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = metage_metadata)
+}
+
+print_tab(plt = 
+            FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes))
+,title = "expression",subtitle_num = 2)
+
+
+print_tab(
+  plt = FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes),max.cutoff = 0.5)
+          ,title = "max.cutoff = 0.5",subtitle_num = 2)
+
+```
+# Expression by coefficients inversion * expression  {.tabset}
+```{r}
+
+all_metagenes_inversed  = expression_inversion(gep_scores = gep_scores %>% as.matrix() ,dataset = acc1_cancer_cells) %>% t() %>% as.data.frame()
+print(cor(all_metagenes_inversed,all_metagenes))
+```
+
+```{r fig.height=10, fig.width=10, results='asis'} 
+
+# Make metagene names
+for (i in 1:ncol(all_metagenes_inversed)) {
+  colnames(all_metagenes_inversed)[i] = "metagene." %>% paste0(i)
+}
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes_inversed)) {
+  metage_metadata = all_metagenes_inversed %>% select(i)
+}
+
+FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes_inversed))
+
+```
+
+# Expression by (coefficients inversion sum to 1) * expression {.tabset}
+```{r}
+gep_scores_norm = apply(gep_scores, 2, no_neg)
+gep_scores_norm = apply(gep_scores_norm, 2, sum_2_one)
+
+
+all_metagenes_inversed  = expression_inversion(gep_scores = gep_scores_norm ,dataset = acc1_cancer_cells) %>% t() %>% as.data.frame()
+print(cor(all_metagenes_inversed,all_metagenes))
+
+all_metagenes_inversed = apply(all_metagenes_inversed, 2, no_neg)
+all_metagenes_inversed = apply(all_metagenes_inversed, 1, sum_2_one) %>% t() %>% as.data.frame()
+print(cor(all_metagenes_inversed,all_metagenes))
+
+```
+
+
+
+```{r fig.height=10, fig.width=10, results='asis'} 
+
+# Make metagene names
+for (i in 1:ncol(all_metagenes_inversed)) {
+  colnames(all_metagenes_inversed)[i] = "metagene." %>% paste0(i)
+}
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes_inversed)) {
+  metage_metadata = all_metagenes_inversed %>% select(i)
+  acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = metage_metadata)
+}
+
+print_tab(plt = 
+            FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes))
+,title = "expression",subtitle_num = 2)
+
+
+print_tab(
+  plt = FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes),max.cutoff = 0.3)
+          ,title = "max.cutoff = 750",subtitle_num = 2)
+```
+
+# Expression by coefficients sum to 1 * expression {.tabset}
+```{r}
+gep_scores_norm = apply(gep_scores, 2, no_neg)
+gep_scores_norm = apply(gep_scores_norm, 2, sum_2_one) %>% as.data.frame()
+
+
+all_metagenes_mult  = expression_mult(gep_scores = gep_scores_norm ,dataset = acc1_cancer_cells,top_genes = T)
+print(cor(all_metagenes_mult,all_metagenes))
+
+all_metagenes_mult = apply(all_metagenes_mult, 2, no_neg)
+all_metagenes_mult = apply(all_metagenes_mult, 1, sum_2_one) %>% t() %>% as.data.frame()
+print(cor(all_metagenes_mult,all_metagenes))
+```
+
+```{r fig.height=10, fig.width=10, results='asis'} 
+
+# Make metagene names
+for (i in 1:ncol(all_metagenes_mult)) {
+  colnames(all_metagenes_mult)[i] = "metagene." %>% paste0(i)
+}
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes_mult)) {
+  metage_metadata = all_metagenes_mult %>% select(i)
+  acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = metage_metadata)
+}
+
+print_tab(plt = 
+            FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes))
+,title = "expression",subtitle_num = 2)
+
+
+print_tab(
+  plt = FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes),max.cutoff = 50)
+          ,title = "max.cutoff = 50",subtitle_num = 2)
+```
