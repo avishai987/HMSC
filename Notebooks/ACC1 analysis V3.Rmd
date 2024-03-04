@@ -108,8 +108,11 @@ acc_deg <- FindMarkers(all_acc_cancer_cells_ccFiltered, ident.1 = "HMSC",logfc.t
 enrichment_analysis(acc_deg,background = VariableFeatures(all_acc_cancer_cells_ccFiltered),fdr_Cutoff = 0.01,ident.1 = "HMSC",ident.2 = "ACC",show_by = 1)
 ```
 
-## MYB expression
+```{r}
 
+```
+
+## MYB expression
 ```{r fig.width=10}
 all_acc_cancer_cells = SetIdent(object = all_acc_cancer_cells,value = "patient.ident") #active snn graph
 FeaturePlot(object = all_acc_cancer_cells,features = "MYB",label = T)
