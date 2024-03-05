@@ -128,8 +128,8 @@ ggplot(data=data, aes(x=factor(bin,levels = c("MYB=0","0>MYB<1","MYB >= 1")), y=
 
 ```{r}
 
-hpv_positive = hpv_reads %>% dplyr::mutate(hpv_positive = case_when(HPV_reads >= 1 ~ "positive",
-                                                                    HPV_reads < 1 ~ "negative")
+hpv_positive = hpv_reads %>% dplyr::mutate(hpv_positive = case_when(HPV_reads >= 3 ~ "positive",
+                                                                    HPV_reads < 3 ~ "negative")
 )
 
 
@@ -143,8 +143,8 @@ DimPlot(object = cc_cancer,group.by  = c("hpv_positive"),pt.size = 0.5)
 # MYB positive
 
 ```{r}
-myb_data = FetchData(object = cc_cancer,vars = ("MYB"))%>% dplyr::mutate(myb_positive = case_when(MYB >= 0.2 ~ "positive",
-                                                                    MYB < 0.2 ~ "negative")) %>% dplyr::select("myb_positive")
+myb_data = FetchData(object = cc_cancer,vars = ("MYB"))%>% dplyr::mutate(myb_positive = case_when(MYB > 0 ~ "positive",
+                                                                    MYB <= 0 ~ "negative")) %>% dplyr::select("myb_positive")
 
 
 
@@ -201,10 +201,10 @@ ggplot(average_all,
 # Boxplot HPV_positive VS MYB
 
 ```{r}
-myb_vs_hpv = FetchData(object = cc_cancer, vars = c("hpv_positive", "MYB"))
+myb_vs_hpv = FetchData(object = cc_cancer, vars = c("hpv_positive", "JAG1"))
 myb_vs_hpv$hpv_positive = paste("HPV", myb_vs_hpv$hpv_positive)
 
-p = ggboxplot(myb_vs_hpv, x = "hpv_positive", y = "MYB",
+p = ggboxplot(myb_vs_hpv, x = "hpv_positive", y = "JAG1",
             palette = "jco",
             add = "jitter")+ stat_compare_means(method = "wilcox.test",comparisons = list(c("HPV positive","HPV negative")))+ stat_summary(fun.data = function(x) data.frame(y=max(x)*1.2, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("log2(gene)")+ggtitle(gene)
   print_tab(p,title = gene)

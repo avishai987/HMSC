@@ -1,0 +1,258 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+---
+
+
+
+# Functions
+
+```{r warning=FALSE}
+```
+
+```{r}
+```
+
+# Data
+
+```{r}
+SCC4.data  = Read10X(data.dir = "./Data/cervical_cancer_data/Qiu et al/SCC4//")
+SCC4 <- CreateSeuratObject(counts = SCC4.data, project = "scc", min.cells = 3, min.features = 200)
+SCC4[["percent.mt"]] <- PercentageFeatureSet(SCC4, pattern = "^MT-")
+SCC4 <- subset(SCC4, subset = percent.mt < 10)
+SCC4 <- NormalizeData(SCC4)
+
+
+SCC5.data  = Read10X(data.dir = "./Data/cervical_cancer_data/Qiu et al/SCC5/")
+SCC5 <- CreateSeuratObject(counts = SCC5.data, project = "scc", min.cells = 3, min.features = 200)
+SCC5[["percent.mt"]] <- PercentageFeatureSet(SCC5, pattern = "^MT-")
+SCC5 <- subset(SCC5, subset = percent.mt < 10)
+SCC5 <- NormalizeData(SCC5)
+
+mtx <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917937_SCC_1_matrix.mtx.gz"
+cells <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917937_SCC_1_barcodes.tsv.gz"
+features <-  "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917937_SCC_1_features.tsv.gz"
+SCC1.data <- ReadMtx(mtx = mtx, cells = cells, features = features)
+SCC1 <- CreateSeuratObject(counts = SCC1.data, project = "scc", min.cells = 3, min.features = 200)
+SCC1[["percent.mt"]] <- PercentageFeatureSet(SCC1, pattern = "^MT-")
+SCC1 <- subset(SCC1, subset = percent.mt < 10)
+SCC1 <- NormalizeData(SCC1)
+
+mtx <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917938_SCC_2_matrix.mtx.gz"
+cells <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917938_SCC_2_barcodes.tsv.gz"
+features <-  "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917938_SCC_2_features.tsv.gz"
+SCC2.data <- ReadMtx(mtx = mtx, cells = cells, features = features)
+SCC2 <- CreateSeuratObject(counts = SCC2.data, project = "scc", min.cells = 3, min.features = 200)
+SCC2[["percent.mt"]] <- PercentageFeatureSet(SCC2, pattern = "^MT-")
+SCC2 <- subset(SCC2, subset = percent.mt < 10)
+SCC2 <- NormalizeData(SCC2)
+
+
+mtx <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917939_SCC_3_matrix.mtx.gz"
+cells <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917939_SCC_3_barcodes.tsv.gz"
+features <-  "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917939_SCC_3_features.tsv.gz"
+SCC3.data <- ReadMtx(mtx = mtx, cells = cells, features = features)
+SCC3 <- CreateSeuratObject(counts = SCC3.data, project = "scc", min.cells = 3, min.features = 200)
+SCC3[["percent.mt"]] <- PercentageFeatureSet(SCC3, pattern = "^MT-")
+SCC3 <- subset(SCC3, subset = percent.mt < 10)
+SCC3 <- NormalizeData(SCC3)
+
+
+```
+
+
+```{r fig.height=5, fig.width=12}
+VlnPlot(object = SCC1,features = "MYB")+ggtitle("SCC1")|VlnPlot(object = SCC2,features = "MYB")+ggtitle("SCC2")|VlnPlot(object = SCC3,features = "MYB")+ggtitle("SCC3")|VlnPlot(object = SCC4,features = "MYB")+ggtitle("SCC4")|VlnPlot(object = SCC5,features = "MYB",group.by = "orig.ident")+ggtitle("SCC5")
+```
+
+
+```{r}
+# read processed data:
+SCC1_cancer  = readRDS(file = "./Data/cervical_cancer_data/Qiu et al/SCC1/SCC1_cancer.RDS")
+SCC2_cancer  = readRDS(file = "./Data/cervical_cancer_data/Qiu et al/SCC2/SCC2_cancer_processed.RDS")
+SCC3_cancer = readRDS(file = "./Data/cervical_cancer_data/Qiu et al/SCC3/SCC3_cancer_processed.RDS")
+SCC4_cancer = readRDS(file = "./Data/cervical_cancer_data/Qiu et al/SCC4/SCC4_cancer_processed.RDS")
+SCC5_cancer  = readRDS(file = "./Data/cervical_cancer_data/Qiu et al/SCC5/SCC5_cancer_processed.RDS")
+
+scc.big <- merge(SCC1_cancer, y = c(SCC2_cancer,SCC3_cancer, SCC4_cancer,SCC5_cancer), add.cell.ids = c("SCC1","SCC2", "SCC3", "SCC4","SCC5"), project = "SCC")
+scc.big$orig.ident =  sapply(X = strsplit(colnames(scc.big), split = "_"), FUN = "[", 1)
+
+
+VlnPlot(object = scc.big,features = "MYB",group.by = "orig.ident",slot = "data", assay = "RNA")
+
+
+```
+
+
+```{r}
+b = FetchData(object = scc.big,vars = c("MYB","orig.ident"),slot = "data", assay = "RNA")
+b %>%   group_by(orig.ident) %>% 
+  summarise(counts = sum(MYB > 0, na.rm = TRUE))
+```
+
+
+# Violin plot all patients without scc2
+```{r fig.height=6, fig.width=12}
+scc_myb_patients<- subset(scc.big, subset = orig.ident %in% c("SCC3","SCC4","SCC5"))
+```
+
+
+```{r}
+library(rstatix)
+myb_vs_hpv = FetchData(object = scc_myb_patients, vars = c("hpv_positive", "MYB"))
+df = reshape2::melt(myb_vs_hpv,value.name = "logTPM") %>% dplyr::rename(gene = variable)
+
+stat.test <- df %>%
+  wilcox_test(logTPM ~ hpv_positive)
+
+stat.test
+
+
+
+p = ggplot(myb_vs_hpv,aes( x = hpv_positive, y = MYB))+ 
+    geom_violin(trim=FALSE,aes(fill = hpv_positive)) +
+  theme_minimal()+
+  stat_summary(fun.data = function(x) data.frame(y=max(x)*1.15, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("average MYB")+ggtitle("all patients") +
+  stat_pvalue_manual(stat.test,y.position = 3, label = "Wilcox, p = {p}",remove.bracket = F)+
+  geom_boxplot(width=.1, outlier.shape=NA) 
+
+
+p
+```
+```{r}
+pdf(file = "./Figures/SCC_myb_hpv_violin_all_patients.pdf")
+p
+dev.off()
+```
+# Violin plot all patients with scc2
+
+```{r fig.height=6, fig.width=12}
+scc_myb_patients<- subset(scc.big, subset = orig.ident %in% c("SCC2","SCC3","SCC4","SCC5"))
+```
+
+
+```{r}
+library(rstatix)
+myb_vs_hpv = FetchData(object = scc_myb_patients, vars = c("hpv_positive", "MYB"))
+df = reshape2::melt(myb_vs_hpv,value.name = "logTPM") %>% dplyr::rename(gene = variable)
+
+stat.test <- df %>%
+  wilcox_test(logTPM ~ hpv_positive)
+
+stat.test
+
+
+
+p = ggplot(myb_vs_hpv,aes( x = hpv_positive, y = MYB))+ 
+    geom_violin(trim=FALSE,aes(fill = hpv_positive)) +
+  theme_minimal()+
+  stat_summary(fun.data = function(x) data.frame(y=max(x)*1.15, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("average MYB")+ggtitle("all patients") +
+  stat_pvalue_manual(stat.test,y.position = 3, label = "Wilcox, p = {p}",remove.bracket = F)+
+  geom_boxplot(width=.1, outlier.shape=NA) 
+
+
+p
+```
+
+
+# Boxplot by patient
+```{r}
+scc_myb_patients<- subset(scc.big, subset = orig.ident %in% c("SCC2","SCC3","SCC4","SCC5"))
+
+df = FetchData(object = scc_myb_patients,vars = c("orig.ident","MYB","hpv_positive")) %>% group_by(orig.ident,hpv_positive) %>% summarise(
+  myb = mean(MYB),.groups = "drop_last")
+stat.test <- df %>% group_by("hpv_positive") %>% 
+  wilcox_test(myb ~ hpv_positive)
+
+
+df = reshape2::dcast(df, orig.ident ~ hpv_positive)
+
+
+p = ggpaired(df, cond1  = "positive",cond2   = "negative",palette = "jco",
+            add = "jitter", line.color = "gray", line.size = 0.4,id = "orig.ident", fill = "condition") + theme_minimal()+
+  # stat_compare_means(method = "wilcox.test",comparisons = list(c("positive","negative")),paired = F)+
+  stat_summary(fun.data = function(x) data.frame(y=max(x)*1.2, label = paste("Mean=",round(mean(x),digits = 2))), geom="text")+ylab("MYB")+ stat_pvalue_manual(stat.test,y.position = 0.2, label = "Wilcox, p = {p}",remove.bracket = F)
+p
+```
+```{r}
+pdf(file = "./Figures/SCC_HPV_MYB_boxplot_bySample.pdf",width = 8)
+p
+dev.off()
+```
+# All genes boxplots
+
+```{r fig.width=8}
+genes = c("AK4", "ANLN", "CAPG", "IFT122", "JAG1", "MYB", "PBRM1" )
+myb_vs_hpv = FetchData(object = scc_myb_patients,vars = c("hpv_positive",genes))
+df = reshape2::melt(myb_vs_hpv,value.name = "logTPM") %>% dplyr::rename(gene = variable)
+
+
+stat.test <- df %>%
+    group_by(gene) %>%
+  wilcox_test(logTPM ~ hpv_positive) %>%
+  mutate(y.position = 5)
+
+stat.test
+
+stat.test <- stat.test %>% 
+  add_xy_position(x = "gene", dodge = 0.8)
+
+p = ggboxplot(
+  df,
+  x = "gene",
+  y = "logTPM",
+  color = "hpv_positive",
+  palette = "jco",
+  add = "jitter"
+)+ stat_pvalue_manual(stat.test,y.position = 4, label = "p = {p}",remove.bracket = T)
+
+p
+```
+
+
+```{r}
+pdf(file = "./Figures/SCC_HPV_genes_all_patients.pdf",width = 8)
+p
+dev.off()
+```
+
+```{r fig.height=7, fig.width=13}
+myplots <- list()  # new empty list
+
+for (patient_name in c("SCC2", "SCC3", "SCC4", "SCC5")) {
+  patient_data = subset(x = scc_myb_patients, subset = orig.ident == patient_name)
+  df  = FetchData(object = patient_data,
+                  vars = c("hpv_positive", "MYB_positive")) %>% droplevels()
+  test = fisher_test(table(df))
+  p = ggbarstats(
+    df,
+    MYB_positive,
+    hpv_positive,
+    results.subtitle = FALSE,
+    subtitle = paste0("Fisher's exact test", ", p-value = ",
+                      test$p)
+  ,title = patient_name)
+  myplots[[patient_name]] <- p  # add each plot into plot list
+
+}
+ggarrange(plotlist = myplots,ncol = 4,nrow = 1)
+
+```
+```{r}
+  fisher.test(table(df))
+  fisher_test(table(df))
+
+```
+
+<script src="https://hypothes.is/embed.js" async></script>
+

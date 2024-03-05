@@ -314,6 +314,8 @@ names_to_keep = colnames(infercnv.observations) %in% (colnames(acc1_cancer_cells
 infercnv.observations = infercnv.observations[,names_to_keep]
 ```
 
+
+
 ```{r}
 rotate <- function(x) t(apply(x, 2, rev))
 infercnv.observations2 = infercnv.observations %>% rotate() %>%  rotate() %>% rotate()%>% as.data.frame() 
@@ -582,6 +584,10 @@ acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = hpv33_posi
 
 ```{r}
 DimPlot(object = acc1_cancer_cells,group.by  = c("hpv33_positive"),pt.size = 2)
+```
+```{r}
+acc1_cancer_cells$plate = acc1_cancer_cells$orig.ident
+saveRDS(object = acc1_cancer_cells, file = "./Data/acc1_cancer_cells_15KnCount_V4.RDS")
 ```
 
 
@@ -1039,9 +1045,9 @@ for (i in 1:length(lst)) {
   cat(' \n\n')
 }
 ```
-```{r}
-saveRDS(object = acc1_cancer_cells, file = "./Data/acc1_cancer_cells_15KnCount_V4.RDS")
-```
+
+
+
 
 
 
