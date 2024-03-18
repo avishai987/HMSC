@@ -195,145 +195,8 @@ DimPlot(acc1_cancer_cells,pt.size = 1)
 acc1_cancer_cells = read_rds("./Data/acc1_cancer_cells_V3.RDS")
 ```
 
-```{r}
-acc1_cancer_cells.df = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
-acc1_cor = cor(acc1_cancer_cells.df)
-annotation = FetchData(object = acc1_cancer_cells,vars = c("cell.type"))
-pht1 = pheatmap(acc1_cor,annotation_row = annotation,fontsize = 6,silent = T)
-```
 
 
-
-```{r}
-acc1_cancer_cells.df = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
-acc1_cor = cor(acc1_cancer_cells.df)
-annotation = FetchData(object = acc1_cancer_cells,vars = c("cell.type"))
-pheatmap(acc1_cor,annotation_row = annotation,fontsize = 6,silent = F)
-```
-
-```{r}
-num_of_clusters = 3
-clustering_distance = "euclidean"
-
-  
-
-annotation = FetchData(object = acc1_cancer_cells,vars = c("orig.ident"))
-
-
-colors <- c(seq(-1,1,by=0.01))
-my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
-                                                 (n = length(colors)-3), "red")
-plate = FetchData(object = acc1_cancer_cells,vars = "orig.ident" )
-pheatmap(mat = acc1_cor,annotation_col =  annotation, clustering_distance_rows = clustering_distance,clustering_distance_cols = clustering_distance,color = my_palette,breaks = colors,show_rownames = F,show_colnames = F)
-```
-
-```{r}
-num_of_clusters = 3
-clustering_distance = "euclidean"
-myannotation = as.data.frame(cutree(pht1[["tree_row"]], k = num_of_clusters))
- 
-names(myannotation)[1] = "cluster"
-  myannotation$cluster = as.factor(myannotation$cluster)
-  
-  palette1 <- palette(brewer.pal(num_of_clusters, "Paired"))
-  palette1 <- palette(brewer.pal(num_of_clusters, "Paired")) #need to do twice to work
-  
-  names(palette1) = unique(myannotation$cluster)
-  ann_colors = list (cluster = palette1)
-  annotation = list(ann_colors = ann_colors, myannotation = myannotation)
-  
-  colors <- c(seq(-1,1,by=0.01))
-  my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
-                                                   (n = length(colors)-3), "red")
-  plate = FetchData(object = acc1_cancer_cells,vars = "orig.ident" )
-  pheatmap(mat = acc1_cor,annotation_col =  annotation[["myannotation"]], annotation_colors = annotation[["ann_colors"]], clustering_distance_rows = clustering_distance,clustering_distance_cols = clustering_distance,color = my_palette,breaks = colors,show_rownames = F,show_colnames = F)
-```
-
-
-```{r}
-acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = myannotation,col.name = "cor_cluster")
-acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = acc.tpm_seurat$raw.counts,col.name = "raw.counts") #from create_data_V1
-
-comparisons_1 <- list(c("1", "3"))
-comparisons_2 <- list(c("2","3"))
-
-VlnPlot(object = acc1_cancer_cells,group.by= "cor_cluster",features = "raw.counts")+ stat_compare_means(comparisons = comparisons_1, label = "p.signif",label.y = max(acc1_cancer_cells$raw.counts)*0.7)+ stat_compare_means(comparisons = comparisons_2, label = "p.signif",label.y = max(acc1_cancer_cells$raw.counts)*0.8)
-
-VlnPlot(object = acc1_cancer_cells,group.by= "cor_cluster",features = "nFeature_RNA")+ stat_compare_means(comparisons = comparisons_1, label = "p.signif",label.y = max(acc1_cancer_cells$nFeature_RNA)*0.7)+ stat_compare_means(comparisons = comparisons_2, label = "p.signif",label.y = max(acc1_cancer_cells$nFeature_RNA)*0.8) + geom_hline(aes(yintercept = 2500, color = "2500 genes"))+scale_colour_manual(values = c("blue"))
-```
-
-
-
-
-```{r}
-acc1_cancer_15KnCount = subset(x = acc1_cancer_cells,subset = nFeature_RNA > 2500)
-acc1_cancer_15KnCount.df = acc1_cancer_15KnCount@assays[["RNA"]]@data %>% as.data.frame()
-acc1_cor = cor(acc1_cancer_15KnCount.df)
-annotation = FetchData(object = acc1_cancer_15KnCount,vars = c("cell.type"))
-
-colors <- c(seq(-1,1,by=0.01))
-  my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
-                                                   (n = length(colors)-3), "red")
-  
-pht1 = pheatmap(acc1_cor,annotation_row = annotation,fontsize = 6,breaks = colors, color = my_palette,show_colnames = F,show_rownames = F)
-```
-
-
-```{r}
-acc1_cancer_15KnCount <- FindVariableFeatures(acc1_cancer_15KnCount, selection.method = "vst", nfeatures = 15000)
-acc1_cancer_15KnCount <- ScaleData(acc1_cancer_15KnCount, vars.to.regress = c("percent.mt","nCount_RNA"))
-acc1_cancer_15KnCount <- RunPCA(acc1_cancer_15KnCount, features = VariableFeatures(object = acc1_cancer_15KnCount))
-ElbowPlot(acc1_cancer_15KnCount, ndims = 50) # checking the dimensionality 
-```
-
-```{r}
-pc2use = 1:20
-```
-
-
-```{r}
-acc1_cancer_15KnCount <- FindNeighbors(acc1_cancer_15KnCount, dims = pc2use)
-acc1_cancer_15KnCount <- FindClusters(acc1_cancer_15KnCount, resolution = 1)
-acc1_cancer_15KnCount <- RunUMAP(acc1_cancer_15KnCount, dims = pc2use)
-```
-
-```{r}
-DimPlot(acc1_cancer_15KnCount,pt.size = 1)
-DimPlot(acc1_cancer_15KnCount,pt.size = 1,group.by = "orig.ident")
-```
-
-
-```{r}
-acc1_cancer_15KnCount$plate = acc1_cancer_15KnCount$orig.ident
-saveRDS(object = acc1_cancer_15KnCount,file = "./Data/acc1_cancer_cells_2500features_V3.RDS")
-```
-
-```{r}
-acc1_cancer_cells = read_rds(file = "./Data/acc1_cancer_cells_2500features_V3.RDS")
-```
-
-
-remove acc1 cells that nCount_RNA<15K
-```{r}
-only_acc_cells_lst = colnames(acc_cancer_cells)[(!acc_cancer_cells$patient.ident == "ACC1")]
-hmsc_filtered_cells_lst = colnames(acc1_cancer_15KnCount)
-
-acc_cancer_cells = acc_cancer_cells [,c(only_acc_cells_lst,hmsc_filtered_cells_lst)]
-```
-
-
-
-# Plate bias
-```{r fig.height=10, fig.width=8}
-
-comparisons <- list(c("ACC.plate2", "ACC1.P3"))
-
-
-plt1 = VlnPlot(object = acc1_cancer_cells,group.by= "orig.ident",features = "raw.counts")+ stat_compare_means(comparisons = comparisons, label = "p.signif",label.y = 4e06)
-plt2 = VlnPlot(object = acc1_cancer_cells,group.by= "orig.ident",features = "nFeature_RNA")+ stat_compare_means(comparisons = comparisons, label = "p.signif",label.y = 10000)
-
-plt1+plt2
-```
 
 
 ```{r}
@@ -345,6 +208,8 @@ ElbowPlot(acc_cancer_cells, ndims = 50) # checking the dimensionality
 
 ```{r}
 pc2use = 1:20
+```
+
 ```
 
 
