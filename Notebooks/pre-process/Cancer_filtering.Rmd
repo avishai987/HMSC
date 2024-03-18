@@ -66,7 +66,7 @@ FeaturePlot(acc_all_cells, c("CD79A","PTPRC") ,cols = c("blue","yellow"))
 ```{r fig.width=15}
 FeaturePlot(acc_all_cells, c("kaye_acc_score","MYB") ,cols = c("blue","yellow"))
 ```
-## {-}
+### {-}
 
 
 ## 3.Cluster assignment
@@ -115,7 +115,8 @@ ggplot(data=acc1_types, aes(x=type, y=Freq)) +
   geom_text(aes(label=Freq), vjust=-0.5, color="black", size=3.5)
 ```
 
-## ACC cancer cells dim reduction
+
+# ACC cancer cells dim reduction
 ```{r}
 acc_cancer_cells = subset(x = acc_all_cells,subset = cell.type == "ACC")
 acc_cancer_cells <- FindVariableFeatures(acc_cancer_cells, selection.method = "vst", nfeatures = 15000)
@@ -155,7 +156,7 @@ acc_cancer_cells = read_rds("./Data/acc_cancer_cells_V3.RDS")
 
 
 
-## ACC1 cancer cells dim reduction
+# ACC1 cancer cells dim reduction
 ```{r results='hide'}
 acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "ACC1")
 acc1_cancer_cells <- FindVariableFeatures(acc1_cancer_cells, selection.method = "vst", nfeatures = 15000)

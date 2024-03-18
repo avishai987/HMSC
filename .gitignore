@@ -6,6 +6,5 @@
 Data/
 HMSC.Rproj
 test/
-*.nb.html
 .Renviron
 !Data/acc1_cancer_cells_15KnCount_V4.RDS

@@ -79,7 +79,7 @@ acc_deg <-
     densify = T,
     assay = "RNA",
     mean.fxn = function(x) {
-      return(log(rowMeans(x) + 1, base = 2)) # change func to calculate logFC in log space data (default to exponent data)
+      return(log(rowMeans(x) + 1, base = 2)) # change fun to calculate logFC in log space data (default to exponent data)
     }
   )
 
