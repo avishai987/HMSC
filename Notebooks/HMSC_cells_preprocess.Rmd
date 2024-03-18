@@ -1,0 +1,188 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+---
+
+
+
+# Functions
+
+```{r warning=FALSE}
+conflict_prefer("pheatmap", "pheatmap")
+```
+
+# Data
+
+```{r}
+acc_cancer_cells = read_rds("./Data/acc_cancer_cells_V3.RDS")
+acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "ACC1")
+```
+
+
+
+# cor heatmap
+```{r fig.height=12, fig.width=8}
+acc1_cancer_cells.df = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
+acc1_cor = cor(acc1_cancer_cells.df)
+annotation = FetchData(object = acc1_cancer_cells,vars = c("cell.type"))
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                 (n = length(colors)-3), "red")
+
+pheatmap(acc1_cor,annotation_row = annotation,color = my_palette,breaks = colors,fontsize = 6,show_rownames = T,show_colnames = F)
+```
+# annotate plates
+```{r}
+num_of_clusters = 3
+clustering_distance = "euclidean"
+
+  
+
+annotation = FetchData(object = acc1_cancer_cells,vars = c("orig.ident"))
+
+
+colors <- c(seq(-1,1,by=0.01))
+my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                 (n = length(colors)-3), "red")
+plate = FetchData(object = acc1_cancer_cells,vars = "orig.ident" )
+pheatmap(mat = acc1_cor,annotation_col =  annotation, clustering_distance_rows = clustering_distance,clustering_distance_cols = clustering_distance,color = my_palette,breaks = colors,show_rownames = F,show_colnames = F)
+```
+# divide to 3 clusters
+```{r}
+pht1 = pheatmap(acc1_cor,annotation_row = annotation,fontsize = 6,silent = T)
+num_of_clusters = 3
+clustering_distance = "euclidean"
+myannotation = as.data.frame(cutree(pht1[["tree_row"]], k = num_of_clusters))
+ 
+names(myannotation)[1] = "cluster"
+  myannotation$cluster = as.factor(myannotation$cluster)
+  
+  palette1 <- palette(brewer.pal(num_of_clusters, "Paired"))
+  palette1 <- palette(brewer.pal(num_of_clusters, "Paired")) #need to do twice to work
+  
+  names(palette1) = unique(myannotation$cluster)
+  ann_colors = list (cluster = palette1)
+  annotation = list(ann_colors = ann_colors, myannotation = myannotation)
+  
+  colors <- c(seq(-1,1,by=0.01))
+  my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+  plate = FetchData(object = acc1_cancer_cells,vars = "orig.ident" )
+  pheatmap(mat = acc1_cor,annotation_col =  annotation[["myannotation"]], annotation_colors = annotation[["ann_colors"]], clustering_distance_rows = clustering_distance,clustering_distance_cols = clustering_distance,color = my_palette,breaks = colors,show_rownames = F,show_colnames = F)
+```
+
+
+```{r}
+acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = myannotation,col.name = "cor_cluster")
+
+comparisons_1 <- list(c("1", "3"))
+comparisons_2 <- list(c("2","3"))
+
+VlnPlot(object = acc1_cancer_cells,group.by= "cor_cluster",features = "nFeature_RNA")+ stat_compare_means(comparisons = comparisons_1, label = "p.signif",label.y = max(acc1_cancer_cells$nFeature_RNA)*0.7)+ stat_compare_means(comparisons = comparisons_2, label = "p.signif",label.y = max(acc1_cancer_cells$nFeature_RNA)*0.8) + geom_hline(aes(yintercept = 2500, color = "2500 genes"))+scale_colour_manual(values = c("blue"))+ggtitle("Detected genes")
+```
+
+
+
+# remove cells
+
+```{r}
+acc1_cancer_2500nFeatures = subset(x = acc1_cancer_cells,subset = nFeature_RNA > 2500)
+acc1_cancer_2500nFeatures.df = acc1_cancer_2500nFeatures@assays[["RNA"]]@data %>% as.data.frame()
+acc1_cor = cor(acc1_cancer_2500nFeatures.df)
+annotation = FetchData(object = acc1_cancer_2500nFeatures,vars = c("cell.type"))
+
+colors <- c(seq(-1,1,by=0.01))
+  my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
+                                                   (n = length(colors)-3), "red")
+  
+pht1 = pheatmap(acc1_cor,annotation_row = annotation,fontsize = 6,breaks = colors, color = my_palette,show_colnames = F,show_rownames = F)
+```
+# Plate bias
+```{r}
+
+comparisons <- list(c("ACC.plate2", "ACC1.P3"))
+
+plt2 = VlnPlot(object = acc1_cancer_2500nFeatures,group.by= "orig.ident",features = "nFeature_RNA")+ stat_compare_means(comparisons = comparisons, label = "p.signif",label.y = 10000)+ggtitle("Detected genes")
+
+plt2
+```
+
+```{r}
+acc1_cancer_2500nFeatures <- FindVariableFeatures(acc1_cancer_2500nFeatures, selection.method = "vst", nfeatures = 15000)
+acc1_cancer_2500nFeatures <- ScaleData(acc1_cancer_2500nFeatures, vars.to.regress = c("percent.mt","nCount_RNA"))
+acc1_cancer_2500nFeatures <- RunPCA(acc1_cancer_2500nFeatures, features = VariableFeatures(object = acc1_cancer_2500nFeatures))
+ElbowPlot(acc1_cancer_2500nFeatures) # checking the dimensionality 
+```
+
+
+```{r}
+pc2use = 1:20
+acc1_cancer_2500nFeatures <- FindNeighbors(acc1_cancer_2500nFeatures, dims = pc2use)
+acc1_cancer_2500nFeatures <- FindClusters(acc1_cancer_2500nFeatures, resolution = 1)
+acc1_cancer_2500nFeatures <- RunUMAP(acc1_cancer_2500nFeatures, dims = pc2use)
+```
+
+batch effect can be seen in UMAP:
+```{r}
+DimPlot(acc1_cancer_2500nFeatures,pt.size = 1,group.by = "orig.ident")
+```
+```{r}
+acc1_cancer_cells = acc1_cancer_2500nFeatures
+```
+
+# Seurat intergration
+```{r}
+acc1_cancer_cells.list <- SplitObject(acc1_cancer_cells, split.by = "plate")
+
+# normalize and identify variable features for each dataset independently
+acc1_cancer_cells.list <- lapply(X = acc1_cancer_cells.list, FUN = function(x) {
+    # x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 1000)
+})
+
+# select features that are repeatedly variable across datasets for integration
+features <- SelectIntegrationFeatures(object.list = acc1_cancer_cells.list,nfeatures = 1000)
+acc.anchors <- FindIntegrationAnchors(object.list = acc1_cancer_cells.list, anchor.features = features,k.filter = 50)
+
+```
+
+```{r}
+acc.combined <- IntegrateData(anchorset = acc.anchors,k.weight = 50,features.to.integrate = rownames(acc1_cancer_cells),preserve.order = F)
+DefaultAssay(acc.combined) <- "integrated"
+```
+
+```{r}
+acc.combined <- ScaleData(acc.combined, verbose = FALSE)
+acc.combined <- RunPCA(acc.combined, npcs = 30, verbose = FALSE)
+ElbowPlot(acc.combined)
+```
+
+```{r message=FALSE, warning=FALSE}
+acc.combined <- RunUMAP(acc.combined, reduction = "pca", dims = 1:10,verbose = F)
+acc.combined <- FindNeighbors(acc.combined, reduction = "pca", dims = 1:10, verbose = F)
+acc.combined <- FindClusters(acc.combined, resolution = 0.5,verbose = F)
+```
+
+```{r}
+DimPlot(acc.combined, reduction = "umap", group.by = "plate")
+```
+
+```{r}
+file_name = "./Data/acc1_cancer_cells_2500features_integrated_V5.RDS"
+object = acc.combined
+
+if (!file.exists(file_name)){
+  saveRDS(object = object,file =file_name)
+}else (stop("file exists"))
+```
+
