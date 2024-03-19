@@ -15,6 +15,7 @@ output:
 
 
 
+
 # Functions
 
 ```{r warning=FALSE}

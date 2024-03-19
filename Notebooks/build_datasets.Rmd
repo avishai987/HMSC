@@ -1,0 +1,106 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+---
+
+
+
+# Functions
+
+```{r warning=FALSE}
+```
+
+# Data
+
+```{r}
+acc1_cancer_cells = readRDS("./Data/acc1_cancer_cells_2500features_integrated_V5.RDS")
+cancer_cells = read_rds("./Data/acc_cancer_cells_V3.RDS")
+```
+
+# ACC primary + HMSC
+```{r}
+# acc pri cells
+acc_non_primary_list = c("ACC22.P12.LN","ACC22.LN.P11", "ACC5.P11","ACC7.P13","ACC.plate2","ACC1.P3")
+primary_plates = cancer_cells$orig.ident %>% unique() %>% as.vector() %>%  base::setdiff(acc_non_primary_list)
+
+cancer_cells = SetIdent(object = cancer_cells, value = "orig.ident")
+acc_primary_cancer = subset(cancer_cells, idents  = primary_plates)
+
+# combine
+hmsc_acc = cbind(acc_primary_cancer@assays$RNA@data,acc1_cancer_cells@assays$RNA@data)
+hmsc_integrated_acc = cbind(acc_primary_cancer@assays$RNA@data,acc1_cancer_cells@assays$integrated@data)
+
+hmsc_acc_cancer = CreateSeuratObject(counts = hmsc_acc)
+hmsc_acc_cancer[["integrated"]] = CreateAssayObject(counts = hmsc_integrated_acc)
+
+# import original raw counts read count and mt reads %
+hmsc_acc_cancer$percent.mt = cancer_cells$percent.mt 
+hmsc_acc_cancer$nCount_RNA = cancer_cells$nCount_RNA
+hmsc_acc_cancer$patient.ident = cancer_cells$patient.ident
+
+```
+
+```{r}
+hmsc_acc_cancer <- FindVariableFeatures(hmsc_acc_cancer, selection.method = "vst", nfeatures = 15000)
+hmsc_acc_cancer <- ScaleData(hmsc_acc_cancer, vars.to.regress = c("percent.mt","nCount_RNA"))
+hmsc_acc_cancer <- RunPCA(hmsc_acc_cancer, features = VariableFeatures(object = hmsc_acc_cancer))
+ElbowPlot(hmsc_acc_cancer, ndims = 50) # checking the dimensionality 
+```
+
+```{r}
+pc2use = 1:10
+```
+
+```{r}
+hmsc_acc_cancer <- FindNeighbors(hmsc_acc_cancer, dims = pc2use)
+hmsc_acc_cancer <- FindClusters(hmsc_acc_cancer, resolution = 1)
+hmsc_acc_cancer <- RunUMAP(hmsc_acc_cancer, dims = pc2use)
+```
+
+```{r}
+DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "patient.ident")
+```
+integrated data:
+```{r}
+DefaultAssay(hmsc_acc_cancer) = "integrated"
+```
+
+```{r}
+hmsc_acc_cancer <- FindVariableFeatures(hmsc_acc_cancer, selection.method = "vst", nfeatures = 15000)
+hmsc_acc_cancer <- ScaleData(hmsc_acc_cancer, vars.to.regress = c("percent.mt","nCount_RNA"))
+hmsc_acc_cancer <- RunPCA(hmsc_acc_cancer, features = VariableFeatures(object = hmsc_acc_cancer),reduction.name = "PCA_integrated")
+ElbowPlot(hmsc_acc_cancer, ndims = 50) # checking the dimensionality 
+```
+
+```{r}
+pc2use = 1:10
+```
+
+```{r}
+hmsc_acc_cancer <- FindNeighbors(hmsc_acc_cancer, dims = pc2use,reduction = "PCA_integrated")
+hmsc_acc_cancer <- FindClusters(hmsc_acc_cancer, resolution = 1)
+hmsc_acc_cancer <- RunUMAP(hmsc_acc_cancer, dims = pc2use,reduction = "PCA_integrated",reduction.name = "UMAP_integrated")
+```
+
+```{r}
+DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "patient.ident",reduction = "UMAP_integrated")
+```
+```{r}
+DefaultAssay(hmsc_acc_cancer) = "RNA"
+```
+
+```{r}
+saveRDS(object = hmsc_acc_cancer,file = "./Data/hmsc_acc_pri_cancer_processed_V6.RDS")
+```
+
+
