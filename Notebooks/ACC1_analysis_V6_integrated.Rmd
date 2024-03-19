@@ -20,27 +20,29 @@ output:
 ```{r warning=FALSE}
 source_from_github(repositoy = "DEG_functions",version = "0.2.53")
 source_from_github(repositoy = "HMSC_functions",version = "0.1.14",script_name = "functions.R")
-source_from_github(repositoy = "cNMF_functions",version = "0.3.9",script_name = "cnmf_function_Harmony.R")
+source_from_github(repositoy = "cNMF_functions",version = "0.4.04",script_name = "cnmf_functions_V3.R")
 source_from_github(repositoy = "sc_general_functions",version = "0.1.34",script_name = "functions.R")
+library(hypeR)
 
-toc_tabs_level =3
 ```
 
 # Data
 
 ```{r}
-acc1_cancer_cells = readRDS("./Data/acc1_cancer_cells_2500features_integrated_V5.RDS")
+hmsc_cancer_cells = readRDS("./Data/acc1_cancer_cells_2500features_integrated_V5.RDS")
+hmsc_acc_pri_cancer = readRDS("./Data/hmsc_acc_pri_cancer_processed_V6.RDS")
+acc_pri = subset(hmsc_acc_pri_cancer,subset = patient.ident != "HMSC")
 
-all_acc_cancer_cells = readRDS("./Data/acc_cancer_cells_V5_integrated_primary.RDS")
-all_acc_cancer_cells_ln = readRDS("./Data/acc_cancer_cells_V5_integrated.RDS")
+# hmsc_acc_pri_cancer = readRDS("./Data/old data/acc_cancer_cells_V5_integrated_primary.RDS")
+# acc_pri = subset(hmsc_acc_pri_cancer,subset = patient.ident != "ACC1")
 
-acc_all_cells = readRDS("./Data/acc_tpm_nCount_mito_no146_15k_with_ACC1_.RDS")
-acc_cancerCells_noACC1 = subset(all_acc_cancer_cells,subset = patient.ident != "HMSC")
+all_cells = readRDS("./Data/acc_tpm_nCount_mito_no146_15k_with_ACC1_V2.RDS")
+genesets_h  =getGmt("./Data/h.all.v7.0.symbols.pluscc.gmt")
 
-luminal_pathways = c("CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_UP","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_UP","HUPER_BREAST_BASAL_VS_LUMINAL_DN","LIM_MAMMARY_LUMINAL_PROGENITOR_UP","SMID_BREAST_CANCER_LUMINAL_B_UP" )
-
-# add luminal pathwaysx 
-luminal_gs = msigdbr(species = "Homo sapiens") %>% as.data.frame() %>% dplyr::filter(gs_name %in% luminal_pathways)%>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+# luminal_pathways = c("CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_UP","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_UP","HUPER_BREAST_BASAL_VS_LUMINAL_DN","LIM_MAMMARY_LUMINAL_PROGENITOR_UP","SMID_BREAST_CANCER_LUMINAL_B_UP" )
+# 
+# # add luminal pathways
+# luminal_gs = msigdbr(species = "Homo sapiens") %>% as.data.frame() %>% dplyr::filter(gs_name %in% luminal_pathways)%>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
 ```
 
 
@@ -51,16 +53,17 @@ luminal_gs = msigdbr(species = "Homo sapiens") %>% as.data.frame() %>% dplyr::fi
 ## UMAP
 
 ```{r}
-DimPlot(all_acc_cancer_cells,group.by = "patient.ident",label = T)
+DimPlot(hmsc_acc_pri_cancer,group.by = "patient.ident",label = T)
 ```
 
 ```{r}
-FeaturePlot(object = all_acc_cancer_cells,features = c("MYB"),pt.size = 2)
-```
-```{r}
-FeaturePlot(object = all_acc_cancer_cells,features = c("kaye_acc_score"),pt.size = 1)
+FeaturePlot(object = hmsc_acc_pri_cancer,features = c("MYB"),pt.size = 1)
+FeaturePlot(object = hmsc_acc_pri_cancer,features = c("kaye_acc_score"),pt.size = 1)
 
 ```
+
+
+
 ```{r}
 pdf("./Figures/kaye_acc_score_AllCancerCells.pdf")
 FeaturePlot(object = all_acc_cancer_cells,features = c("kaye_acc_score"),pt.size = 1)
@@ -70,12 +73,12 @@ dev.off()
 ## enrichment analysis 
 
 ```{r fig.width=8, echo=TRUE,results='hide',fig.keep='all'}
-all_acc_cancer_cells = SetIdent(all_acc_cancer_cells, value ="patient.ident")
+hmsc_acc_pri_cancer = SetIdent(hmsc_acc_pri_cancer, value ="patient.ident")
 acc_deg <-
   FindMarkers(
-    all_acc_cancer_cells,
+    hmsc_acc_pri_cancer,
     ident.1 = "HMSC",
-    features = VariableFeatures(all_acc_cancer_cells),
+    features = VariableFeatures(hmsc_acc_pri_cancer),
     densify = T,
     assay = "RNA",
     mean.fxn = function(x) {
@@ -85,36 +88,41 @@ acc_deg <-
 
 ```
 
-```{r}
-enrichment_analysis(acc_deg,background = VariableFeatures(all_acc_cancer_cells),fdr_Cutoff = 0.01,ident.1 = "HMSC",ident.2 = "ACC",show_by = 1)
+```{r fig.height=5, fig.width=13, results='asis'}
+ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
+
+hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
+
+plt = hyp_dots(hyp_obj,merge = F)
+plt1 = plt$up+ aes(size=nes)+ggtitle("up in HMSC")
+plt2 = plt$dn+ aes(size=abs(nes))+ggtitle("up in ACC")
+plt1+plt2
 ```
 
 ## Cell cycle score  {.tabset}
+
 ```{r}
+DefaultAssay(hmsc_cancer_cells) = "RNA"
+```
 
+```{r}
 hallmark_name = "GO_MITOTIC_CELL_CYCLE"
-genesets  =getGmt("./Data/h.all.v7.0.symbols.pluscc.gmt")
+acc_pri = ScaleData(object = acc_pri,features = VariableFeatures(acc_pri,assay = "RNA"))
+geneIds= genesets_h[[hallmark_name]]@geneIds %>% intersect(VariableFeatures(acc_pri,assay = "RNA")) 
+score <- apply(acc_pri@assays$RNA@scale.data[geneIds,],2,mean)
+acc_pri=AddMetaData(acc_pri,score,hallmark_name)
 
-
-acc_cancerCells_noACC1 = ScaleData(object = acc_cancerCells_noACC1,features = VariableFeatures(acc_cancerCells_noACC1,assay = "integrated"))
-geneIds= genesets[[hallmark_name]]@geneIds %>% intersect(VariableFeatures(acc_cancerCells_noACC1,assay = "integrated")) 
-score <- apply(acc_cancerCells_noACC1@assays$integrated@scale.data[geneIds,],2,mean)
-acc_cancerCells_noACC1=AddMetaData(acc_cancerCells_noACC1,score,hallmark_name)
-
-acc1_cancer_cells = FindVariableFeatures(object = acc1_cancer_cells,nfeatures = 15000)
-acc1_cancer_cells = ScaleData(object = acc1_cancer_cells,features = VariableFeatures(acc1_cancer_cells))
-geneIds= genesets[[hallmark_name]]@geneIds %>% intersect(VariableFeatures(acc1_cancer_cells)) 
-score <- apply(acc1_cancer_cells@assays$integrated@scale.data[geneIds,],2,mean)
-acc1_cancer_cells=AddMetaData(acc1_cancer_cells,score,hallmark_name)
-
-
+hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 15000)
+hmsc_cancer_cells = ScaleData(object = hmsc_cancer_cells,features = VariableFeatures(hmsc_cancer_cells))
+geneIds= genesets_h[[hallmark_name]]@geneIds %>% intersect(VariableFeatures(hmsc_cancer_cells)) 
+score <- apply(hmsc_cancer_cells@assays$RNA@scale.data[geneIds,],2,mean)
+hmsc_cancer_cells=AddMetaData(hmsc_cancer_cells,score,hallmark_name)
 
 ```
 
-
 ```{r echo=TRUE, results='asis'}
-acc_cc_scores = FetchData(object = acc_cancerCells_noACC1,vars = "GO_MITOTIC_CELL_CYCLE")
-hmsc_cc_scores = FetchData(object = acc1_cancer_cells,vars = "GO_MITOTIC_CELL_CYCLE")
+acc_cc_scores = FetchData(object = acc_pri,vars = "GO_MITOTIC_CELL_CYCLE")
+hmsc_cc_scores = FetchData(object = hmsc_cancer_cells,vars = "GO_MITOTIC_CELL_CYCLE")
 
 distributions_plt = ggplot() +
   geom_density(aes(GO_MITOTIC_CELL_CYCLE, fill = "ACC"), alpha = .2, data = acc_cc_scores) +
@@ -125,9 +133,11 @@ distributions_plt = ggplot() +
 print_tab(plt = distributions_plt,title = "score distribution",subtitle_num = 3)
 
 ```
+
+
 ```{r echo=TRUE, results='asis'}
-hmsc_cc_cells = (sum(acc1_cancer_cells@meta.data[[hallmark_name]]> 0.3) /ncol(acc1_cancer_cells)) %>% round(digits = 3)*100
-acc_cc_cells = (sum(acc_cancerCells_noACC1@meta.data[[hallmark_name]]> 0.3)/ncol(acc_cancerCells_noACC1)) %>% round(digits = 3)*100
+hmsc_cc_cells = (sum(hmsc_cancer_cells@meta.data[[hallmark_name]]> 0.3) /ncol(hmsc_cancer_cells)) %>% round(digits = 3)*100
+acc_cc_cells = (sum(acc_pri@meta.data[[hallmark_name]]> 0.3)/ncol(acc_pri)) %>% round(digits = 3)*100
 df = data.frame(Dataset = c("HMSC","ACC"), cycling_cells_percentage = c(hmsc_cc_cells,acc_cc_cells))
 cycling_cells_plt = ggplot(data=df, aes(x=Dataset, y=cycling_cells_percentage)) +
   geom_text(aes(label=cycling_cells_percentage), vjust=0, color="black", size=3.5)+
@@ -150,7 +160,7 @@ dev.off()
 
 ```{r fig.height=8, fig.width=10, results='asis'}
 print_tab(plt = 
-            FeaturePlot(all_acc_cancer_cells,features = c("MKI67","CDK1","MCM2","CDC20"))
+            FeaturePlot(hmsc_acc_pri_cancer,features = c("MKI67","CDK1","MCM2","CDC20"))
           ,title = "CC genes",subtitle_num = 3)
 ```
 
@@ -161,22 +171,21 @@ print_tab(plt =
 # score <- apply(all_acc_cancer_cells@assays$integrated@scale.data[geneIds,],2,mean)
 
 #add score to all acc cancer cells
-cc_all = c(acc_cancerCells_noACC1$GO_MITOTIC_CELL_CYCLE, acc1_cancer_cells$GO_MITOTIC_CELL_CYCLE) %>% as.data.frame()
-all_acc_cancer_cells=AddMetaData(all_acc_cancer_cells,cc_all,hallmark_name)
+cc_all = c(acc_pri$GO_MITOTIC_CELL_CYCLE, hmsc_cancer_cells$GO_MITOTIC_CELL_CYCLE) %>% as.data.frame()
+hmsc_acc_pri_cancer=AddMetaData(hmsc_acc_pri_cancer,cc_all,hallmark_name)
 
 #filter:
-all_acc_cancer_cells_ccFiltered=all_acc_cancer_cells[,all_acc_cancer_cells@meta.data[[hallmark_name]]< 0.3]
+all_acc_cancer_cells_ccFiltered=hmsc_acc_pri_cancer[,hmsc_acc_pri_cancer@meta.data[[hallmark_name]]< 0.3]
 
 
-min_threshold = min(all_acc_cancer_cells$GO_MITOTIC_CELL_CYCLE)
-max_threshold = max(all_acc_cancer_cells$GO_MITOTIC_CELL_CYCLE)
+min_threshold = min(hmsc_acc_pri_cancer$GO_MITOTIC_CELL_CYCLE)
+max_threshold = max(hmsc_acc_pri_cancer$GO_MITOTIC_CELL_CYCLE)
 ```
-
 
 ```{r, results='asis'}
 library(viridis)
 
-print_tab(plt = FeaturePlot(object = all_acc_cancer_cells,features = hallmark_name) + ggtitle("Before cc filtering") &
+print_tab(plt = FeaturePlot(object = hmsc_acc_pri_cancer,features = hallmark_name) + ggtitle("Before cc filtering") &
             scale_color_gradientn(colours = plasma(n = 10, direction = -1), limits = c(min_threshold, max_threshold))
           ,title = "Before CC filtering",subtitle_num = 3)
 
@@ -187,6 +196,9 @@ print_tab(plt =
           ,title = "After CC filtering" ,subtitle_num = 3)
 
 ```
+
+
+
 ## DEG
 
 ```{r fig.width=8, echo=TRUE, results='asis',fig.keep='all'}
@@ -207,26 +219,22 @@ acc_deg <-
 ```
 
 
-```{r}
-print_tab(plt = enrichment_analysis(acc_deg,background = VariableFeatures(all_acc_cancer_cells_ccFiltered),fdr_Cutoff = 0.01,ident.1 =
-                                      "HMSC",ident.2 = "ACC",show_by = 1)
-          ,title = "Enrichment after filtering",subtitle_num = 3)
-```
-
 
 ```{r fig.height=6, fig.width=13, results='asis'}
 library(hypeR)
 genesets <- msigdb_download("Homo sapiens",category="H") %>% append( msigdb_download("Homo sapiens",category="C2",subcategory = "CP:KEGG"))
 ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
 
-hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = genesets,up_only = F)
+hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = F)
 plt1 = plt$up+ aes(size=nes)+ggtitle("up in HMSC")
 plt2 = plt$dn+ aes(size=abs(nes))+ggtitle("up in ACC")
-plt3 = plt1+plt2
-plt3
+plt1+plt2
+
 ```
+
+
 
 
 ```{r}
@@ -238,27 +246,7 @@ dev.off()
 ```{r}
 volcano_plot(de_genes = acc_deg,fdr_cutoff = 0.05,fc_cutoff = 2, ident1 = "HMSC",ident2 = "ACC",top_genes_text = 4)
 ```
-```{r fig.width=8, echo=TRUE, results='asis',fig.keep='all'}
-all_acc_cancer_cells_ccFiltered = SetIdent(all_acc_cancer_cells_ccFiltered, value ="patient.ident")
-acc_deg <-
-  FindMarkers(
-    all_acc_cancer_cells_ccFiltered,
-    ident.1 = "HMSC",
-    features = VariableFeatures(all_acc_cancer_cells_ccFiltered),
-    densify = T,
-    verbose = T,
-    slot = "data",
-    mean.fxn = function(x) {
-      return(rowMeans(x) + 1) # change func to calculate logFC in log space data (default to exponent data)
-    },
-    assay = "RNA"
-  )
-```
 
-
-```{r}
-volcano_plot(de_genes = acc_deg,fdr_cutoff = 0.05,fc_cutoff = 2, ident1 = "HMSC",ident2 = "ACC",top_genes_text = 4)+xlab("avg diff")
-```
 
 
 
@@ -269,13 +257,10 @@ volcano_plot(de_genes = acc_deg,fdr_cutoff = 0.05,fc_cutoff = 2, ident1 = "HMSC"
 dev.off()
 
 pdf("./Figures/Enrichment_analysis_ACC_VS_HMSC.pdf")
-enrichment_analysis(acc_deg,background = VariableFeatures(all_acc_cancer_cells_ccFiltered),fdr_Cutoff = 0.01,ident.1 =
-                                      "HMSC",ident.2 = "ACC",show_by = 1)
+plt1+plt2
 dev.off()
 
 ```
-
-
 
 ```{r fig.height=5, fig.width=8}
 top_hmsc_genes = acc_deg %>% dplyr::filter(avg_log2FC > 0) %>%  slice_min(n = 10,order_by = p_val_adj) %>% rownames()
@@ -293,11 +278,6 @@ print(ComplexHeatmap::Heatmap(data,show_column_names = F,row_names_gp = grid::gp
   
 
 ```
-
-
-
-
-
 
 
 
