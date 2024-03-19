@@ -355,41 +355,27 @@ print_tab(plt = FeaturePlot(acc_all_cells, "copynumber",pt.size = 1,label = T,re
 
 
 # HMSC analysis 
-## UMAP 
 ```{r}
-acc1_cancer_cells = FindClusters(object = acc1_cancer_cells,verbose = F,resolution = 0.5)
-DimPlot(object = acc1_cancer_cells,pt.size = 2)
+DefaultAssay(hmsc_cancer_cells) = "integrated"
+```
+
+## UMAP 
+
+```{r}
+hmsc_cancer_cells = FindClusters(object = hmsc_cancer_cells,verbose = F,resolution = 0.5)
+DimPlot(object = hmsc_cancer_cells,pt.size = 2)
 ```
 
 ## Scores 
 ```{r fig.height=8, fig.width=12}
-FeaturePlot(object = acc1_cancer_cells,features = c("MYB","JAG1"),pt.size = 2)+
-DimPlot(object = acc1_cancer_cells,group.by  = c("hpv33_positive"),pt.size = 2)
+FeaturePlot(object = hmsc_cancer_cells,features = c("MYB","JAG1"),pt.size = 2)+
+DimPlot(object = hmsc_cancer_cells,group.by  = c("hpv33_positive"),pt.size = 2)
 
 ```
 
-## DEG {.tabset}
-```{r results='asis'}
-SetIdent(object = acc1_cancer_cells,value = "seurat_clusters")
-deg = FindAllMarkers(object = acc1_cancer_cells,features = VariableFeatures(acc1_cancer_cells),densify = T,verbose = F)
-for (cluster in unique(deg$cluster)) {
-  print_tab(plt = deg[deg$cluster == cluster,],title = "DEG" ,subtitle_num = toc_tabs_level)
-}
-```
-
-```{r results='asis'}
-for (cluster in unique(deg$cluster)) {
-  deg_of_cluster = deg[deg$cluster == cluster,] 
-  #  print(deg_of_cluster %in% original_myo_genes %>% which())
-  # print(deg_of_cluster %in% original_lum_genes %>% which())
-  print_tab(plt = 
-              enrichment_analysis(deg_of_cluster,background =VariableFeatures(acc1_cancer_cells),fdr_Cutoff = 0.01,ident.1 =
-                                   paste("Cluster",cluster),ident.2 =  paste("Cluster",cluster),show_by = 1)
-            ,title = cluster,subtitle_num = toc_tabs_level)
-}
 
 
-```
+
 
 
 ## NMF {.tabset}
