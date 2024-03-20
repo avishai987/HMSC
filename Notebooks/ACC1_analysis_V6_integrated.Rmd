@@ -633,6 +633,8 @@ DefaultAssay(hmsc_cancer_cells) = "integrated"
 hmsc_cancer_cells = SetIdent(hmsc_cancer_cells,value = "hpv33_positive")
 ```
 
+
+
 ```{r}
 library("biomaRt")
 
@@ -654,8 +656,6 @@ acc_deg <-
     only.pos = F,
     mean.fxn = function(x) {
       return(log(rowMeans(x) + 1, base = 2)) # change func to calculate logFC in log space data (default to exponent data)
-      # return(log(rowMeans(expm1(x)) + 1, base = 2))
-
     }
   )
 acc_deg$fdr<-p.adjust(p = as.vector(acc_deg$p_val) ,method = "fdr" )
@@ -669,7 +669,6 @@ ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit()
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = genesets,up_only = F)
 hyp_dots(hyp_obj,merge = F)ז
 
-
 ```
 
 ```{r}
@@ -680,12 +679,12 @@ acc_deg[c("MYB","JAG1"),]
 
 
 
+
+
 volcano plot log2(mean logTPM HPV+) - log2(mean logTPM HPV-)
 ```{r}
 volcano_plot(de_genes = acc_deg,fc_cutoff = 1.3, fdr_cutoff = 0.1,show_gene_names = c("MYB","JAG1"),ident1 = "HPV33 positive",ident2 = "HPV33 negative",top_genes_text = 5)
 
-acc_deg2 = acc_deg %>% mutate(avg_log2FC = exp(avg_log2FC))
-volcano_plot(de_genes = acc_deg2,fc_cutoff = 2**(1.3), fdr_cutoff = 0.1,show_gene_names = c("MYB","JAG1"),ident1 = "HPV33 positive",ident2 = "HPV33 negative",top_genes_text = 5)
 ```
 
 volcano plot log2(mean logTPM HPV+) - log2(mean logTPM HPV-)
@@ -694,18 +693,18 @@ volcano plot log2(mean logTPM HPV+) - log2(mean logTPM HPV-)
 
 acc_deg <-
   FindMarkers(
-    acc1_cancer_cells,
+    hmsc_cancer_cells,
     ident.1 = "positive",
     ident.2 = "negative",
     features = features,
     densify = T,
     assay = "RNA",
-    test.use = "LR",
+    test.use = "wilcox",
     latent.vars = "plate",
-    logfc.threshold = 0.35,
+    logfc.threshold = 0.1,
     min.pct = 0.1,
     mean.fxn = function(x) {
-      return(rowMeans(x) + 1) # change func to calculate logFC in log space data (default to exponent data)
+      return((rowMeans(x)+1)) # change func to calculate logFC in log space data (default to exponent data)
     }
   )
 acc_deg$fdr<-p.adjust(p = as.vector(acc_deg$p_val) ,method = "fdr" )
@@ -749,109 +748,3 @@ ggboxplot(
 )+ stat_pvalue_manual(stat.test,y.position = 13, label = "p = {p}",remove.bracket = T)
 ```
 
-```{r}
-notch_genes = c("JAG1","JAG2","NOTCH3","NOTCH2","NOTCH1","DLL1","MYB","HES4","HEY1","HEY2","NRARP")
-for (gene  in notch_genes) {
-  myb_vs_hpv = FetchData(object = acc1_cancer_cells,vars = c("hpv33_positive",gene)) 
-  myb_vs_hpv$hpv33_positive = paste("HPV33",myb_vs_hpv$hpv33_positiv)
-
-  p = ggboxplot(myb_vs_hpv, x = "hpv33_positive", y = gene,
-            palette = "jco",
-            add = "jitter")+ stat_compare_means(method = "wilcox.test",comparisons = list(c("HPV33 positive","HPV33 negative")))+ stat_summary(fun.data = function(x) data.frame(y=max(x)*1.2, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("log2(gene)")+ggtitle(gene)
-  print_tab(p,title = gene)
-}
-
-```
-
-
-```{r}
-notch_targets = c("NOTCH3","HES4","HEY1","HEY2","NRARP") 
-notch_ligand = c("JAG1","JAG2","DLL1")
-notch_genes = list(notch_targets = notch_targets,notch_ligand = notch_ligand)
-for (i  in 1:length(notch_genes)) {
-  genes = notch_genes[[i]]
-  name = names( notch_genes)[i]
-  myb_vs_hpv = FetchData(object = acc1_cancer_cells,vars = c(genes)) %>% rowMeans()
-  myb_vs_hpv = myb_vs_hpv %>% cbind(FetchData(object = acc1_cancer_cells,vars = c("hpv33_positive")))
-  colnames(myb_vs_hpv)[1] = "gene_set"
-  myb_vs_hpv$hpv33_positive = paste("HPV33",myb_vs_hpv$hpv33_positiv)
-
-  p = ggboxplot(myb_vs_hpv, x = "hpv33_positive", y = "gene_set",
-            palette = "jco",
-            add = "jitter")+ stat_compare_means(method = "wilcox.test",comparisons = list(c("HPV33 positive","HPV33 negative")))+ stat_summary(fun.data = function(x) data.frame(y=max(x)*1.2, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("log2(gene)")+ggtitle(name)
- print(p)
-}
-
-```
-
-```{r}
-  cor_data = FetchData(object = acc1_cancer_cells,vars = c("MYB","myo_score"))
-ggplot(cor_data, aes(x=MYB, y=myo_score)) + 
-    stat_cor(method = "pearson")+
-    geom_smooth(method=lm)  +
-  geom_point()
-
-
-  cor_data = FetchData(object = acc1_cancer_cells,vars = c("JAG1","myo_score"))
-ggplot(cor_data, aes(x=JAG1, y=myo_score)) + 
-    stat_cor(method = "pearson")+
-    geom_smooth(method=lm)  +
-  geom_point()
-
-  cor_data = FetchData(object = acc1_cancer_cells,vars = c("JAG2","myo_score"))
-ggplot(cor_data, aes(x=JAG2, y=myo_score)) + 
-    stat_cor(method = "pearson")+
-    geom_smooth(method=lm)  +
-  geom_point()
-
-  cor_data = FetchData(object = acc1_cancer_cells,vars = c("DLL1","myo_score"))
-ggplot(cor_data, aes(x=DLL1, y=myo_score)) + 
-    stat_cor(method = "pearson")+
-    geom_smooth(method=lm)  +
-  geom_point()
-
-
-  cor_data = FetchData(object = acc1_cancer_cells,vars = notch_targets) %>% rowMeans()
-  cor_data = cor_data %>% cbind(FetchData(object = acc1_cancer_cells,vars = c("myo_score")))
-  colnames(cor_data)[1] = "notch_targets"
-
-  ggplot(cor_data, aes(x=notch_targets, y=myo_score)) + 
-    stat_cor(method = "pearson")+
-    geom_smooth(method=lm)  +
-  geom_point()
-  
-  
-    cor_data = FetchData(object = acc1_cancer_cells,vars = notch_ligand) %>% rowMeans()
-  cor_data = cor_data %>% cbind(FetchData(object = acc1_cancer_cells,vars = c("myo_score")))
-  colnames(cor_data)[1] = "notch_ligand"
-
-  ggplot(cor_data, aes(x=notch_ligand, y=myo_score)) + 
-    stat_cor(method = "pearson")+
-    geom_smooth(method=lm)  +
-  geom_point()
-  
-```
-
-
-```{r}
-notch_score = FetchData(object = all_acc_cancer_cells,vars = notch_targets) %>% rowMeans()
-all_acc_cancer_cells  = AddMetaData(object = all_acc_cancer_cells,metadata = notch_score,col.name = "notch_score")
-FeaturePlot(object = all_acc_cancer_cells,features = "notch_score" )
-```
-
-
-```{r}
-myo_markers = c("TP63", "TP73", "KRT14", "CDH3")
-score = FetchData(object = acc1_cancer_cells,vars = myo_markers) %>% rowMeans()
-acc1_cancer_cells  = AddMetaData(object = acc1_cancer_cells,metadata = score,col.name = "myo_markers_score")
-FeaturePlot(object = acc1_cancer_cells,features = "myo_markers_score",pt.size = 2 )
-
-
-markers = c("CLDN3", "ANXA8", "EHF", "KIT")
-score = FetchData(object = acc1_cancer_cells,vars = markers) %>% rowMeans()
-acc1_cancer_cells  = AddMetaData(object = acc1_cancer_cells,metadata = score,col.name = "lum_markers_score")
-FeaturePlot(object = acc1_cancer_cells,features = "lum_markers_score" ,pt.size = 2 )
-```
-
-
-<script src="https://hypothes.is/embed.js" async></script>
