@@ -620,10 +620,7 @@ FeaturePlot(object = hmsc_cancer_cells,features = "MYB",pt.size = 2)
 ```
 
 
-```{r}
-library(biomaRt)
-ensembl = useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl")
-```
+
 
 
 

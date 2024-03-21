@@ -43,10 +43,15 @@ hmsc_integrated_acc = cbind(acc_primary_cancer@assays$RNA@data,acc1_cancer_cells
 hmsc_acc_cancer = CreateSeuratObject(counts = hmsc_acc)
 hmsc_acc_cancer[["integrated"]] = CreateAssayObject(counts = hmsc_integrated_acc)
 
-# import original raw counts read count and mt reads %
+# import original raw reads count and metadata
 hmsc_acc_cancer$percent.mt = cancer_cells$percent.mt 
 hmsc_acc_cancer$nCount_RNA = cancer_cells$nCount_RNA
 hmsc_acc_cancer$patient.ident = cancer_cells$patient.ident
+hmsc_acc_cancer$kaye_acc_score = cancer_cells$kaye_acc_score
+hmsc_acc_cancer$patient.ident = cancer_cells$patient.ident
+
+ident = plyr::revalue(hmsc_acc_cancer@meta.data[["patient.ident"]], c("ACC1"="HMSC"))
+hmsc_acc_cancer@meta.data[["patient.ident"]] <- ident
 
 ```
 
@@ -102,5 +107,4 @@ DefaultAssay(hmsc_acc_cancer) = "RNA"
 ```{r}
 saveRDS(object = hmsc_acc_cancer,file = "./Data/hmsc_acc_pri_cancer_processed_V6.RDS")
 ```
-
 
