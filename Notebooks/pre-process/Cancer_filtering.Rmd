@@ -21,7 +21,11 @@ acc_all_cells = readRDS("./Data/" %>% paste0(data_to_read))
 
 ## UMAP
 ```{r fig.width=8}
-DimPlot(acc_all_cells, reduction = "umap", label = TRUE, pt.size = 0.5,group.by = "patient.ident") 
+ident = plyr::revalue(acc_all_cells@meta.data[["patient.ident"]], c("ACC1"="HMSC"))
+acc_all_cells@meta.data[["patient.ident"]] <- ident
+
+DimPlot(acc_all_cells, reduction = "umap", label = TRUE, pt.size = 0.5,group.by = "patient.ident")  +
+  ggtitle(element_blank())
 ```
 
 ## UMAP by cluster
@@ -71,23 +75,23 @@ FeaturePlot(acc_all_cells, c("kaye_acc_score","MYB") ,cols = c("blue","yellow"))
 
 ## 3.Cluster assignment
 ```{r}
-new.cluster.ids <- c("0" = "ACC", #0
-                     "1" =  "ACC", #1
+new.cluster.ids <- c("0" = "Malignant", #0
+                     "1" =  "Malignant", #1
                      "2" =  "CAF", #2
-                     "3" =  "ACC", #3
+                     "3" =  "Malignant", #3
                      "4" = "Endothelial", #4
-                     "5" = "ACC", #5
-                     "6" = "HMSC", #6
+                     "5" = "Malignant", #5
+                     "6" = "Malignant", #6
                      "7" = "CAF", #7
                      "8" = "CAF", #8
                      "9" = "CAF", #9
-                     "10" = "ACC", #10
+                     "10" = "Malignant", #10
                      "11" = "CAF", #11
-                     "12" = "ACC", #12
-                     "13" = "ACC", #13
-                     "14" = "ACC", #14
-                     "15" = "ACC", #15
-                     "16" = "ACC", #16
+                     "12" = "Malignant", #12
+                     "13" = "Malignant", #13
+                     "14" = "Malignant", #14
+                     "15" = "Malignant", #15
+                     "16" = "Malignant", #16
                      "17" = "WBC", #17
                      "18" = "CAF" #18
                      )
@@ -100,6 +104,7 @@ acc_all_cells = SetIdent(object = acc_all_cells,value = "seurat_clusters")
 acc_all_cells <- RenameIdents(acc_all_cells, new.cluster.ids)
 DimPlot(acc_all_cells, reduction = "umap", label = F, pt.size = 0.5) 
 ```
+
 
 ## Cell types in ACC1
 ```{r results='hide'}
@@ -114,7 +119,13 @@ ggplot(data=acc1_types, aes(x=type, y=Freq)) +
   geom_bar(stat="identity", fill="steelblue")+
   geom_text(aes(label=Freq), vjust=-0.5, color="black", size=3.5)
 ```
+```{r}
+file_name = "./Data/acc_tpm_nCount_mito_no146_15k_with_ACC1_V3"
 
+if (!file.exists(file_name)){
+  saveRDS(object = acc_all_cells,file =file_name %>% paste0(".RDS"))
+}else (stop("file exists"))
+```
 
 # ACC cancer cells dim reduction
 ```{r}
@@ -197,83 +208,3 @@ acc1_cancer_cells = read_rds("./Data/acc1_cancer_cells_V3.RDS")
 
 
 
-
-
-```{r}
-acc_cancer_cells <- FindVariableFeatures(acc_cancer_cells, selection.method = "vst", nfeatures = 15000)
-acc_cancer_cells <- ScaleData(acc_cancer_cells, vars.to.regress = c("percent.mt","nCount_RNA"))
-acc_cancer_cells <- RunPCA(acc_cancer_cells, features = VariableFeatures(object = acc_cancer_cells))
-ElbowPlot(acc_cancer_cells, ndims = 50) # checking the dimensionality 
-```
-
-```{r}
-pc2use = 1:20
-```
-
-```
-
-
-```{r}
-acc_cancer_cells <- FindNeighbors(acc_cancer_cells, dims = pc2use)
-acc_cancer_cells <- FindClusters(acc_cancer_cells, resolution = 1)
-acc_cancer_cells <- RunUMAP(acc_cancer_cells, dims = pc2use)
-```
-
-```{r}
-DimPlot(acc_cancer_cells,pt.size = 0.5)
-DimPlot(acc_cancer_cells,pt.size = 0.5,group.by = "patient.ident")
-```
-
-
-```{r}
-ident = plyr::revalue(acc_cancer_cells@meta.data[["patient.ident"]], c("ACC1"="HMSC"))
-acc_cancer_cells@meta.data[["patient.ident"]] <- ident
-acc_cancer_cells = SetIdent(acc_cancer_cells, value = "patient.ident")
-
-```
-
-```{r}
-DimPlot(acc_cancer_cells,pt.size = 0.5)
-DimPlot(acc_cancer_cells,pt.size = 0.5,group.by = "patient.ident")+ggtitle("Patient identity")
-```
-
-## all_acc_cancercells_primaryOnly
-```{r}
-acc1_cancer_cells = readRDS("./Data/acc1_cancer_cells_2500features_integrated_V5.RDS")
-all_acc_cancer_cells = readRDS("./Data/acc_cancer_cells_V5_integrated.RDS")
-acc_cancerCells_noACC1 = readRDS("./Data/acc_cancer_no146_primaryonly15k_cancercells.rds")
-```
-
-```{r}
-non_primary_list = c("ACC22.P12.LN","ACC22.LN.P11", "ACC5.P11","ACC7.P13")
-primary_plates = all_acc_cancer_cells$orig.ident %>% unique() %>% as.vector() %>%  base::setdiff(non_primary_list)
-
-all_acc_cancer_cells = SetIdent(object = all_acc_cancer_cells, value = "orig.ident")
-all_acc_primary_cancer = subset(all_acc_cancer_cells, idents  = primary_plates)
-```
-
-```{r}
-all_acc_primary_cancer <- FindVariableFeatures(all_acc_primary_cancer, selection.method = "vst", nfeatures = 15000)
-all_acc_primary_cancer <- ScaleData(all_acc_primary_cancer, vars.to.regress = c("percent.mt","nCount_RNA"))
-all_acc_primary_cancer <- RunPCA(all_acc_primary_cancer, features = VariableFeatures(object = all_acc_primary_cancer))
-ElbowPlot(all_acc_primary_cancer, ndims = 50) # checking the dimensionality 
-```
-
-```{r}
-pc2use = 1:20
-```
-
-```{r}
-all_acc_primary_cancer <- FindNeighbors(all_acc_primary_cancer, dims = pc2use)
-all_acc_primary_cancer <- FindClusters(all_acc_primary_cancer, resolution = 1)
-all_acc_primary_cancer <- RunUMAP(all_acc_primary_cancer, dims = pc2use)
-```
-
-```{r}
-DimPlot(all_acc_primary_cancer,pt.size = 1,group.by = "patient.ident")
-DimPlot(all_acc_primary_cancer,pt.size = 1,group.by = "orig.ident")
-FeaturePlot(object = all_acc_primary_cancer,features = "percent.mt")
-```
-```{r}
-saveRDS(object = all_acc_primary_cancer,file = "./Data/acc_cancer_cells_V5_integrated_primary.RDS")
-```
