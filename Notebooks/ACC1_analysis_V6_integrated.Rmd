@@ -32,7 +32,7 @@ library(hypeR)
 hmsc_cancer_cells = readRDS("./Data/acc1_cancer_cells_2500features_integrated_V5.RDS")
 hmsc_acc_pri_cancer = readRDS("./Data/hmsc_acc_pri_cancer_processed_V6.RDS")
 acc_pri = subset(hmsc_acc_pri_cancer,subset = patient.ident != "HMSC")
-
+DefaultAssay(acc_pri) = "RNA"
 
 all_cells = readRDS("./Data/acc_tpm_nCount_mito_no146_15k_with_ACC1_V2.RDS")
 genesets_h  =getGmt("./Data/h.all.v7.0.symbols.pluscc.gmt")
@@ -86,34 +86,45 @@ acc_deg <-
 
 ```
 
+
 ```{r fig.height=5, fig.width=13, results='asis'}
 ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
 
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = F)
-plt1 = plt$up+ aes(size=nes)+ggtitle("up in HMSC")
-plt2 = plt$dn+ aes(size=abs(nes))+ggtitle("up in ACC")
+plt1 = plt$up+ aes(size=nes,color = geneset)+ggtitle("Up in HMSC")+ 
+  guides(
+    size = guide_legend(title="NES",reverse=T),
+    color = guide_legend(title="Geneset size",reverse=T)) +
+  scale_colour_gradient(low = "black",high = "red")
+
+plt2 = plt$dn+ aes(size=nes,color = geneset)+ggtitle("Down in HMSC")+scale_size(trans = 'reverse')+
+    guides(
+    size = guide_legend(title="NES",reverse=F),
+    color = guide_legend(title="Geneset size",reverse=T)) +
+  scale_colour_gradient(low = "black",high = "red")
+
 plt1+plt2
 ```
 
+
 ## Cell cycle score  {.tabset}
 
-```{r}
-DefaultAssay(hmsc_cancer_cells) = "RNA"
-```
+
 
 ```{r}
 hallmark_name = "GO_MITOTIC_CELL_CYCLE"
-acc_pri = ScaleData(object = acc_pri,features = VariableFeatures(acc_pri,assay = "RNA"))
-geneIds= genesets_h[[hallmark_name]]@geneIds %>% intersect(VariableFeatures(acc_pri,assay = "RNA")) 
+acc_pri = FindVariableFeatures(object = acc_pri,nfeatures = 15000)
+acc_pri = ScaleData(object = acc_pri,features = VariableFeatures(acc_pri))
+geneIds= genesets_h[[hallmark_name]]@geneIds %>% intersect(VariableFeatures(acc_pri)) 
 score <- apply(acc_pri@assays$RNA@scale.data[geneIds,],2,mean)
 acc_pri=AddMetaData(acc_pri,score,hallmark_name)
 
 hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 15000)
 hmsc_cancer_cells = ScaleData(object = hmsc_cancer_cells,features = VariableFeatures(hmsc_cancer_cells))
 geneIds= genesets_h[[hallmark_name]]@geneIds %>% intersect(VariableFeatures(hmsc_cancer_cells)) 
-score <- apply(hmsc_cancer_cells@assays$RNA@scale.data[geneIds,],2,mean)
+score <- apply(hmsc_cancer_cells@assays$integrated@scale.data[geneIds,],2,mean)
 hmsc_cancer_cells=AddMetaData(hmsc_cancer_cells,score,hallmark_name)
 
 ```
@@ -189,7 +200,8 @@ print_tab(plt = FeaturePlot(object = hmsc_acc_pri_cancer,features = hallmark_nam
 
 
 print_tab(plt = 
-            FeaturePlot(object = all_acc_cancer_cells_ccFiltered,features = hallmark_name) + ggtitle("After cc filtering") &
+            FeaturePlot(object = all_acc_cancer_cells_ccFiltered,features = hallmark_name) + 
+            ggtitle("After cc filtering") &
             scale_color_gradientn(colours = plasma(n = 10, direction = -1), limits = c(min_threshold, max_threshold))
           ,title = "After CC filtering" ,subtitle_num = 3)
 
@@ -201,11 +213,12 @@ print_tab(plt =
 
 ```{r fig.width=8, echo=TRUE, results='asis',fig.keep='all'}
 all_acc_cancer_cells_ccFiltered = SetIdent(all_acc_cancer_cells_ccFiltered, value ="patient.ident")
+all_acc_cancer_cells_ccFiltered = FindVariableFeatures(all_acc_cancer_cells_ccFiltered,nfeatures = 15000,assay = "integrated")
 acc_deg <-
   FindMarkers(
     all_acc_cancer_cells_ccFiltered,
     ident.1 = "HMSC",
-    features = VariableFeatures(all_acc_cancer_cells_ccFiltered),
+    features = VariableFeatures(all_acc_cancer_cells_ccFiltered,assay = "integrated"),
     densify = T,
     verbose = T,
     slot = "data",
@@ -218,16 +231,23 @@ acc_deg <-
 
 
 
-```{r fig.height=6, fig.width=13, results='asis'}
-library(hypeR)
-genesets <- msigdb_download("Homo sapiens",category="H") %>% append( msigdb_download("Homo sapiens",category="C2",subcategory = "CP:KEGG"))
+```{r fig.height=5, fig.width=13, results='asis'}
 ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
-
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = F)
-plt1 = plt$up+ aes(size=nes)+ggtitle("up in HMSC")
-plt2 = plt$dn+ aes(size=abs(nes))+ggtitle("up in ACC")
+plt1 = plt$up+ aes(size=nes,color = geneset)+ggtitle("Up in HMSC")+ 
+  guides(
+    size = guide_legend(title="NES",reverse=T),
+    color = guide_legend(title="Geneset size",reverse=T)) +
+  scale_colour_gradient(low = "black",high = "red")
+
+plt2 = plt$dn+ aes(size=nes,color = geneset)+ggtitle("Down in HMSC")+scale_size(trans = 'reverse')+
+    guides(
+    size = guide_legend(title="NES",reverse=F),
+    color = guide_legend(title="Geneset size",reverse=T)) +
+  scale_colour_gradient(low = "black",high = "red")
+
 plt1+plt2
 
 ```
@@ -242,8 +262,68 @@ dev.off()
 ```
 
 ```{r}
-volcano_plot(de_genes = acc_deg,fdr_cutoff = 0.05,fc_cutoff = 2, ident1 = "HMSC",ident2 = "ACC",top_genes_text = 4)
+volcano_plot.2 = function(de_genes, top_genes_text=0, title = "" ,show_gene_names = NULL, ident1 = "",
+                        ident2 = "" , fdr_cutoff = 0.05 , fc_cutoff = 1.3,
+                        return_de_genes = F, show_legend = T) {
+  library(ggrepel,quietly = T)
+  library(dplyr,quietly = T)
+  names_for_label = c(paste("Genes up in",ident1),paste("Genes up in",ident2))
+  #color genes if there are over/under/same expressed
+  de_genes$diffexpressed <- "Same" 
+  de_genes$avg_log2FC[!is.finite(de_genes$avg_log2FC)] <- 1000 #remove infinite values
+  de_genes$fdr = p.adjust(p = de_genes$p_val ,method = "fdr")
+  # if log2Foldchange > fc_cutoff and pvalue < 0.05, set as "UP" 
+  de_genes$diffexpressed[de_genes$avg_log2FC > log2(fc_cutoff) & de_genes$fdr < fdr_cutoff] <- names_for_label[1]
+  
+  # if log2Foldchange < -0.6 and pvalue < 0.05, set as "DOWN"
+  de_genes$diffexpressed[de_genes$avg_log2FC < (-log2(fc_cutoff)) & de_genes$fdr < fdr_cutoff] <- names_for_label[2]
+  
+  #set name labels for highest genes
+  de_genes$delabel <- NA
+  down_genes = de_genes$diffexpressed == names_for_label[1]
+  up_genes = de_genes$diffexpressed == names_for_label[2]
+  
+  de_genes$delabel[up_genes][1:top_genes_text] <- rownames(de_genes)[up_genes][1:top_genes_text]
+  de_genes$delabel[down_genes][1:top_genes_text] <- rownames(de_genes)[down_genes][1:top_genes_text]
+  
+  
+  #Show genes that specify in show_gene_names
+  if (!is.null(show_gene_names)){
+    de_genes_index = match(show_gene_names,rownames(de_genes)) #indexes of de_genes that in show_gene_names
+    de_genes_index <- de_genes_index[!is.na(de_genes_index)] #remove NA
+    
+    show_gene_names_index = show_gene_names %in% rownames(de_genes) #indexes of show_gene_names that in de_genes
+    de_genes$delabel[de_genes_index] = show_gene_names [show_gene_names_index]
+  }
+  
+  #colors for diff exp genes
+  cols <- structure(c("green4", "red", "grey"), .Names = c(names_for_label[2],names_for_label[1], "Same"))
+  
+  title = paste(title,"Differential gene expression in", ident1,"vs", ident2)
+  p = ggplot(data=de_genes, aes(x=avg_log2FC, y=-log10(p_val), col=diffexpressed, label=delabel)) + 
+    geom_point() + 
+    theme_minimal() +
+    scale_color_manual(values=cols) +
+    geom_text_repel(na.rm = T,box.padding = 1,max.overlaps = Inf,color = "blue") +
+    xlab("Average log2 fold-change")+ 
+    ylab("p-value")+ 
+    scale_y_continuous(labels = function(x) {parse(text = paste0("10^-",x))})+
+    guides(col=guide_legend(title=paste0("Significant DEG\n(FDR<",fdr_cutoff," ,|FC| >", fc_cutoff,")")))+
+    {if(show_legend == F) theme(legend.position="none")}+
+    {if(show_legend) ggtitle(title) }+
+    theme(axis.text  = element_text( color="black", size=12),axis.title = element_text( color="black", size=12))
+  
+  if (return_de_genes == T){ return(de_genes)}
+  else {return (p)}
+  
+}
+
 ```
+
+```{r}
+volcano_plot.2(de_genes = acc_deg,fdr_cutoff = 0.05,fc_cutoff = 2, ident1 = "HMSC",ident2 = "ACC",top_genes_text = 5)
+```
+
 
 
 
