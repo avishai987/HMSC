@@ -83,7 +83,7 @@ DefaultAssay(hmsc_acc_cancer) = "integrated"
 ```{r}
 hmsc_acc_cancer <- FindVariableFeatures(hmsc_acc_cancer, selection.method = "vst", nfeatures = 15000)
 hmsc_acc_cancer <- ScaleData(hmsc_acc_cancer, vars.to.regress = c("percent.mt","nCount_RNA"))
-hmsc_acc_cancer <- RunPCA(hmsc_acc_cancer, features = VariableFeatures(object = hmsc_acc_cancer),reduction.name = "PCA_integrated")
+hmsc_acc_cancer <- RunPCA(hmsc_acc_cancer, features = VariableFeatures(object = hmsc_acc_cancer))
 ElbowPlot(hmsc_acc_cancer, ndims = 50) # checking the dimensionality 
 ```
 
@@ -92,13 +92,21 @@ pc2use = 1:10
 ```
 
 ```{r}
-hmsc_acc_cancer <- FindNeighbors(hmsc_acc_cancer, dims = pc2use,reduction = "PCA_integrated")
+hmsc_acc_cancer <- FindNeighbors(hmsc_acc_cancer, dims = pc2use)
 hmsc_acc_cancer <- FindClusters(hmsc_acc_cancer, resolution = 1)
-hmsc_acc_cancer <- RunUMAP(hmsc_acc_cancer, dims = pc2use,reduction = "PCA_integrated",reduction.name = "UMAP_integrated")
+hmsc_acc_cancer <- RunUMAP(hmsc_acc_cancer, dims = pc2use)
+```
+```{r}
+DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "orig.ident")
+```
+```{r}
+test = subset(hmsc_acc_cancer,subset = patient.ident == "HMSC")
+
+
 ```
 
 ```{r}
-DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "patient.ident",reduction = "UMAP_integrated")
+DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "orig.ident")
 ```
 ```{r}
 DefaultAssay(hmsc_acc_cancer) = "RNA"
