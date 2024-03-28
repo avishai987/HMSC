@@ -86,14 +86,7 @@ acc.combined <- FindClusters(acc.combined, resolution = 0.5,verbose = F)
 DimPlot(acc.combined, reduction = "umap", group.by = "plate")
 ```
 
-```{r}
-file_name = "./Data/acc1_cancer_cells_2500features_integrated_V5.RDS"
-object = acc.combined
 
-if (!file.exists(file_name)){
-  saveRDS(object = object,file =file_name)
-}else (stop("file exists"))
-```
 
 
 
