@@ -340,22 +340,7 @@ dev.off()
 
 ```
 
-```{r fig.height=5, fig.width=8}
-top_hmsc_genes = acc_deg %>% dplyr::filter(avg_log2FC > 0) %>%  slice_min(n = 10,order_by = p_val_adj) %>% rownames()
-top_acc_genes = acc_deg %>% dplyr::filter(avg_log2FC < 0) %>%  slice_min(n = 10,order_by = p_val_adj) %>% rownames()
-all_top_deg = c(top_hmsc_genes,top_acc_genes)
 
-all_acc_cancer_cells_ccFiltered$cancer_type = all_acc_cancer_cells_ccFiltered$patient.ident %>% gsub(pattern = "ACC.*",replacement = "ACC")
-cancer_type = FetchData(object = all_acc_cancer_cells_ccFiltered, vars = "cancer_type")
-# col_list = list(circlize::colorRamp2(c(0, 1), c("white", "red"))); names(col_list) = colnames(all_metagenes)[i]
-column_ha = HeatmapAnnotation(df = cancer_type)
-
-data = FetchData(object = all_acc_cancer_cells_ccFiltered,vars = all_top_deg,slot = "scale.data") %>% t()
-
-print(ComplexHeatmap::Heatmap(data,show_column_names = F,row_names_gp = grid::gpar(fontsize = 7),cluster_rows = F, ,name = "Z-score expression",cluster_columns = F,top_annotation = column_ha))
-  
-
-```
 
 
 
