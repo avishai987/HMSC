@@ -15,9 +15,13 @@ output:
 
 
 
-# Functions
+# Functionss
 
 ```{r warning=FALSE}
+```
+
+```{r}
+test = readRDS(file = "./Data/old data/acc_cancer_cells_V5_integrated_primary.RDS")
 ```
 
 # Data
@@ -56,27 +60,6 @@ hmsc_acc_cancer@meta.data[["patient.ident"]] <- ident
 ```
 
 ```{r}
-hmsc_acc_cancer <- FindVariableFeatures(hmsc_acc_cancer, selection.method = "vst", nfeatures = 15000)
-hmsc_acc_cancer <- ScaleData(hmsc_acc_cancer, vars.to.regress = c("percent.mt","nCount_RNA"))
-hmsc_acc_cancer <- RunPCA(hmsc_acc_cancer, features = VariableFeatures(object = hmsc_acc_cancer))
-ElbowPlot(hmsc_acc_cancer, ndims = 50) # checking the dimensionality 
-```
-
-```{r}
-pc2use = 1:10
-```
-
-```{r}
-hmsc_acc_cancer <- FindNeighbors(hmsc_acc_cancer, dims = pc2use)
-hmsc_acc_cancer <- FindClusters(hmsc_acc_cancer, resolution = 1)
-hmsc_acc_cancer <- RunUMAP(hmsc_acc_cancer, dims = pc2use)
-```
-
-```{r}
-DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "patient.ident")
-```
-integrated data:
-```{r}
 DefaultAssay(hmsc_acc_cancer) = "integrated"
 ```
 
@@ -88,7 +71,7 @@ ElbowPlot(hmsc_acc_cancer, ndims = 50) # checking the dimensionality
 ```
 
 ```{r}
-pc2use = 1:10
+pc2use = 1:20
 ```
 
 ```{r}
@@ -96,21 +79,14 @@ hmsc_acc_cancer <- FindNeighbors(hmsc_acc_cancer, dims = pc2use)
 hmsc_acc_cancer <- FindClusters(hmsc_acc_cancer, resolution = 1)
 hmsc_acc_cancer <- RunUMAP(hmsc_acc_cancer, dims = pc2use)
 ```
-```{r}
-DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "orig.ident")
-```
-```{r}
-test = subset(hmsc_acc_cancer,subset = patient.ident == "HMSC")
-
-
-```
 
 ```{r}
-DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "orig.ident")
+DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "patient.ident")
 ```
-```{r}
-DefaultAssay(hmsc_acc_cancer) = "RNA"
-```
+
+
+
+
 
 ```{r}
 saveRDS(object = hmsc_acc_cancer,file = "./Data/hmsc_acc_pri_cancer_processed_V6.RDS")
