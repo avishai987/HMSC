@@ -192,7 +192,7 @@ dev.off()
 # All genes boxplots
 
 ```{r fig.width=8}
-genes = c("AK4", "ANLN", "CAPG", "IFT122", "JAG1", "MYB", "PBRM1" )
+genes = c("ANLN", "TUBB6", "AXL", "IFT122", "GFM1", "MYB", "JAG1")
 myb_vs_hpv = FetchData(object = scc_myb_patients,vars = c("hpv_positive",genes))
 df = reshape2::melt(myb_vs_hpv,value.name = "logTPM") %>% dplyr::rename(gene = variable)
 
@@ -218,10 +218,59 @@ p = ggboxplot(
 
 p
 ```
+```{r}
+pdf(file = "./Figures/SCC_HPV_genes_all_patients.pdf",width = 8)
+p
+dev.off()
+```
+
+```{r}
+metagenes_violin_compare.2 = function(dataset,prefix = "",pre_on = c("OSI","NT"),axis.text.x = 11,test = "t.test", programs = c("Hypoxia","TNFa","Cell_cycle"),return_list = F,combine_patients = F){
+  require(facefuns)
+  plt.lst = list()
+  if(combine_patients){
+    genes_by_tp = FetchData(object = dataset,vars =  c("treatment",programs)) %>% filter(treatment %in% pre_on)  %>% as.data.frame() #mean expression
+    formula <- as.formula( paste("c(", paste(programs, collapse = ","), ")~ treatment ") )
+    
+    #plot and split by patient:   
+    stat.test = compare_means(formula = formula ,data = genes_by_tp,method = test,p.adjust.method = "fdr")%>% # Add pairwise comparisons p-value
+      dplyr::filter(group1 == pre_on[1] & group2 == pre_on[2])  #filter for pre vs on treatment only
+    
+    stat.test$p.format =stat.test$p.adj #modift 0 pvalue to be lowest possible float
+    stat.test$p.format[!stat.test$p.format == 0 ] <- paste("=",stat.test$p.format[!stat.test$p.format == 0 ])
+    stat.test$p.format[stat.test$p.format == 0 ] <- paste("<",.Machine$double.xmin %>% signif(digits = 3))
+    
+    
+    genes_by_tp = reshape2::melt(genes_by_tp, id.vars = c("treatment"),value.name = "score")
+    plt = ggplot(genes_by_tp, aes(x = variable, y = score,fill = treatment)) + geom_split_violin(scale = 'width')+ 
+      geom_boxplot(width = 0.25, notch = FALSE, notchwidth = .4, outlier.shape = NA, coef=0)+
+      ylim(min(genes_by_tp$score),max(genes_by_tp$score)*1.25)
+    plt = plt +stat_pvalue_manual(stat.test, label = "{p.signif}", label.size = 7,  #add p value
+                                  y.position = 1.5,inherit.aes = F,size = 3.3,x = ".y.") # set position at the top value
+    return(plt)
+  }
+  
+  
+  
+  
+  
+  if (return_list) {
+    return(plt.lst)
+  }
+}
+```
+
+```{r fig.height=5, fig.width=10}
+scc_myb_patients$treatment = scc_myb_patients$hpv_positive %>% gsub(pattern = "negative",replacement = "HPV-negative")%>% gsub(pattern = "positive",replacement = "HPV-positive")
+scc_myb_patients@meta.data[["treatment"]] = factor(scc_myb_patients$treatment, levels = c("HPV-positive", "HPV-negative"))
+
+p = metagenes_violin_compare.2(dataset = scc_myb_patients, prefix = "patient",pre_on = c("HPV-negative","HPV-positive"),test = "wilcox.test",programs = top_genes, return_list = F,combine_patients = T) +scale_y_continuous(limits = c(0,1.5)) + labs(fill = "")+ylab("LogTPM")+xlab("Gene")+theme(axis.title=element_text(size=14))+ scale_fill_manual(values=c("#F8766D", "cyan3"))
+p
+```
 
 
 ```{r}
-pdf(file = "./Figures/SCC_HPV_genes_all_patients.pdf",width = 8)
+pdf(file = "./Figures/SCC_HPV_Top_violin.pdf",width = 10,height = 5)
 p
 dev.off()
 ```

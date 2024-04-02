@@ -79,7 +79,7 @@ rm(gene_expression)
 ```{python}
 p = Preprocess(random_seed=14)
 adata = r.adata
-(adata_c, adata_tp10k, hvgs) = p.preprocess_for_cnmf(adata, harmony_vars='orig.ident', n_top_rna_genes = 2000,max_scaled_thresh = None, quantile_thresh = .9999, makeplots=True,save_output_base='./Data/cNMF/batch_corrected_cnmf/batch_corrected_output')
+(adata_c, adata_tp10k, hvgs) = p.preprocess_for_cnmf(adata, harmony_vars='orig.ident', n_top_rna_genes = 2000,max_scaled_thresh = 50, quantile_thresh = .9999, makeplots=True,save_output_base='./Data/cNMF/batch_corrected_cnmf/batch_corrected_output')
 ```
 
 ```{python}

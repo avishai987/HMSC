@@ -89,7 +89,6 @@ acc_deg <-
 
 ```{r fig.height=5, fig.width=13, results='asis'}
 ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
-
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = F)
@@ -236,17 +235,13 @@ ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit()
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = F)
-plt1 = plt$up+ aes(size=nes,color = geneset)+ggtitle("Up in HMSC")+ 
+plt1 = plt$up+ aes(size=nes)+ggtitle("Up in HMSC")+ 
   guides(
-    size = guide_legend(title="NES",reverse=T),
-    color = guide_legend(title="Geneset size",reverse=T)) +
-  scale_colour_gradient(low = "black",high = "red")
+    size = guide_legend(title="NES",reverse=T)) 
 
-plt2 = plt$dn+ aes(size=nes,color = geneset)+ggtitle("Down in HMSC")+scale_size(trans = 'reverse')+
+plt2 = plt$dn+ aes(size=nes)+ggtitle("Down in HMSC")+scale_size(trans = 'reverse')+
     guides(
-    size = guide_legend(title="NES",reverse=F),
-    color = guide_legend(title="Geneset size",reverse=T)) +
-  scale_colour_gradient(low = "black",high = "red")
+    size = guide_legend(title="NES",reverse=F))
 
 plt1+plt2
 
@@ -256,8 +251,8 @@ plt1+plt2
 
 
 ```{r}
-pdf(file = "./Figures/ACC_vs_HMSC_GSEA.pdf",width = 13,height = 6)
-plt3
+pdf(file = "./Figures/ACC_vs_HMSC_GSEA.pdf",width = 13,height = 5)
+plt1+plt2
 dev.off()
 ```
 
@@ -283,8 +278,8 @@ volcano_plot.2 = function(de_genes, top_genes_text=0, title = "" ,show_gene_name
   down_genes = de_genes$diffexpressed == names_for_label[1]
   up_genes = de_genes$diffexpressed == names_for_label[2]
   
-  de_genes$delabel[up_genes][1:top_genes_text] <- rownames(de_genes)[up_genes][1:top_genes_text]
-  de_genes$delabel[down_genes][1:top_genes_text] <- rownames(de_genes)[down_genes][1:top_genes_text]
+  de_genes$delabel[up_genes][0:top_genes_text] <- rownames(de_genes)[up_genes][0:top_genes_text]
+  de_genes$delabel[down_genes][0:top_genes_text] <- rownames(de_genes)[down_genes][0:top_genes_text]
   
   
   #Show genes that specify in show_gene_names
@@ -321,7 +316,8 @@ volcano_plot.2 = function(de_genes, top_genes_text=0, title = "" ,show_gene_name
 ```
 
 ```{r}
-volcano_plot.2(de_genes = acc_deg,fdr_cutoff = 0.05,fc_cutoff = 2, ident1 = "HMSC",ident2 = "ACC",top_genes_text = 5)
+volcano_plt = volcano_plot.2(de_genes = acc_deg,fdr_cutoff = 0.05,fc_cutoff = 2, ident1 = "HMSC",ident2 = "ACC",top_genes_text = 0)
+volcano_plt
 ```
 
 
@@ -331,12 +327,10 @@ volcano_plot.2(de_genes = acc_deg,fdr_cutoff = 0.05,fc_cutoff = 2, ident1 = "HMS
 
 ```{r}
 pdf("./Figures/volcano_plot_ACC_VS_HMSC.pdf")
-volcano_plot(de_genes = acc_deg,fdr_cutoff = 0.05,fc_cutoff = 2, ident1 = "HMSC",ident2 = "ACC",top_genes_text = 4)
+volcano_plt
 dev.off()
 
-pdf("./Figures/Enrichment_analysis_ACC_VS_HMSC.pdf")
-plt1+plt2
-dev.off()
+
 
 ```
 
@@ -453,30 +447,7 @@ DimPlot(object = hmsc_cancer_cells,group.by  = c("hpv33_positive"),pt.size = 2)
 ```
 
 
-```{r}
-sc <- import('scanpy', convert = FALSE)
-hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 2000,assay = "RNA")
-gene_expression = t(as.matrix(GetAssayData(hmsc_cancer_cells,slot='data',assay = "RNA")))
 
-
-gene_expression = 2**gene_expression #convert log2(TPM+1) to TPM+1
-gene_expression = gene_expression-1 #convert TPM+1 to TPM
-
-adata <- sc$AnnData(
-  X   = gene_expression, 
-  obs = hmsc_cancer_cells[[]],
-  var = GetAssay(hmsc_cancer_cells,assay = "RNA")[[]]
-)
-
-
-rm(gene_expression)
-```
-```{python}
-adata = r.adata
-adata.var['highly_variable'] = adata.var['vst.variable']
-adata = adata[:,adata.var['highly_variable']].copy()
-
-```
 
 
 ## NMF {.tabset}
@@ -648,16 +619,42 @@ ggplot(data=df, aes(x=cell_type, y=percentage)) +
 calculate_score.2(dataset = acc_pri,myo_genes = original_myo_genes,lum_genes = original_lum_genes,lum_threshold = 0,myo_threshold = 0)
 ```
 ```{r}
+DefaultAssay(hmsc_cancer_cells) = "integrated"
+```
+
+```{r}
 calculate_score(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes,lum_threshold = 0,myo_threshold = 0)
 ```
 
 
 ```{r}
+library(circlize)
 data = FetchData(object = hmsc_cancer_cells,vars = c(original_lum_genes))
-a = cor(data)
-ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson")
-```
+ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 9))
+}, column_title = "HMSC luminal genes")
 
+data = FetchData(object = acc_pri,vars = c(original_lum_genes))
+ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 9))
+}, column_title = "ACC luminal genes")
+```
+```{r}
+library(circlize)
+data = FetchData(object = hmsc_cancer_cells,vars = c(original_myo_genes))
+ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 9))
+}, column_title = "HMSC Myoepithelial genes")
+
+data = FetchData(object = acc_pri,vars = c(original_myo_genes))
+ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 9))
+}, column_title = "ACC Myoepithelialgenes")
+```
 
 ## HPV
 ### HPV UMAP
@@ -787,8 +784,15 @@ acc_deg[c("MYB","JAG1"),]
 
 volcano plot log2(mean logTPM HPV+) - log2(mean logTPM HPV-)
 ```{r}
-volcano_plot(de_genes = acc_deg,fc_cutoff = 1.3, fdr_cutoff = 0.1,show_gene_names = c("MYB","JAG1"),ident1 = "HPV33 positive",ident2 = "HPV33 negative",top_genes_text = 5)
+plt = volcano_plot.2(de_genes = acc_deg,fc_cutoff = 1.3, fdr_cutoff = 0.1,show_gene_names = c("MYB","JAG1"),ident1 = "HPV33 positive",ident2 = "HPV33 negative",top_genes_text = 5) +ggtitle("Differential Gene Expression by HPV Status
+")
+plt
+```
 
+```{r}
+pdf("./Figures/HMSC_HPVon_HPVoff_volcano.pdf")
+pltw
+dev.off()
 ```
 
 volcano plot log2(mean logTPM HPV+) - log2(mean logTPM HPV-)
@@ -827,14 +831,16 @@ volcano_plot(de_genes = acc_deg,fc_cutoff = 1.3, fdr_cutoff = 0.1,show_gene_name
 
 ### HPV vs genes
 ```{r fig.width=8}
-genes = c("AK4", "ANLN", "CAPG", "IFT122", "JAG1", "MYB", "PBRM1" )
-myb_vs_hpv = FetchData(object = acc1_cancer_cells,vars = c("hpv33_positive",genes))
-df = reshape2::melt(myb_vs_hpv,value.name = "logTPM") %>% dplyr::rename(gene = variable)
+top_genes = acc_deg %>% filter(.$avg_log2FC>0) %>% arrange(.$fdr) %>% head(5) %>% rownames()
+top_genes = c(top_genes,c("MYB","JAG1"))
 
+myb_vs_hpv = FetchData(object = hmsc_cancer_cells,vars = c("hpv33_positive",top_genes))
+df = reshape2::melt(myb_vs_hpv,value.name = "Expression") %>% dplyr::rename(gene = variable)
 
+library(rstatix)
 stat.test <- df %>%
     group_by(gene) %>%
-  wilcox_test(logTPM ~ hpv33_positive) %>%
+  wilcox_test(Expression ~ hpv33_positive) %>%
   mutate(y.position = 5)
 
 stat.test
@@ -845,10 +851,62 @@ stat.test <- stat.test %>%
 ggboxplot(
   df,
   x = "gene",
-  y = "logTPM",
+  y = "Expression",
   color = "hpv33_positive",
   palette = "jco",
   add = "jitter"
 )+ stat_pvalue_manual(stat.test,y.position = 13, label = "p = {p}",remove.bracket = T)
+```
+
+```{r}
+metagenes_violin_compare.2 = function(dataset,prefix = "",pre_on = c("OSI","NT"),axis.text.x = 11,test = "t.test", programs = c("Hypoxia","TNFa","Cell_cycle"),return_list = F,combine_patients = F){
+  require(facefuns)
+  plt.lst = list()
+  if(combine_patients){
+    genes_by_tp = FetchData(object = dataset,vars =  c("treatment",programs)) %>% filter(treatment %in% pre_on)  %>% as.data.frame() #mean expression
+    formula <- as.formula( paste("c(", paste(programs, collapse = ","), ")~ treatment ") )
+    
+    #plot and split by patient:   
+    stat.test = compare_means(formula = formula ,data = genes_by_tp,method = test,p.adjust.method = "fdr")%>% # Add pairwise comparisons p-value
+      dplyr::filter(group1 == pre_on[1] & group2 == pre_on[2])  #filter for pre vs on treatment only
+    
+    stat.test$p.format =stat.test$p.adj #modift 0 pvalue to be lowest possible float
+    stat.test$p.format[!stat.test$p.format == 0 ] <- paste("=",stat.test$p.format[!stat.test$p.format == 0 ])
+    stat.test$p.format[stat.test$p.format == 0 ] <- paste("<",.Machine$double.xmin %>% signif(digits = 3))
+    
+    
+    genes_by_tp = reshape2::melt(genes_by_tp, id.vars = c("treatment"),value.name = "score")
+    plt = ggplot(genes_by_tp, aes(x = variable, y = score,fill = treatment)) + geom_split_violin(scale = 'width')+ 
+      geom_boxplot(width = 0.25, notch = FALSE, notchwidth = .4, outlier.shape = NA, coef=0)+
+      ylim(min(genes_by_tp$score),max(genes_by_tp$score)*1.25)
+    plt = plt +stat_pvalue_manual(stat.test, label = "{p.signif}", label.size = 7,  #add p value
+                                  y.position = max(genes_by_tp$score)*1.08,inherit.aes = F,size = 3.3,x = ".y.") # set position at the top value
+    return(plt)
+  }
+  
+  
+  
+  
+  
+  if (return_list) {
+    return(plt.lst)
+  }
+}
+```
+
+```{r fig.height=4, fig.width=7}
+hmsc_cancer_cells$treatment = hmsc_cancer_cells$hpv33_positive %>% gsub(pattern = "negative",replacement = "HPV-negative")%>% gsub(pattern = "positive",replacement = "HPV-positive")
+hmsc_cancer_cells@meta.data[["treatment"]] = factor(hmsc_cancer_cells$treatment, levels = c("HPV-positive", "HPV-negative"))
+
+
+plt = metagenes_violin_compare.2(dataset = hmsc_cancer_cells, prefix = "patient",pre_on = c("HPV-positive","HPV-negative"),test = "wilcox.test",programs = top_genes, return_list = F,combine_patients = T)+ labs(fill = "")+ylab("Expression")+xlab("Gene")+theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14))+ labs(fill = "")+ylab("Expression")+xlab("Gene")+theme(axis.title=element_text(size=14))+ scale_fill_manual(values=c("#F8766D", "cyan3")) #from bovona.rmd
+plt
+```
+
+```{r}
+pdf("./Figures/HMSC_HPVon_HPVoff_topGenes_violin.pdf")
+plt
+dev.off()
 ```
 
