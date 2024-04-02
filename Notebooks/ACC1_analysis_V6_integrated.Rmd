@@ -454,7 +454,6 @@ DimPlot(object = hmsc_cancer_cells,group.by  = c("hpv33_positive"),pt.size = 2)
 
 
 ```{r}
-1
 sc <- import('scanpy', convert = FALSE)
 hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 2000,assay = "RNA")
 gene_expression = t(as.matrix(GetAssayData(hmsc_cancer_cells,slot='data',assay = "RNA")))
@@ -478,28 +477,7 @@ adata.var['highly_variable'] = adata.var['vst.variable']
 adata = adata[:,adata.var['highly_variable']].copy()
 
 ```
-```{r}
-library(reticulate)
-virtualenv_create("cnmf_dev_2", packages = "install https://github.com/django/django/archive/master.zip")
-use_condaenv("cnmf_env_dev", required = TRUE)
-```
 
-```{python}
-
-help('modules')
-import os
-import pandas as pd
-import numpy as np
-from scipy.io import mmread
-import scipy.sparse as sp
-import matplotlib.pyplot as plt
-import scanpy as sc
-from cnmf import cNMF, Preprocess
-import seaborn as sns
-
-    
-np.random.seed(14)
-```
 
 ## NMF {.tabset}
 ```{python}

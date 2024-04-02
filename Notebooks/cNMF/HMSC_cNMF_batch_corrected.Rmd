@@ -1,0 +1,99 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+---
+
+
+
+# Functions
+
+```{r warning=FALSE}
+```
+# Data
+```{r}
+hmsc_cancer_cells = readRDS("./Data/acc1_cancer_cells_2500features_integrated_V5.RDS")
+```
+
+```{r}
+# # run once
+# # Create virtual env of cNMF development branch for using batch correction
+# library(reticulate) #  use reticulate 1.24 (1.35 produce "Suitable Python installation for creating a venv not found")
+# virtualenv_create("/sci/labs/yotamd/lab_share/avishai.wizel/python_envs/Virtual_env/cnmf_dev", packages = "https://github.com/dylkot/cNMF/archive/development.zip")
+# use_virtualenv("/sci/labs/yotamd/lab_share/avishai.wizel/python_envs/Virtual_env/cnmf_dev/",required = T)
+# py_install("harmonypy") 
+# py_install("scikit-misc")
+
+# for some reason .todense() method is rasing error in preprocess.py. remove all .todense() in /sci/labs/yotamd/lab_share/avishai.wizel/python_envs/Virtual_env/cnmf_dev/lib/python3.8/site-packages/cnmf/preprocess.py
+# to avoid this error.
+```
+
+```{r}
+library(reticulate)
+use_virtualenv("/sci/labs/yotamd/lab_share/avishai.wizel/python_envs/Virtual_env/cnmf_dev/",required = T)
+py_config()
+
+```
+
+```{python}
+import os
+import pandas as pd
+import numpy as np
+from scipy.io import mmread
+import scipy.sparse as sp
+import matplotlib.pyplot as plt
+import scanpy as sc
+from cnmf import cNMF, Preprocess
+import seaborn as sns
+np.random.seed(14)
+```
+
+```{r}
+sc <- import('scanpy', convert = FALSE)
+hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 2000,assay = "RNA")
+gene_expression = t(as.matrix(GetAssayData(hmsc_cancer_cells,slot='data',assay = "RNA")))
+
+
+gene_expression = 2**gene_expression #convert log2(TPM+1) to TPM+1
+gene_expression = gene_expression-1 #convert TPM+1 to TPM
+
+adata <- sc$AnnData(
+  X   = gene_expression, 
+  obs = hmsc_cancer_cells[[]],
+  var = GetAssay(hmsc_cancer_cells,assay = "RNA")[[]]
+)
+
+
+rm(gene_expression)
+```
+
+```{python}
+p = Preprocess(random_seed=14)
+adata = r.adata
+(adata_c, adata_tp10k, hvgs) = p.preprocess_for_cnmf(adata, harmony_vars='orig.ident', n_top_rna_genes = 2000,max_scaled_thresh = None, quantile_thresh = .9999, makeplots=True,save_output_base='./Data/cNMF/batch_corrected_cnmf/batch_corrected_output')
+```
+
+```{python}
+import harmonypy
+adata.var['highly_variable'] = adata.var['vst.variable']
+adata = adata[:,adata.var['highly_variable']].copy()
+sc.pp.scale(adata, zero_center=False, max_value=50)
+sc.tl.pca(adata, use_highly_variable=True)
+ 
+harmony_res = harmonypy.run_harmony(adata.obsm['X_pca'], adata.obs, 'orig.ident', max_iter_harmony = 15,theta = 2,random_state = 1)
+
+```
+```{python}
+cnmf_obj_corrected = cNMF(output_dir='./Data/cNMF/batch_corrected_cnmf/', name='BatchCorrected')
+cnmf_obj_corrected.prepare(counts_fn='/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/EGFR/Data/cNMF/batch_corrected_cnmf/batchcorrect_example.Corrected.HVG.Varnorm.h5ad',tpm_fn='/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/EGFR/Data/cNMF/batch_corrected_cnmf/batchcorrect_example.TP10K.h5ad', genes_file='/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/EGFR/Data/cNMF/batch_corrected_cnmf/batchcorrect_example.Corrected.HVGs.txt',components=np.arange(3,11), n_iter=20, seed=14, num_highvar_genes=2000)
+```
+
