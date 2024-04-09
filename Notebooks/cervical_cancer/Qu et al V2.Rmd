@@ -25,56 +25,6 @@ output:
 
 # Data
 
-```{r}
-SCC4.data  = Read10X(data.dir = "./Data/cervical_cancer_data/Qiu et al/SCC4//")
-SCC4 <- CreateSeuratObject(counts = SCC4.data, project = "scc", min.cells = 3, min.features = 200)
-SCC4[["percent.mt"]] <- PercentageFeatureSet(SCC4, pattern = "^MT-")
-SCC4 <- subset(SCC4, subset = percent.mt < 10)
-SCC4 <- NormalizeData(SCC4)
-
-
-SCC5.data  = Read10X(data.dir = "./Data/cervical_cancer_data/Qiu et al/SCC5/")
-SCC5 <- CreateSeuratObject(counts = SCC5.data, project = "scc", min.cells = 3, min.features = 200)
-SCC5[["percent.mt"]] <- PercentageFeatureSet(SCC5, pattern = "^MT-")
-SCC5 <- subset(SCC5, subset = percent.mt < 10)
-SCC5 <- NormalizeData(SCC5)
-
-mtx <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917937_SCC_1_matrix.mtx.gz"
-cells <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917937_SCC_1_barcodes.tsv.gz"
-features <-  "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917937_SCC_1_features.tsv.gz"
-SCC1.data <- ReadMtx(mtx = mtx, cells = cells, features = features)
-SCC1 <- CreateSeuratObject(counts = SCC1.data, project = "scc", min.cells = 3, min.features = 200)
-SCC1[["percent.mt"]] <- PercentageFeatureSet(SCC1, pattern = "^MT-")
-SCC1 <- subset(SCC1, subset = percent.mt < 10)
-SCC1 <- NormalizeData(SCC1)
-
-mtx <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917938_SCC_2_matrix.mtx.gz"
-cells <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917938_SCC_2_barcodes.tsv.gz"
-features <-  "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917938_SCC_2_features.tsv.gz"
-SCC2.data <- ReadMtx(mtx = mtx, cells = cells, features = features)
-SCC2 <- CreateSeuratObject(counts = SCC2.data, project = "scc", min.cells = 3, min.features = 200)
-SCC2[["percent.mt"]] <- PercentageFeatureSet(SCC2, pattern = "^MT-")
-SCC2 <- subset(SCC2, subset = percent.mt < 10)
-SCC2 <- NormalizeData(SCC2)
-
-
-mtx <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917939_SCC_3_matrix.mtx.gz"
-cells <- "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917939_SCC_3_barcodes.tsv.gz"
-features <-  "./Data/cervical_cancer_data/Qiu et al/GSE197461/GSM5917939_SCC_3_features.tsv.gz"
-SCC3.data <- ReadMtx(mtx = mtx, cells = cells, features = features)
-SCC3 <- CreateSeuratObject(counts = SCC3.data, project = "scc", min.cells = 3, min.features = 200)
-SCC3[["percent.mt"]] <- PercentageFeatureSet(SCC3, pattern = "^MT-")
-SCC3 <- subset(SCC3, subset = percent.mt < 10)
-SCC3 <- NormalizeData(SCC3)
-
-
-```
-
-
-```{r fig.height=5, fig.width=12}
-VlnPlot(object = SCC1,features = "MYB")+ggtitle("SCC1")|VlnPlot(object = SCC2,features = "MYB")+ggtitle("SCC2")|VlnPlot(object = SCC3,features = "MYB")+ggtitle("SCC3")|VlnPlot(object = SCC4,features = "MYB")+ggtitle("SCC4")|VlnPlot(object = SCC5,features = "MYB",group.by = "orig.ident")+ggtitle("SCC5")
-```
-
 
 ```{r}
 # read processed data:
@@ -95,8 +45,8 @@ VlnPlot(object = scc.big,features = "MYB",group.by = "orig.ident",slot = "data",
 
 
 ```{r}
-b = FetchData(object = scc.big,vars = c("MYB","orig.ident"),slot = "data", assay = "RNA")
-b %>%   group_by(orig.ident) %>% 
+myb_data = FetchData(object = scc.big,vars = c("MYB","orig.ident"),slot = "data", assay = "RNA")
+myb_data %>%   group_by(orig.ident) %>% 
   summarise(counts = sum(MYB > 0, na.rm = TRUE))
 ```
 
