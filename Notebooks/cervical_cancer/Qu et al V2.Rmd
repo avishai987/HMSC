@@ -51,7 +51,7 @@ myb_data %>%   group_by(orig.ident) %>%
 ```
 
 
-# Violin plot all patients without scc2
+# Ppatients filter
 ```{r fig.height=6, fig.width=12}
 scc_myb_patients<- subset(scc.big, subset = orig.ident %in% c("SCC3","SCC4","SCC5"))
 ```
@@ -69,12 +69,11 @@ stat.test
 
 
 
-p = ggplot(myb_vs_hpv,aes( x = hpv_positive, y = MYB))+ 
-    geom_violin(trim=FALSE,aes(fill = hpv_positive)) +
+p = ggplot(myb_vs_hpv,aes( x = hpv_positive, y = MYB)) +
   theme_minimal()+
-  stat_summary(fun.data = function(x) data.frame(y=max(x)*1.15, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("average MYB")+ggtitle("all patients") +
-  stat_pvalue_manual(stat.test,y.position = 3, label = "Wilcox, p = {p}",remove.bracket = F)+
-  geom_boxplot(width=.1, outlier.shape=NA) 
+  stat_summary(fun.data = function(x) data.frame(y=max(x)*1.1, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("average MYB")+ggtitle("all patients") +
+  stat_pvalue_manual(stat.test,y.position = 2.6, label = "Wilcox, p = {p}",remove.bracket = F)+
+  geom_boxplot(width=.1) 
 
 
 p
@@ -84,35 +83,7 @@ pdf(file = "./Figures/SCC_myb_hpv_violin_all_patients.pdf")
 p
 dev.off()
 ```
-# Violin plot all patients with scc2
 
-```{r fig.height=6, fig.width=12}
-scc_myb_patients<- subset(scc.big, subset = orig.ident %in% c("SCC2","SCC3","SCC4","SCC5"))
-```
-
-
-```{r}
-library(rstatix)
-myb_vs_hpv = FetchData(object = scc_myb_patients, vars = c("hpv_positive", "MYB"))
-df = reshape2::melt(myb_vs_hpv,value.name = "logTPM") %>% dplyr::rename(gene = variable)
-
-stat.test <- df %>%
-  wilcox_test(logTPM ~ hpv_positive)
-
-stat.test
-
-
-
-p = ggplot(myb_vs_hpv,aes( x = hpv_positive, y = MYB))+ 
-    geom_violin(trim=FALSE,aes(fill = hpv_positive)) +
-  theme_minimal()+
-  stat_summary(fun.data = function(x) data.frame(y=max(x)*1.15, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("average MYB")+ggtitle("all patients") +
-  stat_pvalue_manual(stat.test,y.position = 3, label = "Wilcox, p = {p}",remove.bracket = F)+
-  geom_boxplot(width=.1, outlier.shape=NA) 
-
-
-p
-```
 
 
 # Boxplot by patient
