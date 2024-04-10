@@ -451,11 +451,16 @@ DimPlot(object = hmsc_cancer_cells,group.by  = c("hpv33_positive"),pt.size = 2)
 
 
 ## NMF {.tabset}
+```{r}
+library(reticulate)
+use_virtualenv("/sci/labs/yotamd/lab_share/avishai.wizel/python_envs/Virtual_env/cnmf_dev/",required = T)
+py_config() # if you see that r-reticulate has been loaded, terminate r and try again
+```
+
 ```{python}
 from cnmf import cNMF
 import pickle
-nfeatures = "2K"
-f = open('./Data/cNMF/HMSC_cNMF_harmony_2Kvargenes/cnmf_obj.pckl', 'rb')
+f = open('./Data/cNMF/batch_corrected_cnmf/cnmf_obj.pkl', 'rb')
 cnmf_obj = pickle.load(f)
 f.close()
 ```
@@ -463,7 +468,7 @@ f.close()
 
 
 ```{r}
-knitr::include_graphics("./Data/cNMF/HMSC_cNMF_harmony_2Kvargenes/HMSC_cNMF_harmony_2Kvargenes.k_selection.png")
+knitr::include_graphics("./Data/cNMF/batch_corrected_cnmf/BatchCorrected_NMF/BatchCorrected_NMF.k_selection.png")
 ```
 
 ```{python}
@@ -492,11 +497,11 @@ for (i in 1:ncol(all_metagenes)) {
 #add each metagene to metadata
 for (i in 1:ncol(all_metagenes)) {
   metage_metadata = all_metagenes %>% select(i)
-  acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = metage_metadata)
+  hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = metage_metadata)
 }
 print_tab(plt = 
-            FeaturePlot(object = acc1_cancer_cells,features = colnames(all_metagenes),combine = T),
-          title = "metagenes expression",subtitle_num = toc_tabs_level)
+            FeaturePlot(object = hmsc_cancer_cells,features = colnames(all_metagenes),combine = T),
+          title = "metagenes expression",subtitle_num = 2)
 
 ```
 
@@ -521,7 +526,7 @@ gridExtra::grid.arrange(grobs = plt_list)
 ```{r}
 for (i in 1:ncol(gep_scores)) {
   ranked_vec = gep_scores %>% pull(i) %>%  setNames(rownames(gep_scores))
-  hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = genesets,up_only = T)
+  hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = T)
 
   plt = hyp_dots(hyp_obj,merge = F)+ aes(size=abs(nes))
   print(plt)
@@ -529,25 +534,32 @@ for (i in 1:ncol(gep_scores)) {
 ```
 
 
+
 ```{r fig.height=10}
-library(ComplexHeatmap)
-acc1_cancer_cells = SetIdent(object = acc1_cancer_cells,value = "seurat_clusters")
+all_programs_top_genes = c()
 for (i in 1:ncol(gep_scores)) {
   top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
-  top = head(rownames(top_genes),50) #take top top_genes_num
-  data = FetchData(object = acc1_cancer_cells,vars = top)%>% scale() %>% t() 
-  metagene_data = FetchData(object = acc1_cancer_cells,vars = colnames(all_metagenes)[i])
-  col_list = list(circlize::colorRamp2(c(0, 1), c("white", "red"))); names(col_list) = colnames(all_metagenes)[i]
-  column_ha = HeatmapAnnotation(df = metagene_data,col = col_list)
-  print(ComplexHeatmap::Heatmap(data,show_column_names = F,row_names_gp = grid::gpar(fontsize = 7),cluster_rows = F, top_annotation = 
-                                  column_ha,name = "Z-score expression"))
-    
-  pdf(paste0("./Figures/NMF_top_genes_program",i,".pdf"))
-  print(ComplexHeatmap::Heatmap(data,show_column_names = F,row_names_gp = grid::gpar(fontsize = 7),cluster_rows = F, top_annotation = 
-                                  column_ha,name = "Z-score expression"))
-  dev.off()
+  top = head(rownames(top_genes), 20) #take top top_genes_num
+  all_programs_top_genes = c(all_programs_top_genes,top)
 }
 
+data = FetchData(object = hmsc_cancer_cells, vars = all_programs_top_genes) %>% scale() %>% t()
+
+annotation_data = FetchData(object = hmsc_cancer_cells, vars = colnames(all_metagenes))
+col_fun = circlize::colorRamp2(c(0, 1), c("white", "red"))
+column_ha = HeatmapAnnotation(df = annotation_data, col = list(metagene.1 = col_fun,metagene.2 = col_fun,metagene.3 = col_fun))
+
+ComplexHeatmap::Heatmap(
+  data,
+  show_column_names = F,
+  row_names_gp = grid::gpar(fontsize = 7),
+  cluster_rows = F,
+  top_annotation =
+    column_ha,
+  name = "Z-score expression"
+)
+  
+  
 ```
 
 
@@ -624,6 +636,21 @@ DefaultAssay(hmsc_cancer_cells) = "integrated"
 
 ```{r}
 calculate_score(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes,lum_threshold = 0,myo_threshold = 0)
+```
+
+```{r}
+
+i=2
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes),20) #take top top_genes_num
+library(circlize)
+data = FetchData(object = hmsc_cancer_cells,vars = c(top))
+ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 0))
+}, column_title = "HMSC luminal genes")
+
+
 ```
 
 
