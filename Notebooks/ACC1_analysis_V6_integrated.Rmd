@@ -638,20 +638,7 @@ DefaultAssay(hmsc_cancer_cells) = "integrated"
 calculate_score(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes,lum_threshold = 0,myo_threshold = 0)
 ```
 
-```{r}
 
-i=2
-  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
-  top = head(rownames(top_genes),20) #take top top_genes_num
-library(circlize)
-data = FetchData(object = hmsc_cancer_cells,vars = c(top))
-ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
-    cell_fun = function(j, i, x, y, width, height, fill) {
-        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 0))
-}, column_title = "HMSC luminal genes")
-
-
-```
 
 
 ```{r}
@@ -764,7 +751,6 @@ hmsc_cancer_cells = SetIdent(hmsc_cancer_cells,value = "hpv33_positive")
 
 
 ```{r}
-library("biomaRt")
 
 features = VariableFeatures(hmsc_cancer_cells)
 features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
@@ -811,9 +797,16 @@ acc_deg[c("MYB","JAG1"),]
 
 volcano plot log2(mean logTPM HPV+) - log2(mean logTPM HPV-)
 ```{r}
-plt = volcano_plot.2(de_genes = acc_deg,fc_cutoff = 1.3, fdr_cutoff = 0.1,show_gene_names = c("MYB","JAG1"),ident1 = "HPV33 positive",ident2 = "HPV33 negative",top_genes_text = 5) +ggtitle("Differential Gene Expression by HPV Status
+top_genes = acc_deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$avg_log2FC)) %>% head(10) %>% rownames()
+plt = volcano_plot.2(de_genes = acc_deg,fc_cutoff = 1.3, fdr_cutoff = 0.1,show_gene_names = intersect( # OS HNSC 0.032 CECS 0.065
+   acc_deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames(),
+   deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames()
+ ),ident1 = "HPV33 positive",ident2 = "HPV33 negative",top_genes_text = 0) +ggtitle("Differential Gene Expression by HPV Status
 ")
 plt
+```
+```{r}
+acc_deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>log2(1.3)) %>%  arrange(dplyr::desc(.$avg_log2FC)) %>% head(10) %>% rownames() %>% cat(sep = "\n")
 ```
 
 ```{r}

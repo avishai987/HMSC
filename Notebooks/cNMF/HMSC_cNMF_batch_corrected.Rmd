@@ -40,7 +40,7 @@ hmsc_cancer_cells = readRDS("./Data/acc1_cancer_cells_2500features_integrated_V5
 ```{r}
 library(reticulate)
 use_virtualenv("/sci/labs/yotamd/lab_share/avishai.wizel/python_envs/Virtual_env/cnmf_dev/",required = T)
-py_config()
+py_config() # if you see that r-reticulate has been loaded, restrat/terminate r and try again
 
 ```
 
@@ -59,17 +59,16 @@ np.random.seed(14)
 
 ```{r}
 sc <- import('scanpy', convert = FALSE)
-hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 2000,assay = "RNA")
 gene_expression = t(as.matrix(GetAssayData(hmsc_cancer_cells,slot='data',assay = "RNA")))
-
+gene_expression = gene_expression[,colSums(gene_expression) != 0] #remove genes with 0 expression in all cells
 
 gene_expression = 2**gene_expression #convert log2(TPM+1) to TPM+1
 gene_expression = gene_expression-1 #convert TPM+1 to TPM
-
+hmsc_cancer_cells_filtered  = hmsc_cancer_cells[colnames(gene_expression),]
 adata <- sc$AnnData(
   X   = gene_expression, 
-  obs = hmsc_cancer_cells[[]],
-  var = GetAssay(hmsc_cancer_cells,assay = "RNA")[[]]
+  obs = hmsc_cancer_cells_filtered[[]],
+  var = GetAssay(hmsc_cancer_cells_filtered,assay = "RNA")[[]]
 )
 
 
@@ -79,21 +78,31 @@ rm(gene_expression)
 ```{python}
 p = Preprocess(random_seed=14)
 adata = r.adata
-(adata_c, adata_tp10k, hvgs) = p.preprocess_for_cnmf(adata, harmony_vars='orig.ident', n_top_rna_genes = 2000,max_scaled_thresh = 50, quantile_thresh = .9999, makeplots=True,save_output_base='./Data/cNMF/batch_corrected_cnmf/batch_corrected_output')
+(adata_c, adata_tp10k, hvgs) = p.preprocess_for_cnmf(adata, harmony_vars='orig.ident', n_top_rna_genes = 2000,max_scaled_thresh = 50, quantile_thresh = .9999,theta = 2, makeplots=True,save_output_base='./Data/cNMF/batch_corrected_cnmf/preprocess_output')
+```
+
+
+```{python}
+cnmf_obj_corrected = cNMF(output_dir='./Data/cNMF/batch_corrected_cnmf/', name='BatchCorrected_NMF')
+cnmf_obj_corrected.prepare(
+  counts_fn='./Data/cNMF/batch_corrected_cnmf/preprocess_output.Corrected.HVG.Varnorm.h5ad',
+  tpm_fn='./Data/cNMF/batch_corrected_cnmf/preprocess_output.TP10K.h5ad', genes_file='./Data/cNMF/batch_corrected_cnmf/preprocess_output.Corrected.HVGs.txt',components=np.arange(3,11), n_iter=20, seed=14, num_highvar_genes=2000)
 ```
 
 ```{python}
-import harmonypy
-adata.var['highly_variable'] = adata.var['vst.variable']
-adata = adata[:,adata.var['highly_variable']].copy()
-sc.pp.scale(adata, zero_center=False, max_value=50)
-sc.tl.pca(adata, use_highly_variable=True)
- 
-harmony_res = harmonypy.run_harmony(adata.obsm['X_pca'], adata.obs, 'orig.ident', max_iter_harmony = 15,theta = 2,random_state = 1)
-
+cnmf_obj_corrected.factorize(worker_i=0, total_workers=1)
+cnmf_obj_corrected.combine()
 ```
 ```{python}
-cnmf_obj_corrected = cNMF(output_dir='./Data/cNMF/batch_corrected_cnmf/', name='BatchCorrected')
-cnmf_obj_corrected.prepare(counts_fn='/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/EGFR/Data/cNMF/batch_corrected_cnmf/batchcorrect_example.Corrected.HVG.Varnorm.h5ad',tpm_fn='/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/EGFR/Data/cNMF/batch_corrected_cnmf/batchcorrect_example.TP10K.h5ad', genes_file='/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/EGFR/Data/cNMF/batch_corrected_cnmf/batchcorrect_example.Corrected.HVGs.txt',components=np.arange(3,11), n_iter=20, seed=14, num_highvar_genes=2000)
+cnmf_obj.k_selection_plot()
+```
+
+```{python}
+import pickle
+with open('./Data/cNMF/batch_corrected_cnmf/cnmf_obj.pkl', 'wb') as file: 
+    # A new file will be created 
+    pickle.dump(cnmf_obj_corrected, file) 
+
+
 ```
 

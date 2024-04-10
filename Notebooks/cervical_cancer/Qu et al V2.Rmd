@@ -110,7 +110,7 @@ pdf(file = "./Figures/SCC_HPV_MYB_boxplot_bySample.pdf",width = 8)
 p
 dev.off()
 ```
-# All genes boxplots
+# HPV DEG boxplots
 
 ```{r fig.width=8}
 genes = c("ANLN", "TUBB6", "AXL", "IFT122", "GFM1", "MYB", "JAG1")
@@ -166,8 +166,8 @@ metagenes_violin_compare.2 = function(dataset,prefix = "",pre_on = c("OSI","NT")
     plt = ggplot(genes_by_tp, aes(x = variable, y = score,fill = treatment)) + geom_split_violin(scale = 'width')+ 
       geom_boxplot(width = 0.25, notch = FALSE, notchwidth = .4, outlier.shape = NA, coef=0)+
       ylim(min(genes_by_tp$score),max(genes_by_tp$score)*1.25)
-    plt = plt +stat_pvalue_manual(stat.test, label = "{p.signif}", label.size = 7,  #add p value
-                                  y.position = 1.5,inherit.aes = F,size = 3.3,x = ".y.") # set position at the top value
+    plt = plt +stat_pvalue_manual(stat.test, label = "asd = {p.signif}", label.size = 7,  #add p value
+                                  y.position = 1,inherit.aes = F,size = 3.3,x = ".y.") # set position at the top value
     return(plt)
   }
   
@@ -185,7 +185,7 @@ metagenes_violin_compare.2 = function(dataset,prefix = "",pre_on = c("OSI","NT")
 scc_myb_patients$treatment = scc_myb_patients$hpv_positive %>% gsub(pattern = "negative",replacement = "HPV-negative")%>% gsub(pattern = "positive",replacement = "HPV-positive")
 scc_myb_patients@meta.data[["treatment"]] = factor(scc_myb_patients$treatment, levels = c("HPV-positive", "HPV-negative"))
 
-p = metagenes_violin_compare.2(dataset = scc_myb_patients, prefix = "patient",pre_on = c("HPV-negative","HPV-positive"),test = "wilcox.test",programs = top_genes, return_list = F,combine_patients = T) +scale_y_continuous(limits = c(0,1.5)) + labs(fill = "")+ylab("LogTPM")+xlab("Gene")+theme(axis.title=element_text(size=14))+ scale_fill_manual(values=c("#F8766D", "cyan3"))
+p = metagenes_violin_compare.2(dataset = scc_myb_patients, prefix = "patient",pre_on = c("HPV-negative","HPV-positive"),test = "wilcox.test",programs = genes, return_list = F,combine_patients = T) +scale_y_continuous(limits = c(0,1.5)) + labs(fill = "")+ylab("LogTPM")+xlab("Gene")+theme(axis.title=element_text(size=14))+ scale_fill_manual(values=c("#F8766D", "cyan3"))
 p
 ```
 
@@ -218,11 +218,68 @@ for (patient_name in c("SCC2", "SCC3", "SCC4", "SCC5")) {
 ggarrange(plotlist = myplots,ncol = 4,nrow = 1)
 
 ```
+
+
 ```{r}
-  fisher.test(table(df))
-  fisher_test(table(df))
+scc_myb_patients = SetIdent(scc_myb_patients,value = "hpv_positive")
+scc_myb_patients = FindVariableFeatures(object = scc_myb_patients,nfeatures = 10000)
+features = VariableFeatures(scc_myb_patients)
+
+deg <-
+  FindMarkers(
+    scc_myb_patients,
+    ident.1 = "positive",
+    ident.2 = "negative",
+    features = features,
+    densify = T,
+    assay = "RNA",
+    logfc.threshold = 0.1,
+    min.pct = 0.1,
+    only.pos = F,
+    mean.fxn = function(x) {
+      return(log(rowMeans(x) + 1, base = 2)) # change func to calculate logFC in log space data (default to exponent data)
+    }
+  )
+deg$fdr<-p.adjust(p = as.vector(deg$p_val) ,method = "fdr" )
+
+
 
 ```
 
-<script src="https://hypothes.is/embed.js" async></script>
+
+
+```{r}
+intersect(
+  acc_deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>0)   %>% arrange(dplyr::desc(.$avg_log2FC))  %>% head(400) %>% rownames(),
+  deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>0) %>% arrange(dplyr::desc(.$avg_log2FC)) %>% head(400) %>% rownames()
+) %>% cat(sep = "\n")
+```
+```{r}
+# HNSC OS p=0.022
+intersect(
+   acc_deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$avg_log2FC))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames(),
+   deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$avg_log2FC))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames()
+ ) %>% cat(sep = "\n")
+```
+```{r}
+intersect( # OS HNSC 0.032 CECS 0.065
+   acc_deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames(),
+   deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames()
+ ) %>% cat(sep = "\n")
+```
+```{r}
+intersect( 
+   acc_deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(400) %>% rownames(),
+   deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(400) %>% rownames()
+ ) %>% cat(sep = "\n")
+```
+
+```{r}
+# CECS RFS p=0.014
+deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>0) %>% arrange(dplyr::desc(.$avg_log2FC)) %>% rownames() %>% head(20) %>% cat(sep = "\n")
+```
+
+```{r}
+acc_deg[deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>0) %>% arrange(dplyr::desc(.$avg_log2FC)) %>% rownames() %>% head(20),]
+```
 
