@@ -4,6 +4,7 @@
 .Ruserdata
 .Rprofile
 Data/
+GDCdata/
 HMSC.Rproj
 test/
 .Renviron

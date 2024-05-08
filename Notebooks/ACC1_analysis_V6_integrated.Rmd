@@ -64,7 +64,7 @@ FeaturePlot(object = hmsc_acc_pri_cancer,features = c("kaye_acc_score"),pt.size 
 
 ```{r}
 pdf("./Figures/kaye_acc_score_AllCancerCells.pdf")
-FeaturePlot(object = all_acc_cancer_cells,features = c("kaye_acc_score"),pt.size = 1)
+FeaturePlot(object = hmsc_acc_pri_cancer,features = c("kaye_acc_score"),pt.size = 1)
 dev.off()
 ```
 
@@ -87,25 +87,24 @@ acc_deg <-
 ```
 
 
-```{r fig.height=5, fig.width=13, results='asis'}
+```{r fig.height=6, fig.width=6, results='asis'}
 ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
-plt = hyp_dots(hyp_obj,merge = F)
-plt1 = plt$up+ aes(size=nes,color = geneset)+ggtitle("Up in HMSC")+ 
+plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)
+
+plt1 = plt$up+ aes(size=nes)+ggtitle("Up in HMSC")+ 
   guides(
-    size = guide_legend(title="NES",reverse=T),
-    color = guide_legend(title="Geneset size",reverse=T)) +
-  scale_colour_gradient(low = "black",high = "red")
+    size = guide_legend(title="|NES|",reverse=T))
 
-plt2 = plt$dn+ aes(size=nes,color = geneset)+ggtitle("Down in HMSC")+scale_size(trans = 'reverse')+
+plt2 = plt$dn+ aes(size=nes)+ggtitle("Down in HMSC")+scale_size(trans = 'reverse')+
     guides(
-    size = guide_legend(title="NES",reverse=F),
-    color = guide_legend(title="Geneset size",reverse=T)) +
-  scale_colour_gradient(low = "black",high = "red")
+    size = guide_legend(title="|NES|",reverse=F)) 
 
-plt1+plt2
+p = ggarrange(plt1,plt2,common.legend = T,nrow = 2,legend = "right")
+p
 ```
+
 
 
 ## Cell cycle score  {.tabset}
@@ -230,20 +229,22 @@ acc_deg <-
 
 
 
-```{r fig.height=5, fig.width=13, results='asis'}
+```{r fig.height=4, fig.width=12, results='asis'}
 ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
-plt = hyp_dots(hyp_obj,merge = F)
+plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)
+
 plt1 = plt$up+ aes(size=nes)+ggtitle("Up in HMSC")+ 
   guides(
-    size = guide_legend(title="NES",reverse=T)) 
+    size = guide_legend(title="|NES|",reverse=T))
 
 plt2 = plt$dn+ aes(size=nes)+ggtitle("Down in HMSC")+scale_size(trans = 'reverse')+
     guides(
-    size = guide_legend(title="NES",reverse=F))
+    size = guide_legend(title="|NES|",reverse=F)) 
 
-plt1+plt2
+p = ggarrange(plt1,plt2,common.legend = T,nrow = 1,legend = "right")
+p
 
 ```
 
@@ -251,8 +252,8 @@ plt1+plt2
 
 
 ```{r}
-pdf(file = "./Figures/ACC_vs_HMSC_GSEA.pdf",width = 13,height = 5)
-plt1+plt2
+pdf(file = "./Figures/ACC_vs_HMSC_GSEA.pdf",width = 12,height = 4)
+p
 dev.off()
 ```
 
@@ -330,10 +331,11 @@ pdf("./Figures/volcano_plot_ACC_VS_HMSC.pdf")
 volcano_plt
 dev.off()
 
-
-
 ```
 
+```{r}
+write.csv2(x = acc_deg,file = "./Figures/HMSC_vs_ACC_DEG.csv")
+```
 
 
 
@@ -488,7 +490,7 @@ all_metagenes= py$usage_norm
 
 
 
-```{r fig.height=10, fig.width=10, results='asis'}
+```{r fig.height=8, fig.width=10, results='asis'}
 # Make metagene names
 for (i in 1:ncol(all_metagenes)) {
   colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
@@ -505,34 +507,37 @@ print_tab(plt =
 
 ```
 
+```{r}
+pdf("./Figures/NMF_UMAP.pdf",height = 8,width = 10)
+ FeaturePlot(object = hmsc_cancer_cells,features = colnames(all_metagenes),combine = T)
+dev.off()
 
-## Enrichment analysis by top 200 genes of each program
-```{r fig.height=8, fig.width=8, results='hide'}
-
-canonical_pathways = msigdbr(species = "Homo sapiens", category = "C2") %>% dplyr::filter(gs_subcat != "CGP") %>%  dplyr::distinct(gs_name, gene_symbol)
-
-plt_list = list()
-for (i in 1:ncol(gep_scores)) {
-  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
-  top = head(rownames(top_genes),200) #take top top_genes_num
-  res = genes_vec_enrichment(genes = top,background = rownames(gep_scores),homer = T,title = 
-                    i,silent = T,return_all = T,custom_pathways = canonical_pathways)
-   
-  plt_list[[i]] = res$plt
-}
-gridExtra::grid.arrange(grobs = plt_list)
 ```
 
-```{r}
+# GSEA
+
+```{r fig.height=8, fig.width=10}
+
+plotlist = list()
 for (i in 1:ncol(gep_scores)) {
   ranked_vec = gep_scores %>% pull(i) %>%  setNames(rownames(gep_scores))
   hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = T)
 
-  plt = hyp_dots(hyp_obj,merge = F)+ aes(size=abs(nes))
-  print(plt)
+  plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)+ aes(size=nes)+ggtitle(paste("Metagene", i))+ 
+  guides(
+    size = guide_legend(title="NES",reverse=T))
+  plotlist[[i]] = plt
 }
+p = ggarrange(plotlist = plotlist,ncol = 2,nrow = 2,common.legend = T)
+
 ```
 
+```{r}
+pdf("./Figures/NMF_GSEA.pdf",height = 8,width = 10)
+p
+dev.off()
+
+```
 
 
 ```{r fig.height=10}
@@ -549,7 +554,7 @@ annotation_data = FetchData(object = hmsc_cancer_cells, vars = colnames(all_meta
 col_fun = circlize::colorRamp2(c(0, 1), c("white", "red"))
 column_ha = HeatmapAnnotation(df = annotation_data, col = list(metagene.1 = col_fun,metagene.2 = col_fun,metagene.3 = col_fun))
 
-ComplexHeatmap::Heatmap(
+p = ComplexHeatmap::Heatmap(
   data,
   show_column_names = F,
   row_names_gp = grid::gpar(fontsize = 7),
@@ -559,10 +564,15 @@ ComplexHeatmap::Heatmap(
   name = "Z-score expression"
 )
   
-  
+p
 ```
 
+```{r}
+pdf("./Figures/NMF_heatmap.pdf",width = 10)
+p
+dev.off()
 
+```
 
 
 
@@ -587,7 +597,7 @@ calculate_score(dataset = acc_cancerCells_noACC1,myo_genes = original_myo_genes,
 ```
 
 ```{r}
-calculate_score.2 <- function(dataset,myo_genes,lum_genes,lum_threshold =1 , myo_threshold = -1) {
+calculate_score.2 <- function(dataset,myo_genes,lum_genes,lum_threshold =1 , myo_threshold = -1, return_density = F) {
   myoscore=FetchData(object =dataset,vars =  myo_genes,slot = "data") %>% rowMeans()
   lescore=FetchData(object =dataset,vars =  lum_genes,slot = "data") %>% rowMeans()
   correlation = cor(lescore,myoscore) %>% round(digits = 2)
@@ -609,11 +619,14 @@ calculate_score.2 <- function(dataset,myo_genes,lum_genes,lum_threshold =1 , myo
     FeaturePlot(object = dataset,features = "luminal_over_myo")
   )
   data = FetchData(object = dataset,vars = "luminal_over_myo")
-  print(
-    data %>% 
+
+  
+    p = data %>% 
     ggplot(aes( x=luminal_over_myo)) + 
     geom_density() +ylab("Density")+theme(  axis.title=element_text(size=12,face="bold"))+ xlab("Luminal-Myoepithelial spectrum")
-    )
+    if (return_density) {
+      return(p)
+    } else{ print(p)}
   
 lum_cells_num = subset(x = dataset,luminal_over_myo >(lum_threshold)) %>% ncol() /ncol(dataset)
 myo_cells_num = subset(x = dataset,luminal_over_myo <(myo_threshold)) %>% ncol()/ncol(dataset)
@@ -635,40 +648,71 @@ DefaultAssay(hmsc_cancer_cells) = "integrated"
 ```
 
 ```{r}
-calculate_score(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes,lum_threshold = 0,myo_threshold = 0)
+calculate_score.2(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes,lum_threshold = 0,myo_threshold = 0)
+
+p = calculate_score.2(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes,lum_threshold = 0,myo_threshold = 0,return_density = T)
 ```
 
 
-
-
 ```{r}
+pdf("./Figures/HMSC_myo_lum_spectrum.pdf")
+p
+dev.off()
+
+```
+
+```{r fig.height=5, fig.width=10}
 library(circlize)
 data = FetchData(object = hmsc_cancer_cells,vars = c(original_lum_genes))
-ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
+myo_plt = ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
     cell_fun = function(j, i, x, y, width, height, fill) {
-        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 9))
+        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 7))
 }, column_title = "HMSC luminal genes")
 
 data = FetchData(object = acc_pri,vars = c(original_lum_genes))
-ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
+lum_plt = ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
     cell_fun = function(j, i, x, y, width, height, fill) {
-        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 9))
+        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 7))
 }, column_title = "ACC luminal genes")
+
+p1 = grid.grabExpr(draw(myo_plt))
+p2 = grid.grabExpr(draw(lum_plt))
+p = ggarrange(p1,p2)
+p
 ```
 ```{r}
+pdf("./Figures/Luminal_genes_correlation.pdf",height = 5,width = 10)
+p
+dev.off()
+
+```
+
+```{r fig.height=5, fig.width=10}
 library(circlize)
 data = FetchData(object = hmsc_cancer_cells,vars = c(original_myo_genes))
-ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
+myo_plt = ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
     cell_fun = function(j, i, x, y, width, height, fill) {
-        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 9))
-}, column_title = "HMSC Myoepithelial genes")
+        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 7))
+}, column_title = "HMSC Myoepithelial  genes")
 
 data = FetchData(object = acc_pri,vars = c(original_myo_genes))
-ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
+lum_plt = ComplexHeatmap::Heatmap(matrix = cor(data),name = "pearson", col = colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")), heatmap_legend_param = list(at = c(-1, 0, 1)),
     cell_fun = function(j, i, x, y, width, height, fill) {
-        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 9))
-}, column_title = "ACC Myoepithelialgenes")
+        grid.text(sprintf("%.2f", cor(data)[i, j]), x, y, gp = gpar(fontsize = 7))
+}, column_title = "ACC Myoepithelial  genes")
+
+p1 = grid.grabExpr(draw(myo_plt))
+p2 = grid.grabExpr(draw(lum_plt))
+p = ggarrange(p1,p2)
+p
 ```
+```{r}
+pdf("./Figures/Myo_genes_correlation.pdf",height = 5,width = 10)
+p
+dev.off()
+
+```
+
 
 ## HPV
 ### HPV UMAP

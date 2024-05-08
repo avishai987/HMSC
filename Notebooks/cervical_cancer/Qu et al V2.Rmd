@@ -69,17 +69,17 @@ stat.test
 
 
 
-p = ggplot(myb_vs_hpv,aes( x = hpv_positive, y = MYB)) +
+p = ggplot(myb_vs_hpv,aes( x = hpv_positive, y = MYB)) +geom_boxplot(width=.1,outlier.shape = NA) +
   theme_minimal()+
-  stat_summary(fun.data = function(x) data.frame(y=max(x)*1.1, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("average MYB")+ggtitle("all patients") +
-  stat_pvalue_manual(stat.test,y.position = 2.6, label = "Wilcox, p = {p}",remove.bracket = F)+
-  geom_boxplot(width=.1) 
+  stat_summary(fun.data = function(x) data.frame(y=0.35, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +ylab("average MYB")+ggtitle("CECS") + xlab("HPV status")+
+  stat_pvalue_manual(stat.test,y.position = 0.43, label = "Wilcox, p = {p}",remove.bracket = F,bracket.shorten = 0.1,tip.length = 0.01)+coord_cartesian(ylim = c(0,0.5))
+  
 
 
 p
 ```
 ```{r}
-pdf(file = "./Figures/SCC_myb_hpv_violin_all_patients.pdf")
+pdf(file = "./Figures/SCC_MYB_HPV_boxplot_all_patients.pdf",height = 4)
 p
 dev.off()
 ```

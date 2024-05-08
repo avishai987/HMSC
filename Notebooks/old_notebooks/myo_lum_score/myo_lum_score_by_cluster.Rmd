@@ -1,0 +1,158 @@
+---
+title: "Myo_lum_score_by_cluster"
+author: "Avishai Wizel"
+date: 8.12.22
+output: 
+  html_notebook: 
+    code_folding: hide
+---
+
+## Parameters:
+
+```{r}
+suffix = ""
+data_to_read = "acc1_cancer_cells_15KnCount_V3.RDS"
+```
+
+-   suffix = `r suffix`
+-   data_to_read = `r data_to_read`
+
+## functions
+
+```{r warning=FALSE}
+source("./.Rprofile")
+source_from_github(repositoy = "DEG_functions",version = "0.2.1")
+```
+
+## Data
+
+```{r}
+acc1_cancer_cells = readRDS("./Data/" %>% paste0(data_to_read))
+luminal_pathways = c("CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_UP","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_UP","HUPER_BREAST_BASAL_VS_LUMINAL_DN","LIM_MAMMARY_LUMINAL_PROGENITOR_UP","SMID_BREAST_CANCER_LUMINAL_B_UP" )
+
+# add luminal pathways
+msigdb_gene_set = msigdbr(species = "Homo sapiens") 
+msigdb_gene_set = msigdb_gene_set %>%as.data.frame() 
+luminal_gs = msigdb_gene_set %>%  dplyr::filter(gs_name %in% luminal_pathways)
+luminal_gs = luminal_gs %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+```
+
+```{r}
+DimPlot(acc1_cancer_cells)
+```
+
+
+```{r results='hide'}
+res = FindAllMarkers(object = acc1_cancer_cells)
+```
+```{r}
+res$fdr<-p.adjust(p = as.vector(res$p_val) ,method = "fdr" )
+```
+## cluster 0 {.tabset}
+
+### Up 
+```{r}
+cluster_num = 0
+markers_cluster = res[res$cluster == cluster_num & res$fdr<0.05 & res$avg_log2FC>0,"gene"]
+```
+
+```{r results='hide'}
+genes_vec_enrichment(genes = markers_cluster,background = rownames(acc1_cancer_cells),homer = T,title = "Enrichment",custom_pathways = luminal_gs)
+```
+### Down 
+
+```{r}
+cluster_num = 0
+markers_cluster = res[res$cluster == cluster_num & res$fdr<0.0005 & res$avg_log2FC<0,"gene"]
+```
+
+```{r results='hide'}
+genes_vec_enrichment(genes = markers_cluster,background = rownames(acc1_cancer_cells),homer = T,title = "Enrichment",custom_pathways = luminal_gs)
+```
+## {-}
+
+## cluster 1 {.tabset}
+
+### Up
+```{r}
+cluster_num = 1
+markers_cluster = res[res$cluster == cluster_num & res$fdr<0.05 & res$avg_log2FC>0,"gene"]
+```
+
+```{r results='hide'}
+genes_vec_enrichment(genes = markers_cluster,background = rownames(acc1_cancer_cells),homer = T,title = "Enrichment",custom_pathways = luminal_gs)
+```
+### Down
+
+```{r}
+cluster_num = 1
+markers_cluster = res[res$cluster == cluster_num & res$fdr<0.05 & res$avg_log2FC<0,"gene"]
+```
+
+```{r results='hide'}
+genes_vec_enrichment(genes = markers_cluster,background = rownames(acc1_cancer_cells),homer = T,title = "Enrichment",custom_pathways = luminal_gs)
+```
+## {-}
+
+## cluster 2 {.tabset}
+
+### Up 
+
+```{r}
+cluster_num = 2
+markers_cluster = res[res$cluster == cluster_num & res$fdr<0.05 & res$avg_log2FC>0,"gene"]
+```
+
+```{r results='hide'}
+genes_vec_enrichment(genes = markers_cluster,background = rownames(acc1_cancer_cells),homer = T,title = "Enrichment",custom_pathways = luminal_gs)
+```
+### Down
+
+```{r}
+cluster_num = 2
+markers_cluster = res[res$cluster == cluster_num & res$fdr<0.05 & res$avg_log2FC<0,"gene"]
+```
+
+```{r results='hide'}
+genes_vec_enrichment(genes = markers_cluster,background = rownames(acc1_cancer_cells),homer = T,title = "Enrichment",custom_pathways = luminal_gs)
+```
+## {-}
+
+## cluster 3 {.tabset}
+
+### Up
+```{r}
+cluster_num = 3
+markers_cluster = res[res$cluster == cluster_num & res$fdr<0.0005 & res$avg_log2FC>0,"gene"]
+```
+
+```{r results='hide'}
+genes_vec_enrichment(genes = markers_cluster,background = rownames(acc1_cancer_cells),homer = T,title = "Enrichment",custom_pathways = luminal_gs)
+```
+### Down 
+
+```{r}
+cluster_num = 3
+markers_cluster = res[res$cluster == cluster_num & res$fdr<0.005 & res$avg_log2FC<0,"gene"]
+```
+
+```{r results='hide'}
+genes_vec_enrichment(genes = markers_cluster,background = rownames(acc1_cancer_cells),homer = T,title = "Enrichment",custom_pathways = luminal_gs)
+```
+## {-}
+
+```{r eval=FALSE, include=FALSE}
+#save notebook:
+rstudioapi::documentSave() #save doc
+this_notebooke_path = rstudioapi::getSourceEditorContext()$path
+previewed_notebook = gsub(pattern = ".Rmd",replacement = ".nb.html",x = this_notebooke_path)
+final_notebook  = basename(this_notebooke_path) %>% gsub(pattern = ".Rmd",replacement = "")
+new_notebook_path = dirname(this_notebooke_path) %>% paste(final_notebook,sep = "/") %>% paste(suffix,sep = "_") %>% paste0(".html")
+overwrite = F
+if(file.exists(new_notebook_path)){
+  cat ("File exists, override?" )
+  chosen <- readline(prompt=" 1 yes \n 2 no\n")
+    if(chosen == 1){overwrite = T}else{overwrite = F}
+  }
+file.copy(from = previewed_notebook, to = dirname(this_notebooke_path) %>% paste(final_notebook,sep = "/") %>% paste(suffix,sep = "_") %>% paste0(".html"),overwrite = overwrite)
+```
