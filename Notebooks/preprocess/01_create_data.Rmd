@@ -145,9 +145,10 @@ DimPlot(acc, reduction = "umap", label = TRUE, pt.size = 1,group.by = "patient.i
 
 ```{r}
 script_name = rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")
-new_dir_path = paste0("./Data_out/",script_name,Sys.Date())
+new_dir_path = paste0("./Data_out/",script_name,"_",Sys.Date())
 dir.create(new_dir_path)
 
+# save objects
 saveRDS(object = acc,file = paste0(new_dir_path,"/", "acc_tpm_nCount_mito_no146_15k_with_ACC1.RDS"))
 
 
