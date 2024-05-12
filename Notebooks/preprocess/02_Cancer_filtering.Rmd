@@ -8,6 +8,11 @@ output:
 ## Parameters:
 
 
+```{r}
+script_name = rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")
+output_dir_path = paste0("./Data_out/",script_name,"_",Sys.Date())
+dir.create(output_dir_path)
+```
 
 
 ```{r}
@@ -136,7 +141,7 @@ ggplot(data=acc1_types, aes(x=type, y=Freq)) +
 
 ```{r}
 cell_types = as.data.frame(acc_all_cells@meta.data[,"cell.type",drop = F])
-saveRDS(cell_types,file = "./Data/inferCNV/infercnv_input/cell_types.RDS") #save cell types for CNV
+saveRDS(cell_types,file = output_dir_path %s+% "/cell_types.RDS") #save cell types for CNV
 ```
 # ACC cancer cells dim reduction
 ```{r}
@@ -165,53 +170,13 @@ DimPlot(acc_cancer_cells,pt.size = 0.5,group.by = "patient.ident")
 
 
 ```{r}
-file_name = paste("./Data/acc_cancer_cells_V3.RDS")
+file_name = paste0(output_dir_path,"/acc_cancer_cells.RDS")
 
 if (!file.exists(file_name)){
   saveRDS(object = acc_cancer_cells,file = file_name)
 }else (stop("file exists"))
 ```
 
-```{r}
-acc_cancer_cells = read_rds("./Data/acc_cancer_cells_V3.RDS")
-```
-
-
-
-# ACC1 cancer cells dim reduction
-```{r results='hide'}
-acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "ACC1")
-acc1_cancer_cells <- FindVariableFeatures(acc1_cancer_cells, selection.method = "vst", nfeatures = 15000)
-acc1_cancer_cells <- ScaleData(acc1_cancer_cells, vars.to.regress = c("nCount_RNA","percent.mt"))
-acc1_cancer_cells <- RunPCA(acc1_cancer_cells, features = VariableFeatures(object = acc1_cancer_cells))
-ElbowPlot(acc1_cancer_cells, ndims = 50) # checking the dimensionality 
-```
-
-```{r results='hide'}
-acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "ACC1")
-acc1_cancer_cells <- FindVariableFeatures(acc1_cancer_cells, selection.method = "vst", nfeatures = 15000)
-acc1_cancer_cells <- ScaleData(acc1_cancer_cells, vars.to.regress = c("nCount_RNA","percent.mt"))
-acc1_cancer_cells <- RunPCA(acc1_cancer_cells, features = VariableFeatures(object = acc1_cancer_cells))
-ElbowPlot(acc1_cancer_cells, ndims = 50) # checking the dimensionality 
-```
-```{r}
-pc2use = 1:25
-```
-
-
-```{r echo=TRUE}
-acc1_cancer_cells <- FindNeighbors(acc1_cancer_cells, dims = pc2use,k.param  = 5,annoy.metric = "cosine")
-acc1_cancer_cells <- FindClusters(acc1_cancer_cells, resolution = 0.5)
-acc1_cancer_cells <- RunUMAP(acc1_cancer_cells, dims = pc2use,n.neighbors = 5)
-```
-
-```{r}
-DimPlot(acc1_cancer_cells,pt.size = 1)
-```
-
-```{r}
-# saveRDS(object = acc1_cancer_cells,file = "./Data/acc1_cancer_cells_V3.RDS")
-```
 
 
 
