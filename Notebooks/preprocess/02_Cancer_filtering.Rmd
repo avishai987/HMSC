@@ -178,6 +178,20 @@ if (!file.exists(file_name)){
 ```
 
 
+```{r}
+# save html notebook
+rstudioapi::documentSave()
+html_path = rstudioapi::getSourceEditorContext()$path  %>% gsub(pattern = "Rmd",replacement = "nb.html")
+file.rename(from = html_path, 
+            to = paste0(output_dir_path,"/",
+  gsub(
+    x = basename(html_path),
+    pattern = "nb.html",
+    replacement = "html"
+  )
+)
+)
+```
 
 
 

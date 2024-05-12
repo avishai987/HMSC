@@ -24,13 +24,14 @@ conflict_prefer("pheatmap", "pheatmap")
 # Data
 
 ```{r}
-acc_cancer_cells = read_rds("./Data/acc_cancer_cells_V3.RDS")
-acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "ACC1")
+acc_cancer_cells = read_rds("./Data_out/02_Cancer_filtering_2024-05-12/acc_cancer_cells.RDS")
+acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "HMSC")
 ```
 
 
 
 # cor heatmap
+
 ```{r fig.height=12, fig.width=8}
 acc1_cancer_cells.df = acc1_cancer_cells@assays[["RNA"]]@data %>% as.data.frame()
 acc1_cor = cor(acc1_cancer_cells.df)
@@ -41,6 +42,7 @@ my_palette <- c("blue",colorRampPalette(colors = c("blue", "white", "red"))
 
 pheatmap(acc1_cor,annotation_row = annotation,color = my_palette,breaks = colors,fontsize = 6,show_rownames = T,show_colnames = F)
 ```
+
 # annotate plates
 ```{r}
 num_of_clusters = 3
@@ -80,8 +82,6 @@ names(myannotation)[1] = "cluster"
   plate = FetchData(object = acc1_cancer_cells,vars = "orig.ident" )
   pheatmap(mat = acc1_cor,annotation_col =  annotation[["myannotation"]], annotation_colors = annotation[["ann_colors"]], clustering_distance_rows = clustering_distance,clustering_distance_cols = clustering_distance,color = my_palette,breaks = colors,show_rownames = F,show_colnames = F)
 ```
-
-
 ```{r}
 acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = myannotation,col.name = "cor_cluster")
 
@@ -90,6 +90,9 @@ comparisons_2 <- list(c("2","3"))
 
 VlnPlot(object = acc1_cancer_cells,group.by= "cor_cluster",features = "nFeature_RNA")+ stat_compare_means(comparisons = comparisons_1, label = "p.signif",label.y = max(acc1_cancer_cells$nFeature_RNA)*0.7)+ stat_compare_means(comparisons = comparisons_2, label = "p.signif",label.y = max(acc1_cancer_cells$nFeature_RNA)*0.8) + geom_hline(aes(yintercept = 2500, color = "2500 genes"))+scale_colour_manual(values = c("blue"))+ggtitle("Detected genes")
 ```
+
+
+
 
 
 
@@ -117,32 +120,17 @@ plt2 = VlnPlot(object = acc1_cancer_2500nFeatures,group.by= "orig.ident",feature
 plt2
 ```
 
-```{r}
-acc1_cancer_2500nFeatures <- FindVariableFeatures(acc1_cancer_2500nFeatures, selection.method = "vst", nfeatures = 15000)
-acc1_cancer_2500nFeatures <- ScaleData(acc1_cancer_2500nFeatures, vars.to.regress = c("percent.mt","nCount_RNA"))
-acc1_cancer_2500nFeatures <- RunPCA(acc1_cancer_2500nFeatures, features = VariableFeatures(object = acc1_cancer_2500nFeatures))
-ElbowPlot(acc1_cancer_2500nFeatures) # checking the dimensionality 
-```
+# fix plate bias by seurat integration
 
 
-```{r}
-pc2use = 1:20
-acc1_cancer_2500nFeatures <- FindNeighbors(acc1_cancer_2500nFeatures, dims = pc2use)
-acc1_cancer_2500nFeatures <- FindClusters(acc1_cancer_2500nFeatures, resolution = 1)
-acc1_cancer_2500nFeatures <- RunUMAP(acc1_cancer_2500nFeatures, dims = pc2use)
-```
 
-batch effect can be seen in UMAP:
-```{r}
-DimPlot(acc1_cancer_2500nFeatures,pt.size = 1,group.by = "orig.ident")
-```
 ```{r}
 acc1_cancer_cells = acc1_cancer_2500nFeatures
 ```
 
 # Seurat intergration
 ```{r}
-acc1_cancer_cells.list <- SplitObject(acc1_cancer_cells, split.by = "plate")
+acc1_cancer_cells.list <- SplitObject(acc1_cancer_cells, split.by = "orig.ident")
 
 # normalize and identify variable features for each dataset independently
 acc1_cancer_cells.list <- lapply(X = acc1_cancer_cells.list, FUN = function(x) {
@@ -174,17 +162,35 @@ acc.combined <- FindClusters(acc.combined, resolution = 0.5,verbose = F)
 ```
 
 ```{r}
+acc.combined$plate = acc.combined$orig.ident
 DimPlot(acc.combined, reduction = "umap", group.by = "plate")
+```
+```{r}
+script_name = rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")
+output_dir_path = paste0("./Data_out/",script_name,"_",Sys.Date())
+dir.create(output_dir_path)
+
 ```
 
 ```{r}
-file_name = "./Data/acc1_cancer_cells_2500features_integrated_V5.RDS"
+file_name = paste0(output_dir_path,"/acc1_cancer_cells_2500features_integrated_V5.RDS")
 object = acc.combined
 
 if (!file.exists(file_name)){
   saveRDS(object = object,file =file_name)
 }else (stop("file exists"))
 ```
-
-# Update HMSC cells in other datasets
-
+```{r}
+# save html notebook
+rstudioapi::documentSave()
+html_path = rstudioapi::getSourceEditorContext()$path  %>% gsub(pattern = "Rmd",replacement = "nb.html")
+file.rename(from = html_path, 
+            to = paste0(output_dir_path,"/",
+  gsub(
+    x = basename(html_path),
+    pattern = "nb.html",
+    replacement = "html"
+  )
+)
+)
+```

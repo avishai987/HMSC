@@ -2,6 +2,7 @@
 title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
+description: "dfgdf"
 output: 
   html_notebook: 
     code_folding: hide
@@ -13,6 +14,7 @@ output:
     toc_depth: 1
 ---
 
+Create all cancer cells with integrated HMSC and ACC
 
 
 # Functionss
@@ -20,15 +22,12 @@ output:
 ```{r warning=FALSE}
 ```
 
-```{r}
-test = readRDS(file = "./Data/old data/acc_cancer_cells_V5_integrated_primary.RDS")
-```
 
 # Data
 
 ```{r}
-acc1_cancer_cells = readRDS("./Data/acc1_cancer_cells_2500features_integrated_V5.RDS")
-cancer_cells = read_rds("./Data/acc_cancer_cells_V3.RDS")
+acc1_cancer_cells = readRDS("./Data_out/HMSC_cells_preprocess_2024-05-12/acc1_cancer_cells_2500features_integrated_V5.RDS")
+cancer_cells = read_rds("./Data_out/02_Cancer_filtering_2024-05-12/acc_cancer_cells.RDS")
 ```
 
 # ACC primary + HMSC
@@ -54,8 +53,6 @@ hmsc_acc_cancer$patient.ident = cancer_cells$patient.ident
 hmsc_acc_cancer$kaye_acc_score = cancer_cells$kaye_acc_score
 hmsc_acc_cancer$patient.ident = cancer_cells$patient.ident
 
-ident = plyr::revalue(hmsc_acc_cancer@meta.data[["patient.ident"]], c("ACC1"="HMSC"))
-hmsc_acc_cancer@meta.data[["patient.ident"]] <- ident
 
 ```
 
@@ -79,16 +76,33 @@ hmsc_acc_cancer <- FindNeighbors(hmsc_acc_cancer, dims = pc2use)
 hmsc_acc_cancer <- FindClusters(hmsc_acc_cancer, resolution = 1)
 hmsc_acc_cancer <- RunUMAP(hmsc_acc_cancer, dims = pc2use)
 ```
-
 ```{r}
 DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "patient.ident")
 ```
 
-
-
-
-
 ```{r}
-saveRDS(object = hmsc_acc_cancer,file = "./Data/hmsc_acc_pri_cancer_processed_V6.RDS")
+script_name = rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")
+output_dir_path = paste0("./Data_out/",script_name,"_",Sys.Date())
+dir.create(output_dir_path)
+
 ```
 
+```{r}
+file_name = paste0(output_dir_path,"/hmsc_acc_pri_cancer_processed.RDS")
+saveRDS(object = hmsc_acc_cancer,file = file_name)
+```
+
+```{r}
+# save html notebook
+rstudioapi::documentSave()
+html_path = rstudioapi::getSourceEditorContext()$path  %>% gsub(pattern = "Rmd",replacement = "nb.html")
+file.rename(from = html_path, 
+            to = paste0(output_dir_path,"/",
+  gsub(
+    x = basename(html_path),
+    pattern = "nb.html",
+    replacement = "html"
+  )
+)
+)
+```

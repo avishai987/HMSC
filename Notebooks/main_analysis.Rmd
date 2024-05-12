@@ -14,6 +14,13 @@ output:
 ---
 
 
+```{r}
+script_name = rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")
+output_dir_path = paste0("./Data_out/",script_name,"_",Sys.Date())
+dir.create(output_dir_path)
+
+```
+
 
 # Functions
 
@@ -29,8 +36,8 @@ library(hypeR)
 # Data
 
 ```{r}
-hmsc_cancer_cells = readRDS("./Data/acc1_cancer_cells_2500features_integrated_V5.RDS")
-hmsc_acc_pri_cancer = readRDS("./Data/hmsc_acc_pri_cancer_processed_V6.RDS")
+hmsc_cancer_cells = readRDS("./Data_out/HMSC_cells_preprocess_2024-05-12/acc1_cancer_cells_2500features_integrated_V5.RDS")
+hmsc_acc_pri_cancer = readRDS("./Data_out/build_datasets_2024-05-12/hmsc_acc_pri_cancer_processed.RDS")
 acc_pri = subset(hmsc_acc_pri_cancer,subset = patient.ident != "HMSC")
 DefaultAssay(acc_pri) = "RNA"
 
@@ -56,15 +63,16 @@ DimPlot(hmsc_acc_pri_cancer,group.by = "patient.ident",label = T)
 
 ```{r}
 FeaturePlot(object = hmsc_acc_pri_cancer,features = c("MYB"),pt.size = 1)
-FeaturePlot(object = hmsc_acc_pri_cancer,features = c("kaye_acc_score"),pt.size = 1)
+p = FeaturePlot(object = hmsc_acc_pri_cancer,features = c("kaye_acc_score"),pt.size = 1,combine = T)
+p
 
 ```
 
 
 
 ```{r}
-pdf("./Figures/kaye_acc_score_AllCancerCells.pdf")
-FeaturePlot(object = hmsc_acc_pri_cancer,features = c("kaye_acc_score"),pt.size = 1)
+pdf(paste0(output_dir_path,"/kaye_acc_score_AllCancerCells.pdf"))
+p
 dev.off()
 ```
 
@@ -92,19 +100,21 @@ ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit()
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)
+plt %+% (plt$data %>% arrange(signature))
+plt+ scale_y_discrete(limits = arrange(plt$data,signature,significance)[,"label"])
 
-plt1 = plt$up+ aes(size=nes)+ggtitle("Up in HMSC")+ 
-  guides(
-    size = guide_legend(title="|NES|",reverse=T))
-
-plt2 = plt$dn+ aes(size=nes)+ggtitle("Down in HMSC")+scale_size(trans = 'reverse')+
-    guides(
-    size = guide_legend(title="|NES|",reverse=F)) 
+plt1 = plt$up+ aes(color=nes)+ggtitle("Up in HMSC")
+plt2 = plt$dn+ aes(color=nes)+ggtitle("Down in HMSC")
 
 p = ggarrange(plt1,plt2,common.legend = T,nrow = 2,legend = "right")
 p
 ```
 
+```{r}
+pdf(paste0(output_dir_path,"/kaye_acc_score_AllCancerCells.pdf"))
+p
+dev.off()
+```
 
 
 ## Cell cycle score  {.tabset}
