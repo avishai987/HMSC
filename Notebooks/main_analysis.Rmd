@@ -11,14 +11,14 @@ output:
       collapsed: FALSE
     number_sections: true
     toc_depth: 2
+params: 
+  fig_out_dir: "./Figures"
 ---
 
-
 ```{r}
-script_name = rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")
-output_dir_path = paste0("./Data_out/",script_name,"_",Sys.Date())
-dir.create(output_dir_path)
-
+library(reticulate)
+use_virtualenv("/sci/labs/yotamd/lab_share/avishai.wizel/python_envs/Virtual_env/cnmf_dev/",required = T)
+py_config() # if you see that r-reticulate has been loaded, terminate r and try again
 ```
 
 
@@ -71,7 +71,7 @@ p
 
 
 ```{r}
-pdf(paste0(output_dir_path,"/kaye_acc_score_AllCancerCells.pdf"))
+pdf(paste0(params$fig_out_dir,"/kaye_acc_score_AllCancerCells.pdf"))
 p
 dev.off()
 ```
@@ -235,6 +235,8 @@ print_tab(plt =
 
 ```
 
+
+
 # end
 
 ## DEG
@@ -260,9 +262,8 @@ acc_deg <-
 
 
 ```{r fig.height=4, fig.width=12, results='asis'}
-ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
+ranked_vec = acc_deg[,"avg_log2FC" ]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
-
 plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)
 
 plt1 = plt$up+ aes(size=nes)+ggtitle("Up in HMSC")+ 
@@ -692,6 +693,7 @@ p
 dev.off()
 
 ```
+
 
 
 
