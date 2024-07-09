@@ -1,0 +1,329 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+  html_document: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: TRUE
+    number_sections: true
+    toc_depth: 2
+params: 
+  data_out_dir: "./Data_out/HPV_analysis/" 
+---
+
+
+
+# Functions
+
+```{r warning=FALSE}
+source_from_github(repositoy = "DEG_functions",version = "0.2.54")
+source_from_github(repositoy = "HMSC_functions",version = "0.1.14",script_name = "functions.R")
+source_from_github(repositoy = "sc_general_functions",version = "0.1.34",script_name = "functions.R")
+library(hypeR)
+
+```
+
+# Data
+
+```{r}
+hmsc_cancer_cells = readRDS("./Data_out/03_HMSC_cells_preprocess_2024-05-12/acc1_cancer_cells_2500features_integrated_V5.RDS")
+genesets  = getGmt("./Input_data/h.all.v7.0.symbols.pluscc.gmt")
+
+```
+
+# HPV UMAP
+
+```{r}
+HPV33_P3 = fread("./Data/HPV33_P3.txt",col.names = c("plate","reads")) %>% as.data.frame()
+HPV33_P3.df = HPV33_P3 %>% mutate(
+  plate = gsub(x =HPV33_P3$plate, replacement = "",pattern = "_.*$") 
+  %>% gsub(pattern = "-P",replacement = ".P") 
+  %>% gsub(pattern = "-",replacement = "_",)
+  )
+HPV33_P3.df = HPV33_P3.df %>% dplyr::filter(HPV33_P3.df$plate %in% colnames(hmsc_cancer_cells))
+rownames(HPV33_P3.df)  <- HPV33_P3.df$plate
+HPV33_P3.df$plate = NULL
+
+
+HPV33_P2 = fread("./Data/HPV33_P2.txt",col.names = c("plate","reads")) %>% as.data.frame()
+HPV33_P2.df = HPV33_P2 %>% mutate(
+  plate = gsub(x =HPV33_P2$plate, replacement = "",pattern = "_.*$") 
+  %>% gsub(pattern = "plate2-",replacement = "plate2_",)
+  %>% gsub(pattern = "-",replacement = "\\.",)
+  )
+HPV33_P2.df = HPV33_P2.df %>% dplyr::filter(HPV33_P2.df$plate %in% colnames(hmsc_cancer_cells))
+rownames(HPV33_P2.df)  <- HPV33_P2.df$plate
+HPV33_P2.df$plate = NULL
+
+HPV33 = rbind(HPV33_P3.df,HPV33_P2.df)
+hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = HPV33,col.name = "HPV33.reads")
+FeaturePlot(hmsc_cancer_cells,features = "HPV33.reads",max.cutoff = 10)
+```
+
+
+```{r}
+
+data = FetchData(object = hmsc_cancer_cells,vars = "HPV33.reads")
+
+data = data %>% mutate("0 reads" = if_else(condition = HPV33.reads == 0,true = 1,false = 0))
+data = data %>% mutate("1 reads" = if_else(condition = HPV33.reads == 1,true = 1,false = 0))
+data = data %>% mutate("2 reads" = if_else(condition = HPV33.reads == 2,true = 1,false = 0))
+data = data %>% mutate("3-23 reads" = if_else(condition = HPV33.reads >=3 &HPV33.reads  <24,true = 1,false = 0))
+data = data %>% mutate("24+ reads" = if_else(condition = HPV33.reads >=24,true = 1,false = 0))
+data = colSums(data[,2:ncol(data)]) %>% as.data.frame()
+names(data)[1] = "count"
+data = rownames_to_column(data,var = "bin")
+data
+ggplot(data=data, aes(x=factor(bin,levels = c("0 reads","1 reads","2 reads","3-23 reads","24+ reads")), y=count)) +
+  geom_bar(stat="identity", fill="steelblue") + xlab("HPV Reads")+ theme_minimal()+
+  geom_text(aes(label=count), vjust=-0.5, color="black", size=3.5)
+```
+
+
+```{r}
+hpv33_positive = HPV33 %>% dplyr::mutate(hpv33_positive = case_when(reads >= 10 ~ "positive",
+                                                                    reads < 10 ~ "negative")
+)
+
+
+
+hpv33_positive$reads = NULL
+hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = hpv33_positive)
+```
+
+```{r fig.height=6, fig.width=12}
+DimPlot(object = hmsc_cancer_cells,group.by  = c("hpv33_positive"),pt.size = 2)+
+FeaturePlot(object = hmsc_cancer_cells,features = "MYB",pt.size = 2)
+
+```
+
+
+
+
+
+
+# DEG LR latent vars plate
+
+## (mean logTPM HPV+) - (mean logTPM HPV-)
+
+```{r}
+DefaultAssay(hmsc_cancer_cells) = "integrated"
+hmsc_cancer_cells = SetIdent(hmsc_cancer_cells,value = "hpv33_positive")
+```
+
+
+
+```{r}
+features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
+acc_deg <-
+  FindMarkers(
+    hmsc_cancer_cells,
+    ident.1 = "positive",
+    ident.2 = "negative",
+    features = features,
+    densify = T,
+    assay = "RNA",
+    test.use = "LR",
+    latent.vars = "plate",
+    logfc.threshold = 0.1,
+    min.pct = 0.1,
+    mean.fxn = function(x) {
+      return(log(rowMeans(x) + 1, base = 2)) # change func to calculate logFC in log space data (default to exponent data)
+    }
+  )
+acc_deg$fdr<-p.adjust(p = as.vector(acc_deg$p_val) ,method = "fdr")
+
+```
+
+
+
+```{r}
+ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
+
+hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets),up_only = F)
+hyp_dots(hyp_obj,merge = F)
+
+```
+
+```{r}
+acc_deg
+acc_deg[c("MYB","JAG1"),]
+
+```
+
+
+
+
+
+volcano plot log2(mean logTPM HPV+/mean logTPM HPV-)
+```{r}
+plt = volcano_plot(
+  de_genes = acc_deg,
+  fc_cutoff = 1.3,
+  fdr_cutoff = 0.1,
+  ident1 = "HPV33 positive",
+  ident2 = "HPV33 negative",
+  top_genes_text = 10
+) + ggtitle("Differential Gene Expression by HPV Status
+")
+plt
+```
+
+
+```{r}
+pdf(paste0(params$data_out_dir,"HMSC_HPVon_HPVoff_volcano.pdf"))
+plt
+dev.off()
+
+
+```
+
+## (mean logTPM HPV+) - (mean logTPM HPV-)
+
+
+```{r}
+features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
+acc_deg <-
+  FindMarkers(
+    hmsc_cancer_cells,
+    ident.1 = "positive",
+    ident.2 = "negative",
+    features = features,
+    densify = T,
+    assay = "RNA",
+    test.use = "LR",
+    latent.vars = "plate",
+    logfc.threshold = 0.3,
+    min.pct = 0.1,
+    mean.fxn = function(x) {
+      return((rowMeans(x)+1)) # change func to calculate logFC in log space data (default to exponent data)
+    }
+  )
+acc_deg$fdr<-p.adjust(p = as.vector(acc_deg$p_val) ,method = "fdr" )
+```
+
+
+```{r}
+acc_deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>log2(1.5)) %>%  arrange(dplyr::desc(.$avg_log2FC)) %>% head(10) %>% rownames() %>% cat(sep = "\n")
+```
+
+
+```{r}
+acc_deg
+acc_deg[c("MYB","JAG1"),]
+```
+
+```{r}
+ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
+
+hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets),up_only = F)
+hyp_dots(hyp_obj,merge = F)
+
+```
+
+
+```{r}
+volcano_plot(de_genes = acc_deg,fc_cutoff = 1.3, fdr_cutoff = 0.1,show_gene_names = c("MYB","JAG1"),ident1 = "HPV33 positive",ident2 = "HPV33 negative",top_genes_text = 10)+xlab("avg diff")
+```
+
+
+```{r}
+# save deg
+data_to_save = acc_deg %>% dplyr::rename(avg_diff = avg_log2FC) #rename avg_log2FC because here we calculate diff
+write.table(x  = data_to_save,file = paste0(params$data_out_dir,"hpv_deg_df.csv"),row.names = rownames(data_to_save),)
+
+```
+
+
+# HPV vs genes
+```{r fig.width=8}
+top_genes = acc_deg %>% filter(.$avg_log2FC>0) %>% arrange(.$fdr) %>% head(5) %>% rownames()
+top_genes = c(top_genes,c("MYB","JAG1"))
+
+myb_vs_hpv = FetchData(object = hmsc_cancer_cells,vars = c("hpv33_positive",top_genes))
+df = reshape2::melt(myb_vs_hpv,value.name = "Expression") %>% dplyr::rename(gene = variable)
+
+library(rstatix)
+stat.test <- df %>%
+    group_by(gene) %>%
+  wilcox_test(Expression ~ hpv33_positive) %>%
+  mutate(y.position = 5)
+
+stat.test
+
+stat.test <- stat.test %>% 
+  add_xy_position(x = "gene", dodge = 0.8)
+
+ggboxplot(
+  df,
+  x = "gene",
+  y = "Expression",
+  color = "hpv33_positive",
+  palette = "jco",
+  add = "jitter"
+)+ stat_pvalue_manual(stat.test,y.position = 13, label = "p = {p}",remove.bracket = T)
+```
+
+```{r}
+metagenes_violin_compare.2 = function(dataset,prefix = "",pre_on = c("OSI","NT"),axis.text.x = 11,test = "t.test", programs = c("Hypoxia","TNFa","Cell_cycle"),return_list = F,combine_patients = F){
+  require(facefuns)
+  plt.lst = list()
+  if(combine_patients){
+    genes_by_tp = FetchData(object = dataset,vars =  c("treatment",programs)) %>% filter(treatment %in% pre_on)  %>% as.data.frame() #mean expression
+    formula <- as.formula( paste("c(", paste(programs, collapse = ","), ")~ treatment ") )
+    
+    #plot and split by patient:   
+    stat.test = compare_means(formula = formula ,data = genes_by_tp,method = test,p.adjust.method = "fdr")%>% # Add pairwise comparisons p-value
+      dplyr::filter(group1 == pre_on[1] & group2 == pre_on[2])  #filter for pre vs on treatment only
+    
+    stat.test$p.format =stat.test$p.adj #modift 0 pvalue to be lowest possible float
+    stat.test$p.format[!stat.test$p.1format == 0 ] <- paste("=",stat.test$p.format[!stat.test$p.format == 0 ])
+    stat.test$p.format[stat.test$p.format == 0 ] <- paste("<",.Machine$double.xmin %>% signif(digits = 3))
+    
+    
+    genes_by_tp = reshape2::melt(genes_by_tp, id.vars = c("treatment"),value.name = "score")
+    plt = ggplot(genes_by_tp, aes(x = variable, y = score,fill = treatment)) + geom_split_violin(scale = 'width')+ 
+      geom_boxplot(width = 0.25, notch = FALSE, notchwidth = .4, outlier.shape = NA, coef=0)+
+      ylim(min(genes_by_tp$score),max(genes_by_tp$score)*1.25)
+    plt = plt +stat_pvalue_manual(stat.test, label = "{p.signif}", label.size = 7,  #add p value
+                                  y.position = max(genes_by_tp$score)*1.08,inherit.aes = F,size = 3.3,x = ".y.") # set position at the top value
+    return(plt)
+  }
+  
+  
+  
+  
+  
+  if (return_list) {
+    return(plt.lst)
+  }
+}
+```
+
+```{r fig.height=4, fig.width=7}
+hmsc_cancer_cells$treatment = hmsc_cancer_cells$hpv33_positive %>% gsub(pattern = "negative",replacement = "HPV-negative")%>% gsub(pattern = "positive",replacement = "HPV-positive")
+hmsc_cancer_cells@meta.data[["treatment"]] = factor(hmsc_cancer_cells$treatment, levels = c("HPV-positive", "HPV-negative"))
+
+
+plt = metagenes_violin_compare.2(dataset = hmsc_cancer_cells, prefix = "patient",pre_on = c("HPV-positive","HPV-negative"),test = "wilcox.test",programs = top_genes, return_list = F,combine_patients = T)+ labs(fill = "")+ylab("Expression")+xlab("Gene")+theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14))+ labs(fill = "")+ylab("Expression")+xlab("Gene")+theme(axis.title=element_text(size=14))+ scale_fill_manual(values=c("#F8766D", "cyan3")) #from bovona.rmd
+plt
+```
+
+```{r}
+pdf(paste0(params$data_out_dir,"HMSC_HPVon_HPVoff_topGenes_violin.pdf"))
+plt
+dev.off()
+```
