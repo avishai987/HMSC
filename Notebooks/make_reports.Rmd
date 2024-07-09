@@ -1,0 +1,77 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+sdf
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(rmarkdown)
+```
+
+```{r}
+# render
+render(input = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "./TCGA_survival_analysis_quantile",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm= F))
+```
+
+
+```{r}
+# render
+render(input = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "./TCGA_survival_analysis_quantile_logTPM",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm= T))
+```
+
+
+```{r}
+# render
+render(input = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "./TCGA_survival_analysis_median",knit_root_dir = getwd(),params = list(stratify = "M",log_tpm= F))
+```
+
+
+```{r}
+# render
+render(input = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "./TCGA_survival_analysis_tercile",knit_root_dir = getwd(),params = list(stratify = "T",log_tpm= F))
+```
+
+```{r}
+# render
+render(input = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "./TCGA_survival_analysis_quantile_top400",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm= F))
+```
+
+```{r}
+# render
+render(input = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "./TCGA_survival_analysis_quantile_top200",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm= F))
+```
+
+```{r}
+# render
+render(input = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "./TCGA_survival_analysis_quantile_top200_fdrArrange",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm= F))
+```
+
+
+```{r}
+save_path = "./Reports/HPV_analysis/"
+dir.create(path = save_path)
+# render
+render(input = "./Notebooks/HPV_analysis.Rmd",output_format = "html_document",output_file = "HPV_analysis",knit_root_dir = getwd(),params = list(data_out_dir = save_path),output_dir = save_path)
+```
+```{r}
+# render
+render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_median_interSigature",knit_root_dir = getwd(),params = list(stratify = "M",log_tpm = T))
+
+
+render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_median_interSigature_logTPM",knit_root_dir = getwd(),params = list(stratify = "M",log_tpm = F))
+
+render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_quantile_interSigature",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm = F))
+
+render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_quantile_interSigature_logTPM",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm = T))
+
+render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_quantile_HmscSigature_logTPM",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm = T,signature  = "HMSC"))
+
+render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_quantile_HmscSigature",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm = F,signature  = "HMSC"))
+
+render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_quantile_HmscSigature_logTPM_0.1",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm = T,signature  = "HMSC"))
+
+render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_quantile_HmscSigature_0.1",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm = F,signature  = "HMSC"))
+```
