@@ -452,7 +452,7 @@ for (i in 1:ncol(gep_scores)) {
   plotlist[[i]] = plt
 }
 p = ggarrange(plotlist = plotlist,ncol = 2,nrow = 2,common.legend = T)
-
+p
 ```
 
 ```{r}
@@ -462,6 +462,43 @@ dev.off()
 
 ```
 
+
+```{r fig.height=7, fig.width=10}
+
+plotlist = list()
+for (i in 1:ncol(gep_scores)) {
+  ranked_vec = gep_scores %>% pull(i) %>%  setNames(rownames(gep_scores))
+  hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = T)
+
+  final_result = hyp_obj$data
+  final_result = final_result %>% filter(fdr<0.2) %>% head(15) #filter non sigificant+ set maximum pathways
+  final_result$fdr = -log10(final_result$fdr) 
+  p <- ggplot(data = final_result, aes(x = reorder(label,fdr),y = fdr)) + #reorder pthways by fdr
+    geom_bar(stat = "identity", fill = "dodgerblue")  +
+    coord_flip() + 
+    geom_hline(yintercept = -log10(0.05), colour = "black", linetype = "longdash", size = 0.8,alpha = 0.5)+ # add 0.05 interception
+    xlab("Pathway") + 
+      scale_fill_manual(drop = FALSE) + ylab("FDR") + 
+      geom_text(aes_string(label = "label", y = 0), # add labels on the plot iself rather than on axis 
+                size = 4, color = "black", position = position_dodge(1), 
+                hjust = 0) +
+    scale_y_continuous(labels = function(x) {parse(text = paste0("10^-",x))}, # set fdr format 10^-X
+                       expand = expansion(mult = c(0, 0.1)))+ #expand to avoid cut off
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),axis.text.x = element_text(size = 10)) +  
+    ggtitle(paste("Metagene", i))
+  
+  plotlist[[i]] = p
+}
+p = ggarrange(plotlist = plotlist,ncol = 2,nrow = 2,common.legend = T)
+p
+```
+
+```{r}
+pdf("./Figures/NMF_GSEA_barplot.pdf",height = 7,width = 10)
+p
+dev.off()
+
+```
 
 ```{r fig.height=10}
 all_programs_top_genes = c()
