@@ -278,11 +278,52 @@ p
 
 ```
 
+```{r}
+pdf(paste0(params$fig_out_dir,"/ACC_vs_HMSC_GSEA.pdf",width = 12,height = 4))
+p
+dev.off()
+```
 
+```{r fig.width=10}
+# plot GSEA
+args = list(
+  name = c("up","dn"),
+  color = c("dodgerblue","indianred2"),
+  title  = c("Up in HMSC","Up in ACC")
+)
+p_list = list()
+
+for (i in 1:2) {
+  name = args$name[i]
+  color = args$color[i]
+  title = args$title[i]
+  
+  final_result = hyp_obj$data[[name]]$data
+  final_result = final_result %>% filter(fdr<0.2) 
+  final_result$fdr = -log10(final_result$fdr)
+  p <- ggplot(data = final_result, aes(x = reorder(label,fdr),y = fdr)) +
+    geom_bar(stat = "identity", fill = color)  +
+    coord_flip() + 
+    geom_hline(yintercept = -log10(0.05), colour = "black", linetype = "longdash", size = 0.8,alpha = 0.5)+
+    xlab("Pathway") + 
+      scale_fill_manual(drop = FALSE) + ylab("FDR") + 
+      geom_text(aes_string(label = "label", y = 0), 
+                size = 4, color = "black", position = position_dodge(1), 
+                hjust = 0) +
+    scale_y_continuous(labels = function(x) {parse(text = paste0("10^-",x))}, # set fdr format 10^-X
+                       expand = expansion(mult = c(0, 0.1)))+ #expand to avoid cut off
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),axis.text.x = element_text(size = 10)) +  
+    ggtitle(title)
+  p_list[[name]] = p
+  
+}
+p = p_list[[1]]+p_list[[2]]
+p
+```
 
 
 ```{r}
-pdf(paste0(params$fig_out_dir,"/ACC_vs_HMSC_GSEA.pdf",width = 12,height = 4))
+pdf(paste0(params$fig_out_dir,"/ACC_vs_HMSC_GSEA_barplot.pdf"),width = 10)
 p
 dev.off()
 ```
