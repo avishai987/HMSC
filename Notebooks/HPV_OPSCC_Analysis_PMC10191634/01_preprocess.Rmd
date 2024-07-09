@@ -1,0 +1,76 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+  html_document: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: TRUE
+    number_sections: true
+    toc_depth: 2
+params: 
+  data_out_dir: "./Data_out/" 
+---
+
+Read Data and create seurat object
+Code and data from: https://github.com/micmin3/HPV_OPSCC_Analysis
+
+# Functions
+
+```{r warning=FALSE}
+```
+
+# Data
+
+```{r}
+#| Read data
+matrix<-Matrix::readMM("./HPV_OPSCC_Analysis_PMC10191634/Data/10x_data/GSE182227_OPSCC.mtx.gz")
+b1<-read.table("./HPV_OPSCC_Analysis_PMC10191634/Data/10x_data/GSE182227_barcodes.txt.gz")
+g1<-read.table("./HPV_OPSCC_Analysis_PMC10191634/Data/10x_data/GSE182227_genes.txt.gz")
+```
+
+```{r}
+colnames(matrix)<-b1[,1]
+rownames(matrix)<-g1[,1]
+genespercell = colSums(matrix > 0) #Genes expressed per cell
+cellthreshold<-genespercell>=1000 #|genespercell>=quantile(genespercell,0.4)#Local and global complexity threshold
+merged<-matrix[,cellthreshold] #Filter cells by thresholds
+```
+
+```{r}
+#| read metadata and keep cancer cells
+
+library(readxl)
+metadata = read_excel(path = "./HPV_OPSCC_Analysis_PMC10191634/Data/NIHMS1892753-supplement-Supp_Tables.xlsx",
+          sheet = "S4 - Cell Table",progress = T,skip = 1,col_names = T)
+
+cancer_cells = metadata %>% filter(Cancer_assignment == "Cancer") %>% pull(Cell_barcode)
+merged_cancer = merged[,cancer_cells]
+```
+
+
+```{r}
+#| create seurat object 
+opscc = CreateSeuratObject(counts = merged_cancer, min.cells = 3, min.features = 200)
+# QC and preprocess
+opscc <- NormalizeData(opscc, normalization.method = "LogNormalize", scale.factor = 10000)
+opscc <- FindVariableFeatures(opscc, selection.method = "vst", nfeatures = 5000)
+seurat_metadata = data.frame(row.names = metadata$Cell_barcode,hpv = metadata$HPV, patient=metadata$Patient)
+opscc = AddMetaData(object = opscc,metadata = seurat_metadata)
+```
+
+```{r}
+#| save
+saveRDS(object = opscc,file = paste0(params$data_out_dir,"opscc_suerat.RDS"))
+```

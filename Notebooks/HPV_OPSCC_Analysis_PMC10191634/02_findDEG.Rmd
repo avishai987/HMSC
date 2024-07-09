@@ -1,0 +1,38 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+---
+
+
+
+
+
+```{r}
+# remove HPV- patients
+hpv_neg<-c("OP10","OP12","OP16","OP19","OP8")
+hpv_pos = unique(metadata$Patient)[! unique(metadata$Patient) %in% hpv_neg]
+opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
+```
+
+```{r}
+# find DEG
+features = opscc_hpvPos@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
+deg = FindMarkers(object = opscc_hpvPos,ident.1 = "HPV+",ident.2 = "HPV-",
+            features = features,test.use = "LR",latent.vars = "patient",
+            logfc.threshold = 0.3,min.pct = 0.1,
+            mean.fxn = function(x) {
+              return((rowMeans(x)+1)) # change func to calculate logFC in log space data (default to exponent data)
+            })
+deg$fdr<-p.adjust(p = as.vector(deg$p_val) ,method = "fdr" )
+
+```
