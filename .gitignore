@@ -9,4 +9,6 @@ HMSC.Rproj
 test/
 Data_out/
 .Renviron
-!Data/acc1_cancer_cells_15KnCount_V4.RDS
+Input_data/
+*.RDS
+*.rds

@@ -2,7 +2,7 @@
 title: "R Notebook"
 output: html_notebook
 ---
-sdf
+
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
@@ -74,4 +74,15 @@ render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_f
 render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_quantile_HmscSigature_logTPM_0.1",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm = T,signature  = "HMSC"))
 
 render(input = "./Notebooks/cervical_cancer/TCGA_survival_analysis.Rmd",output_format = "html_document",output_file = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Reports/TCGA_survival_analysis_quantile_HmscSigature_0.1",knit_root_dir = getwd(),params = list(stratify = "Q",log_tpm = F,signature  = "HMSC"))
+```
+
+
+```{r}
+notebook_path = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess.Rmd"
+dir_name = str_remove(string = notebook_path, pattern = paste0(getwd(), "/Notebooks/")) %>% 
+  str_remove(pattern = ".Rmd") 
+new_dir_path = paste0("./Rendered_notebooks/",dir_name,"/")
+dir.create(path = new_dir_path,recursive = T)
+
+render(input = notebook_path, output_format = "html_document",output_file = "01_preprocess",knit_root_dir = getwd(),output_dir = new_dir_path,params = list(data_out_dir = new_dir_path))
 ```
