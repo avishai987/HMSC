@@ -1,0 +1,161 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+  html_document: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: TRUE
+    number_sections: true
+    toc_depth: 2
+params: 
+  data_out_dir: "./Data_out/" 
+  figs_out_dir: "./Figures/" 
+---
+
+
+
+# Functions
+
+```{r warning=FALSE}
+source_from_github(repositoy = "DEG_functions",version = "0.2.54")
+genesets_h  = getGmt("./Input_data/h.all.v7.0.symbols.pluscc.gmt")
+
+```
+
+# Data
+
+```{r}
+hmsc_cancer_cells = readRDS("./Data_out/03_HMSC_cells_preprocess_2024-05-12/acc1_cancer_cells_2500features_integrated_V5.RDS")
+all_metagenes = read.table(file = "./Rendered_notebooks/cNMF/cNMF_HMSC_02_get_results/all_metagenes.csv")
+gep_scores = read.table(file = "./Rendered_notebooks/cNMF/cNMF_HMSC_02_get_results/gep_scores.csv")
+
+```
+
+
+## Harmony results {.tabset}
+
+
+
+```{r fig.height=8, fig.width=10, results='asis'}
+# Make metagene names
+for (i in 1:ncol(all_metagenes)) {
+  colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
+}
+
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes)) {
+  metage_metadata = all_metagenes %>% select(i)
+  hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = metage_metadata)
+}
+
+
+p = FeaturePlot(object = hmsc_cancer_cells,features = colnames(all_metagenes),combine = T)
+
+p
+```
+
+```{r}
+pdf(paste0(params$figs_out_dir,"NMF_UMAP.pdf"),height = 8,width = 10)
+p
+dev.off()
+
+```
+
+# GSEA
+
+
+
+
+
+```{r fig.height=7, fig.width=10}
+
+plotlist = list()
+for (i in 1:ncol(gep_scores)) {
+  ranked_vec = gep_scores %>% pull(i) %>%  setNames(rownames(gep_scores))
+  hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = T)
+
+  final_result = hyp_obj$data
+  final_result = final_result %>% filter(fdr<0.2) %>% head(15) #filter non sigificant+ set maximum pathways
+  final_result$fdr = -log10(final_result$fdr) 
+  p <- ggplot(data = final_result, aes(x = reorder(label,fdr),y = fdr)) + #reorder pthways by fdr
+    geom_bar(stat = "identity", fill = "dodgerblue")  +
+    coord_flip() + 
+    geom_hline(yintercept = -log10(0.05), colour = "black", linetype = "longdash", size = 0.8,alpha = 0.5)+ # add 0.05 interception
+    xlab("Pathway") + 
+      scale_fill_manual(drop = FALSE) + ylab("FDR") + 
+      geom_text(aes_string(label = "label", y = 0), # add labels on the plot iself rather than on axis 
+                size = 4, color = "black", position = position_dodge(1), 
+                hjust = 0) +
+    scale_y_continuous(labels = function(x) {parse(text = paste0("10^-",x))}, # set fdr format 10^-X
+                       expand = expansion(mult = c(0, 0.1)))+ #expand to avoid cut off
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),axis.text.x = element_text(size = 10)) +  
+    ggtitle(paste("Metagene", i))
+  
+  plotlist[[i]] = p
+}
+p = ggarrange(plotlist = plotlist,ncol = 2,nrow = 2,common.legend = T)
+p
+```
+
+```{r}
+pdf(paste0(params$figs_out_dir,"NMF_UMAP.pdf"),height = 7,width = 10)
+p
+dev.off()
+
+```
+
+
+
+
+
+```{r fig.height=10}
+library(dendextend)
+all_programs_top_genes = c()
+for (i in 1:ncol(gep_scores)) {
+  top_genes = gep_scores  %>%  arrange(desc(gep_scores[i])) #sort by score a
+  top = head(rownames(top_genes), 20) #take top top_genes_num
+  all_programs_top_genes = c(all_programs_top_genes,top)
+}
+
+data = FetchData(object = hmsc_cancer_cells, vars = all_programs_top_genes) %>% scale() %>% t()
+
+annotation_data = FetchData(object = hmsc_cancer_cells, vars = colnames(all_metagenes))
+col_fun = circlize::colorRamp2(c(0, 1), c("white", "red"))
+column_ha = HeatmapAnnotation(df = annotation_data, col = list(metagene.1 = col_fun,metagene.2 = col_fun,metagene.3 = col_fun))
+col_dend = as.dendrogram(hclust(dist(t(data)),method = "complete"))
+col_dend = reorder(col_dend,wts = colMeans(data),agglo.FUN = mean)
+
+
+p = ComplexHeatmap::Heatmap(
+  data,
+  show_column_names = F,
+  row_names_gp = grid::gpar(fontsize = 7),
+  cluster_rows = T, cluster_row_slices = F,
+  top_annotation = column_ha,
+  name = "Z-score expression",
+  cluster_columns = col_dend,
+  column_dend_reorder = F, row_dend_reorder = F,
+  row_split = rep(c("Metagene.1 top","Metagene.2 top","Metagene.3 top"),each=20))
+  
+p
+
+```
+
+```{r}
+pdf(paste0(params$figs_out_dir,"NMF_heatmap.pdf"),height = 10,width = 10)
+p
+dev.off()
+
+```
