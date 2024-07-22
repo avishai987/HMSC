@@ -161,6 +161,8 @@ if(params$signature == "HMSC"){
 }
 
 ```
+
+
 ```{r}
 metagenes_violin_compare.2 = function(dataset,prefix = "",pre_on = c("OSI","NT"),axis.text.x = 11,test = "t.test", programs = c("Hypoxia","TNFa","Cell_cycle"),return_list = F,combine_patients = F){
   require(facefuns)
@@ -243,5 +245,10 @@ hmsc_cancer_cells@meta.data[["treatment"]] = factor(hmsc_cancer_cells$hpv33_posi
 plt = metagenes_violin_compare.2(dataset = hmsc_cancer_cells, prefix = "patient",pre_on =  c("positive", "negative"),test = "wilcox.test",programs = "hpv_signature", return_list = F,combine_patients = T)+ labs(fill = "")+ylab("Expression")+xlab("Gene")+theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14))+ labs(fill = "")+ylab("Expression")+xlab("Gene")+theme(axis.title=element_text(size=14))+ scale_fill_manual(values=c("#F8766D", "cyan3")) +ggtitle("HMSC") #from bovona.rmd
 plt
+
+```
+```{r}
+# save
+saveRDS(object =   signature,file = "./Data_out/temp/shared_signature.RDS")
 
 ```
