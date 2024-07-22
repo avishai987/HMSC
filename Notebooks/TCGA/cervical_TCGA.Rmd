@@ -1,0 +1,323 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: TRUE
+    number_sections: true
+    toc_depth: 2
+    
+  html_document: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: TRUE
+    number_sections: true
+    toc_depth: 2
+    df-print: paged
+params:
+  stratify: "M"
+  log_tpm: TRUE
+  data_out_dir: NULL
+  figs_out_dir: NULL
+---
+
+```{r}
+# print params
+paged_table(as.data.frame(unlist(params)))
+```
+
+# Data
+```{r}
+library(TCGAbiolinks)
+library(biomaRt)
+library(kableExtra)
+library(rmarkdown)
+source("./Notebooks/TCGA/TCGA_functions.R")
+
+```
+
+
+
+```{r}
+# get hpv signature genes
+scc_deg = readRDS(file = "./Data_out/scc_deg.rds")
+
+avg_diff_cutoff = 0.6
+fdr_cutoff = 0.1
+signature = scc_deg %>% filter(avg_diff > avg_diff_cutoff &
+                                  fdr < fdr_cutoff) %>% rownames()
+signature
+  
+```
+
+```{r}
+project_name = "TCGA-CESC"
+```
+
+```{r}
+# cesc_tpm = prepare_datasets(project_name = "TCGA-CESC")
+# saveRDS(cesc_tpm,file = "./Data_out/TCGA_survival_analysis/TCGA_CESC_TPM.RDS")
+cesc_tpm = readRDS("./Data_out/TCGA_survival_analysis/TCGA_CESC_TPM.RDS")
+
+if (params$log_tpm) {
+  cesc_tpm = log2(cesc_tpm+1)
+  
+}
+```
+
+
+```{r}
+clinical_data <- GDCquery_clinic(project_name, "clinical")
+CESC_tissues = c("Basaloid squamous cell carcinoma",
+"Papillary squamous cell carcinoma",
+"Squamous cell carcinoma, keratinizing, NOS",
+"Squamous cell carcinoma, large cell, nonkeratinizing, NOS",
+"Squamous cell carcinoma, NOS")
+clinical_data = clinical_data[clinical_data$primary_diagnosis %in% CESC_tissues,]
+```
+
+# MYB
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYB",tpm_data_frame = cesc_tpm,stratify = params$stratify)
+paged_table(gene_status)
+```
+
+
+
+```{r fig.height=6, fig.width=8}
+clinical_data_with_scores = clinical_data[clinical_data$submitter_id %in% rownames(gene_status),]
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    main = "TCGA Set\n GBM",
+    height = 10,
+    width=10,filename = NULL,pval.method = T
+)
+p[[1]]/p[[2]]
+```
+
+
+# HPV+ signature
+
+
+```{r}
+# debugonce(set_clinical_data)
+gene_status = set_clinical_data(clin_data = clinical_data,genes = signature,tpm_data_frame = cesc_tpm,stratify = params$stratify,signature_name = "HPV+ signature")
+paged_table(gene_status)
+```
+
+
+
+```{r fig.height=6, fig.width=8}
+clinical_data_with_scores = clinical_data[clinical_data$submitter_id %in% rownames(gene_status),]
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    main = "TCGA Set\n GBM",
+    height = 10,
+    width=10,filename = NULL,pval.method = T
+)
+
+p[[1]]/p[[2]]
+```
+
+# MYB- HPV correlation
+
+```{r}
+# load data 
+library("readxl")
+library(stringr)
+library(ggpubr)
+TCGA_HPV_data <- read_excel("./Input_data/TCGA/PMC3806554_ncomms3513-s5.xlsx",skip = 2)
+TCGA_HPV_data$submitter_id = TCGA_HPV_data$`Sample Barcode` %>% str_sub( start = 1, end = 12) 
+rownames(TCGA_HPV_data) = TCGA_HPV_data$submitter_id
+TCGA_HPV_data = TCGA_HPV_data %>% filter(Cancer == "CESC")
+
+```
+
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYB",tpm_data_frame = cesc_tpm,stratify = params$stratify)
+
+gene_status = gene_status[TCGA_HPV_data$submitter_id,] %>% cbind(HPV_PPM = TCGA_HPV_data$ppm)
+paged_table(gene_status)
+
+sp <- ggscatter(gene_status, x = "MYB", y = "HPV_PPM",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   )
+# Add correlation coefficient
+sp + stat_cor(method = "pearson")
+
+
+```
+
+
+# HPV signature-HPV correlation
+
+```{r}
+
+gene_status = set_clinical_data(clin_data = clinical_data,genes = signature,tpm_data_frame = cesc_tpm,stratify = params$stratify,signature_name = "HPV+ signature")
+
+gene_status = gene_status[TCGA_HPV_data$submitter_id,] %>% cbind(HPV_PPM = TCGA_HPV_data$ppm)
+paged_table(gene_status)
+
+sp <- ggscatter(gene_status, x = "HPV+ signature", y = "HPV_PPM",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   )
+# Add correlation coefficient
+sp + stat_cor(method = "pearson")
+
+
+```
+
+# MYB- HPV T test
+
+```{r}
+# create data
+
+gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYB",tpm_data_frame = cesc_tpm,stratify = params$stratify)
+gene_status$HPV_status   = if_else(
+  condition = row.names(gene_status)  %in% TCGA_HPV_data$submitter_id,
+  true = "HPV+",
+  false = "HPV-"
+)
+paged_table(gene_status)
+
+
+```
+
+
+```{r}
+# plot
+library(ggpubr)
+library(rstatix)
+stat.test <- gene_status %>%
+  t_test(MYB ~ HPV_status) %>%
+  add_significance()
+stat.test
+
+
+bxp <- ggboxplot(gene_status, x = "HPV_status", y = "MYB", fill = "#00AFBB")
+stat.test <- stat.test %>% add_xy_position(x = "HPV_status")
+bxp + 
+  stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") 
+
+```
+
+
+
+
+# MYB and HPV survival plot
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYB",tpm_data_frame = cesc_tpm,stratify = params$stratify)
+gene_status$HPV_status   = if_else(
+  condition = row.names(gene_status)  %in% TCGA_HPV_data$submitter_id,
+  true = "HPV+",
+  false = "HPV-"
+)
+
+gene_status$gene_status = paste(gene_status$gene_status,gene_status$HPV_status,sep = ", ")
+gene_status$HPV_status = NULL
+paged_table(gene_status)
+```
+
+
+```{r fig.height=6, fig.width=11}
+clinical_data_with_scores = clinical_data[clinical_data$submitter_id %in% rownames(gene_status),]
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    main = "TCGA Set\n GBM",
+    height = 10,
+    width=10,filename = NULL,pval.method = T
+)
+p[[1]]/p[[2]]
+```
+
+# shared signature
+```{r}
+shared_signature = readRDS(file = "./Data_out/temp/shared_signature.RDS")
+```
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data,genes = shared_signature,tpm_data_frame = cesc_tpm,stratify = params$stratify,signature_name = "HPV+ signature")
+paged_table(gene_status)
+```
+
+
+
+
+
+```{r fig.height=6, fig.width=8}
+clinical_data_with_scores = clinical_data[clinical_data$submitter_id %in% rownames(gene_status),]
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    main = "TCGA Set\n GBM",
+    height = 10,
+    width=10,filename = NULL,pval.method = T
+)
+
+p[[1]]/p[[2]]
+```
+
+# HMSC signature
+
+```{r}
+# load
+hmsc_deg = read.table(file = "./Data_out/HPV_analysis/hpv_deg_df.csv",row.names = 1)
+  avg_diff_cutoff = 1
+  fdr_cutoff = 0.1
+  signature = hmsc_deg %>% filter(avg_diff>avg_diff_cutoff & fdr<fdr_cutoff) %>% rownames()
+  signature
+
+```
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data,genes = signature,tpm_data_frame = cesc_tpm,stratify = params$stratify,signature_name = "HPV+ signature")
+paged_table(gene_status)
+```
+
+
+
+
+
+```{r fig.height=6, fig.width=8}
+clinical_data_with_scores = clinical_data[clinical_data$submitter_id %in% rownames(gene_status),]
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    main = "TCGA Set\n GBM",
+    height = 10,
+    width=10,filename = NULL,pval.method = T
+)
+
+p[[1]]/p[[2]]
+```
