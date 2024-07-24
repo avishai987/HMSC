@@ -83,6 +83,8 @@ CESC_tissues = c("Basaloid squamous cell carcinoma",
 clinical_data = clinical_data[clinical_data$primary_diagnosis %in% CESC_tissues,]
 ```
 
+
+
 # MYB
 ```{r}
 gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYB",tpm_data_frame = cesc_tpm,stratify = params$stratify)
@@ -109,23 +111,32 @@ p[[1]]/p[[2]]
 
 # HPV+ signature
 
-
 ```{r}
-# debugonce(set_clinical_data)
-gene_status = set_clinical_data(clin_data = clinical_data,genes = signature,tpm_data_frame = cesc_tpm,stratify = params$stratify,signature_name = "HPV+ signature")
-paged_table(gene_status)
+# load data 
+library("readxl")
+library(stringr)
+library(ggpubr)
+TCGA_HPV_data <- read_excel("./Input_data/TCGA/PMC3806554_ncomms3513-s2.xlsx",skip = 3)
+TCGA_HPV_data  %<>% filter(`Tumor type` == "Primary solid")
+TCGA_HPV_data$submitter_id = TCGA_HPV_data$`Sample barcode` %>% str_sub( start = 1, end = 12) 
+rownames(TCGA_HPV_data) = TCGA_HPV_data$submitter_id
+TCGA_HPV_data = TCGA_HPV_data %>% filter(Cancer == "CESC")
 ```
 
 
 
 ```{r fig.height=6, fig.width=8}
-clinical_data_with_scores = clinical_data[clinical_data$submitter_id %in% rownames(gene_status),]
-gene_status$patient = rownames(gene_status)
-clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+clinical_data_with_scores = clinical_data
+clinical_data_with_scores$HPV_status   = if_else(
+  condition = clinical_data_with_scores$submitter_id  %in% TCGA_HPV_data$submitter_id,
+  true = "HPV+",
+  false = "HPV-"
+)
+
 
 p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
-    clusterCol = "gene_status",
+    clusterCol = "HPV_status",
     main = "TCGA Set\n GBM",
     height = 10,
     width=10,filename = NULL,pval.method = T
@@ -136,17 +147,7 @@ p[[1]]/p[[2]]
 
 # MYB- HPV correlation
 
-```{r}
-# load data 
-library("readxl")
-library(stringr)
-library(ggpubr)
-TCGA_HPV_data <- read_excel("./Input_data/TCGA/PMC3806554_ncomms3513-s5.xlsx",skip = 2)
-TCGA_HPV_data$submitter_id = TCGA_HPV_data$`Sample Barcode` %>% str_sub( start = 1, end = 12) 
-rownames(TCGA_HPV_data) = TCGA_HPV_data$submitter_id
-TCGA_HPV_data = TCGA_HPV_data %>% filter(Cancer == "CESC")
 
-```
 
 
 ```{r}
