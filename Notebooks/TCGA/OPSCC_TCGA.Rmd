@@ -38,6 +38,7 @@ paged_table(as.data.frame(unlist(params)))
 # Data
 
 ```{r}
+
 library(TCGAbiolinks)
 library(biomaRt)
 library(kableExtra)
@@ -87,7 +88,7 @@ cbp_data = read_tsv(file = "./Input_data/TCGA/cbioportal_hnsc_tcga_pan_can_atlas
 cbp_data = cbp_data[,c("Patient ID", "Subtype")] %>% dplyr::rename(hpv_status = Subtype) %>% 
   mutate(hpv_status = gsub(,x = hpv_status,pattern = "HNSC_HPV",replacement = "HPV"))
 clinical_data = inner_join(x = clinical_data,y = cbp_data,by = c("submitter_id"="Patient ID"))
-clinical_data  = clinical_data[ !is.na(clinical_data$hpv_status), ]
+na_patients = clinical_data[is.na(clinical_data$hpv_status), "submitter_id"]
 ```
 
 ```{r}
@@ -106,7 +107,10 @@ TCGA_HPV_data = TCGA_HPV_data %>%
               true = "HPV-",
               false =  "HPV+"))
 
-clinical_data = inner_join(x = clinical_data,y = TCGA_HPV_data[,c("submitter_id","hpv_status")],by = c("submitter_id"="submitter_id"))
+
+TCGA_HPV_data = TCGA_HPV_data [TCGA_HPV_data$submitter_id %in% na_patients, c("submitter_id","hpv_status")] #get only na patients
+clinical_data[match(TCGA_HPV_data$submitter_id, clinical_data$submitter_id),"hpv_status"] <- TCGA_HPV_data$hpv_status # add missing data in cbp
+clinical_data  = clinical_data[ !is.na(clinical_data$hpv_status), ]
 
 ```
 
@@ -240,6 +244,8 @@ bxp +
 ```
 
 # MYB and HPV survival plot
+
+
 ## HPV + tumors
 ```{r}
 clinical_data_with_scores = clinical_data  %>% filter(hpv_status == "HPV+")
@@ -262,7 +268,7 @@ p = TCGAanalyze_survival(
 p[[1]]/p[[2]]
 ```
 
-## HPV - tumors
+## HPV- tumors
 ```{r}
 clinical_data_with_scores = clinical_data  %>% filter(hpv_status == "HPV-")
 
@@ -282,6 +288,36 @@ p = TCGAanalyze_survival(
 )
 p[[1]]/p[[2]]
 ```
+
+
+
+## combine MYB and HPV survival plot
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYB",tpm_data_frame = HNSC_tpm,stratify = params$stratify)
+gene_status$patient = rownames(gene_status)
+
+clinical_data_with_scores = inner_join(x = clinical_data,y = gene_status, by = c("submitter_id"="patient"))
+
+clinical_data_with_scores$gene_status = paste(clinical_data_with_scores$gene_status,clinical_data_with_scores$hpv_status,sep = ", ")
+gene_status$hpv_status = NULL
+paged_table(gene_status)
+```
+
+
+```{r fig.height=6, fig.width=11}
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    main = "TCGA Set\n GBM",
+    height = 10,
+    width=10,filename = NULL,pval.method = T
+)
+p[[1]]/p[[2]]
+```
+
+
 # shared signature
 ```{r}
 shared_signature = readRDS(file = "./Data_out/temp/shared_signature.RDS")
