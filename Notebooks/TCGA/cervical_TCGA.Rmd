@@ -118,28 +118,30 @@ library(stringr)
 library(ggpubr)
 TCGA_HPV_data <- read_excel("./Input_data/TCGA/PMC3806554_ncomms3513-s2.xlsx",skip = 3)
 TCGA_HPV_data  %<>% filter(`Tumor type` == "Primary solid")
-TCGA_HPV_data$submitter_id = TCGA_HPV_data$`Sample barcode` %>% str_sub( start = 1, end = 12) 
-rownames(TCGA_HPV_data) = TCGA_HPV_data$submitter_id
-TCGA_HPV_data = TCGA_HPV_data %>% filter(Cancer == "CESC")
+TCGA_HPV_data$submitter_id = TCGA_HPV_data$`Sample barcode` %>% str_sub( start = 1, end = 12)
+
+TCGA_HPV_data = TCGA_HPV_data %>%
+    filter(Cancer == "CESC") %>%
+    mutate (hpv_status = 
+            if_else(
+              condition = ppm == "N/A",
+              true = "HPV-",
+              false =  "HPV+"))
+clinical_data = inner_join(x = clinical_data,y = TCGA_HPV_data,by = c("submitter_id"="submitter_id"))
+
 ```
 
 
 
 ```{r fig.height=6, fig.width=8}
-clinical_data_with_scores = clinical_data
-clinical_data_with_scores$HPV_status   = if_else(
-  condition = clinical_data_with_scores$submitter_id  %in% TCGA_HPV_data$submitter_id,
-  true = "HPV+",
-  false = "HPV-"
-)
+
 
 
 p = TCGAanalyze_survival(
-    data = clinical_data_with_scores,
-    clusterCol = "HPV_status",
+    data = clinical_data,
+    clusterCol = "hpv_status",
     main = "TCGA Set\n GBM",
-    height = 10,
-    width=10,filename = NULL,pval.method = T
+    filename = NULL,pval.method = T
 )
 
 p[[1]]/p[[2]]
@@ -153,7 +155,7 @@ p[[1]]/p[[2]]
 ```{r}
 gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYB",tpm_data_frame = cesc_tpm,stratify = params$stratify)
 
-gene_status = gene_status[TCGA_HPV_data$submitter_id,] %>% cbind(HPV_PPM = TCGA_HPV_data$ppm)
+gene_status = gene_status[TCGA_HPV_data$submitter_id,] %>% cbind(HPV_PPM = as.numeric(TCGA_HPV_data$ppm))
 paged_table(gene_status)
 
 sp <- ggscatter(gene_status, x = "MYB", y = "HPV_PPM",
@@ -194,12 +196,11 @@ sp + stat_cor(method = "pearson")
 # create data
 
 gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYB",tpm_data_frame = cesc_tpm,stratify = params$stratify)
-gene_status$HPV_status   = if_else(
-  condition = row.names(gene_status)  %in% TCGA_HPV_data$submitter_id,
-  true = "HPV+",
-  false = "HPV-"
-)
+gene_status$patient = rownames(gene_status)
+gene_status = inner_join(x = gene_status,y = clinical_data[,c("submitter_id","hpv_status")],by = c("patient"="submitter_id"))
+
 paged_table(gene_status)
+
 
 
 ```
@@ -210,13 +211,13 @@ paged_table(gene_status)
 library(ggpubr)
 library(rstatix)
 stat.test <- gene_status %>%
-  t_test(MYB ~ HPV_status) %>%
+  t_test(MYB ~ hpv_status) %>%
   add_significance()
 stat.test
 
 
-bxp <- ggboxplot(gene_status, x = "HPV_status", y = "MYB", fill = "#00AFBB")
-stat.test <- stat.test %>% add_xy_position(x = "HPV_status")
+bxp <- ggboxplot(gene_status, x = "hpv_status", y = "MYB", fill = "#00AFBB",add = "jitter")
+stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
 bxp + 
   stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") 
 
