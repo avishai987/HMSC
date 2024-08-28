@@ -158,7 +158,19 @@ p = TCGAanalyze_survival(
 p[[1]]/p[[2]]
 ```
 
+# MYB- smoking correlation
+```{r}
+# scatter plot
 
+ggscatter(clinical_data_with_scores, x = "MYB", y = "pack_years_smoked",
+          add = "reg.line",                                 # Add regression line
+          conf.int = TRUE,                                  # Add confidence interval
+          add.params = list(color = "blue",
+                            fill = "lightgray")
+          )+
+  stat_cor(method = "pearson", label.x = 3, label.y = 30)  # Add correlation coefficient
+
+```
 
 # MYB - HPV correlation
 
@@ -267,6 +279,29 @@ p = TCGAanalyze_survival(
 )
 p[[1]]/p[[2]]
 ```
+## remove low smokers
+```{r}
+clinical_data_with_scores = clinical_data  %>% filter(hpv_status == "HPV+") %>% filter(pack_years_smoked < 100 | is.na(pack_years_smoked))
+
+gene_status = set_clinical_data(clin_data = clinical_data_with_scores,genes = "MYB",tpm_data_frame = HNSC_tpm,stratify = "M")
+paged_table(gene_status)
+```
+
+
+```{r fig.height=6, fig.width=8}
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = inner_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+# debugonce(TCGAanalyze_survival)
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    filename = NULL,pval.method = T
+)
+p[[1]]/p[[2]]
+```
+
+
 
 ## HPV- tumors
 ```{r}
@@ -300,8 +335,7 @@ gene_status$patient = rownames(gene_status)
 clinical_data_with_scores = inner_join(x = clinical_data,y = gene_status, by = c("submitter_id"="patient"))
 
 clinical_data_with_scores$gene_status = paste(clinical_data_with_scores$gene_status,clinical_data_with_scores$hpv_status,sep = ", ")
-gene_status$hpv_status = NULL
-paged_table(gene_status)
+paged_table(clinical_data_with_scores)
 ```
 
 
