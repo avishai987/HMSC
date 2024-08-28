@@ -51,7 +51,7 @@ myb_data %>%   group_by(orig.ident) %>%
 ```
 
 
-# Ppatients filter
+# Patients filter
 ```{r fig.height=6, fig.width=12}
 scc_myb_patients<- subset(scc.big, subset = orig.ident %in% c("SCC3","SCC4","SCC5"))
 ```
@@ -98,35 +98,16 @@ sp + stat_cor(method = "pearson", label.x = 3, label.y = 5)
 
 ```
 
-# Boxplot by patient
-```{r}
-scc_myb_patients<- subset(scc.big, subset = orig.ident %in% c("SCC2","SCC3","SCC4","SCC5"))
 
-df = FetchData(object = scc_myb_patients,vars = c("orig.ident","MYB","hpv_positive")) %>% group_by(orig.ident,hpv_positive) %>% summarise(
-  myb = mean(MYB),.groups = "drop_last")
-stat.test <- df %>% group_by("hpv_positive") %>% 
-  wilcox_test(myb ~ hpv_positive)
+# HMSC HPV DEG boxplots
+```{r fig.height=5, fig.width=12}
+library(rstatix)
 
+hmsc_deg = read.table(file = "./Data_out/HPV_analysis/hpv_deg_df.csv",row.names = 1)
+top_genes = hmsc_deg %>% filter(.$fdr<0.05) %>% filter(.$avg_diff>log2(1.5)) %>%  arrange(dplyr::desc(.$avg_diff)) %>% head(5) %>% rownames()
+top_genes = c(top_genes, "MYB", "JAG1")
 
-df = reshape2::dcast(df, orig.ident ~ hpv_positive)
-
-
-p = ggpaired(df, cond1  = "positive",cond2   = "negative",palette = "jco",
-            add = "jitter", line.color = "gray", line.size = 0.4,id = "orig.ident", fill = "condition") + theme_minimal()+
-  # stat_compare_means(method = "wilcox.test",comparisons = list(c("positive","negative")),paired = F)+
-  stat_summary(fun.data = function(x) data.frame(y=max(x)*1.2, label = paste("Mean=",round(mean(x),digits = 2))), geom="text")+ylab("MYB")+ stat_pvalue_manual(stat.test,y.position = 0.2, label = "Wilcox, p = {p}",remove.bracket = F)
-p
-```
-```{r}
-pdf(file = "./Figures/SCC_HPV_MYB_boxplot_bySample.pdf",width = 8)
-p
-dev.off()
-```
-# HPV DEG boxplots
-
-```{r fig.width=8}
-genes = c("ANLN", "TUBB6", "AXL", "IFT122", "GFM1", "MYB", "JAG1")
-myb_vs_hpv = FetchData(object = scc_myb_patients,vars = c("hpv_positive",genes))
+myb_vs_hpv = FetchData(object = scc_myb_patients,vars = c("hpv_positive",top_genes))
 df = reshape2::melt(myb_vs_hpv,value.name = "logTPM") %>% dplyr::rename(gene = variable)
 
 
@@ -140,23 +121,42 @@ stat.test
 stat.test <- stat.test %>% 
   add_xy_position(x = "gene", dodge = 0.8)
 
-p = ggboxplot(
+p = ggviolin(
   df,
   x = "gene",
   y = "logTPM",
-  color = "hpv_positive",
-  palette = "jco",
-  add = "jitter"
-)+ stat_pvalue_manual(stat.test,y.position = 4, label = "p = {p}",remove.bracket = T)
+  fill = "hpv_positive",
+  palette = "jco",scale = 'width',trim = T,
+  add = "boxplot"
+)+ stat_pvalue_manual(stat.test,y.position = 4, label = "p = {p}",remove.bracket = F)
 
 p
+
+
+ ggplot(df, aes(x = gene, y = logTPM, group = interaction(gene,hpv_positive))) +
+   geom_violin(scale = 'width',trim=T,position = position_dodge(0.8),aes(fill =hpv_positive)) +
+   geom_boxplot(position = position_dodge(0.8), outlier.shape = NA, coef=0,width = 0.15, fill="white")+ 
+   stat_pvalue_manual(stat.test,y.position = 3.2, label = "p = {p}",remove.bracket = F)+
+  stat_summary(aes(fill =hpv_positive),inherit.aes = T,fun.data = function(x) data.frame(y=3.8, label = round(mean(x),digits = 2)), geom="text",position = position_dodge(0.8))
+ 
+ 
+  ggplot(df, aes(x = gene, y = logTPM)) +
+   geom_boxplot(position = position_dodge(0.8), coef=0,width = 0.75,aes(fill =hpv_positive))+
+  stat_summary(aes(fill =hpv_positive),inherit.aes = T,fun.data = function(x) data.frame(y=3.8, label = round(mean(x),digits = 2)), geom="text",position = position_dodge(0.8)) + 
+   stat_pvalue_manual(stat.test,y.position = 3.5, label = "p = {p}",remove.bracket = F)
+ 
+  
+
 ```
+
+
 ```{r}
 pdf(file = "./Figures/SCC_HPV_genes_all_patients.pdf",width = 8)
 p
 dev.off()
 ```
 
+# split violin
 ```{r}
 metagenes_violin_compare.2 = function(dataset,prefix = "",pre_on = c("OSI","NT"),axis.text.x = 11,test = "t.test", programs = c("Hypoxia","TNFa","Cell_cycle"),return_list = F,combine_patients = F){
   require(facefuns)
@@ -197,7 +197,7 @@ metagenes_violin_compare.2 = function(dataset,prefix = "",pre_on = c("OSI","NT")
 scc_myb_patients$treatment = scc_myb_patients$hpv_positive %>% gsub(pattern = "negative",replacement = "HPV-negative")%>% gsub(pattern = "positive",replacement = "HPV-positive")
 scc_myb_patients@meta.data[["treatment"]] = factor(scc_myb_patients$treatment, levels = c("HPV-positive", "HPV-negative"))
 
-p = metagenes_violin_compare.2(dataset = scc_myb_patients, prefix = "patient",pre_on = c("HPV-negative","HPV-positive"),test = "wilcox.test",programs = genes, return_list = F,combine_patients = T) +scale_y_continuous(limits = c(0,1.5)) + labs(fill = "")+ylab("LogTPM")+xlab("Gene")+theme(axis.title=element_text(size=14))+ scale_fill_manual(values=c("#F8766D", "cyan3"))
+p = metagenes_violin_compare.2(dataset = scc_myb_patients, prefix = "patient",pre_on = c("HPV-negative","HPV-positive"),test = "wilcox.test",programs = top_genes, return_list = F,combine_patients = T) +scale_y_continuous(limits = c(0,1.5)) + labs(fill = "")+ylab("LogTPM")+xlab("Gene")+theme(axis.title=element_text(size=14))+ scale_fill_manual(values=c("#F8766D", "cyan3"))
 p
 ```
 
@@ -258,55 +258,25 @@ deg$fdr<-p.adjust(p = as.vector(deg$p_val) ,method = "fdr" )
 
 ```
 
+# Find DEG 
 
 ```{r}
+suffix = "5Kvargenes"
 scc_myb_patients = SetIdent(scc_myb_patients,value = "hpv_positive")
-features = scc_myb_patients@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
+scc_myb_patients = FindVariableFeatures(object = scc_myb_patients,nfeatures = 5000)
+features = VariableFeatures(scc_myb_patients)
 
 deg = FindMarkers(object = scc_myb_patients,ident.1 = "positive",ident.2 = "negative",
             features = features,test.use = "LR",latent.vars = "orig.ident",
-            logfc.threshold = 0.3,min.pct = 0.1,
+            logfc.threshold = 0,min.pct = 0.1,
             mean.fxn = function(x) {
               return((rowMeans(x)+1)) # change func to calculate logFC in log space data (default to exponent data)
             })
 deg$fdr<-p.adjust(p = as.vector(deg$p_val) ,method = "fdr")
 data_to_save = deg %>% dplyr::rename(avg_diff = avg_log2FC) #rename avg_log2FC because here we calculate diff
-saveRDS(object = data_to_save,file = "./Data_out/scc_deg.rds")
+saveRDS(object = data_to_save,file = "./Data_out/scc_deg_5Kvargenes.rds")
 ```
 
 
-```{r}
-intersect(
-  acc_deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>0)   %>% arrange(dplyr::desc(.$avg_log2FC))  %>% head(400) %>% rownames(),
-  deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>0) %>% arrange(dplyr::desc(.$avg_log2FC)) %>% head(400) %>% rownames()
-) %>% cat(sep = "\n")
-```
-```{r}
-# HNSC OS p=0.022
-intersect(
-   acc_deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$avg_log2FC))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames(),
-   deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$avg_log2FC))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames()
- ) %>% cat(sep = "\n")
-```
-```{r}
-intersect( # OS HNSC 0.032 CECS 0.065
-   acc_deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames(),
-   deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(200) %>% rownames()
- ) %>% cat(sep = "\n")
-```
-```{r}
-intersect( 
-   acc_deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(400) %>% rownames(),
-   deg %>% filter(.$fdr<0.05) %>% arrange(dplyr::desc(.$fdr))%>% filter(.$avg_log2FC>0) %>% head(400) %>% rownames()
- ) %>% cat(sep = "\n")
-```
 
-```{r}
-# CECS RFS p=0.014
-deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>0) %>% arrange(dplyr::desc(.$avg_log2FC)) %>% rownames() %>% head(20) %>% cat(sep = "\n")
-```
-
-```{r}
-acc_deg[deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>0) %>% arrange(dplyr::desc(.$avg_log2FC)) %>% rownames() %>% head(20),]
-```
 
