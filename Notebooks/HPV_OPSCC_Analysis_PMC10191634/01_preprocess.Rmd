@@ -35,9 +35,9 @@ Code and data from: https://github.com/micmin3/HPV_OPSCC_Analysis
 
 ```{r}
 #| Read data
-matrix<-Matrix::readMM("./HPV_OPSCC_Analysis_PMC10191634/Data/10x_data/GSE182227_OPSCC.mtx.gz")
-b1<-read.table("./HPV_OPSCC_Analysis_PMC10191634/Data/10x_data/GSE182227_barcodes.txt.gz")
-g1<-read.table("./HPV_OPSCC_Analysis_PMC10191634/Data/10x_data/GSE182227_genes.txt.gz")
+matrix<-Matrix::readMM("./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_OPSCC.mtx.gz")
+b1<-read.table("./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_barcodes.txt.gz")
+g1<-read.table("./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_genes.txt.gz")
 ```
 
 ```{r}
@@ -52,7 +52,7 @@ merged<-matrix[,cellthreshold] #Filter cells by thresholds
 #| read metadata and keep cancer cells
 
 library(readxl)
-metadata = read_excel(path = "./HPV_OPSCC_Analysis_PMC10191634/Data/NIHMS1892753-supplement-Supp_Tables.xlsx",
+metadata = read_excel(path = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx",
           sheet = "S4 - Cell Table",progress = T,skip = 1,col_names = T)
 
 cancer_cells = metadata %>% filter(Cancer_assignment == "Cancer") %>% pull(Cell_barcode)
