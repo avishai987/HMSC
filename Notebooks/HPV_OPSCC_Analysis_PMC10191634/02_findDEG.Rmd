@@ -32,14 +32,14 @@ opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
 ```{r}
 name = "5Kvargenes"
 opscc_hpvPos = SetIdent(object = opscc_hpvPos,value = "hpv")
-opscc_hpvPos = FindVariableFeatures(object = opscc_hpvPos,nfeatures = 5000)
+opscc_hpvPos = FindVariableFeatures(object = opscc_hpvPos,nfeatures = 1000)
 # find DEG
 features = VariableFeatures(object = opscc_hpvPos)
 deg = FindMarkers(object = opscc_hpvPos,ident.1 = "HPV+",ident.2 = "HPV-",
             features = features,test.use = "LR",latent.vars = "patient",
             logfc.threshold = 0,min.pct = 0.1,
             mean.fxn = function(x) {
-              return((rowMeans(x)+1)) # change func to calculate logFC in log space data (default to exponent data)
+              return(log2(rowMeans(x)+1)) # change func to calculate logFC in log space data (default to exponent data)
             })
 deg$fdr<-p.adjust(p = as.vector(deg$p_val) ,method = "fdr")
 
@@ -52,86 +52,8 @@ saveRDS(object = data_to_save,file = "./Data_out/opscc_deg_5Kvargenes.rds")
 ```
 
 
-# MYB-HPV cor
-
-```{r}
-hpv_16_genes = rownames(opscc_hpvPos)[ startsWith(x =rownames(opscc_hpvPos),prefix =  "HPV16")]
-hpv_score = FetchData(object = opscc_hpvPos,vars = hpv_16_genes) %>% rowMeans()
-hpv_score_df = data.frame(hpv_score,row.names = names(hpv_score))
-opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = hpv_score_df)
-```
-
-```{r fig.height=10, fig.width=10}
-data = opscc_hpvPos 
-myb_vs_hpv = FetchData(object = data, vars = c("hpv_score", "MYB","patient"),slot = "data")
-sp <- ggscatter(myb_vs_hpv, x = "hpv_score", y = "MYB",
-   add = "reg.line",  # Add regressin line
-   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
-   conf.int = TRUE # Add confidence interval
-   ) +  facet_wrap(~ patient, scales="free")
-# Add correlation coefficient
-sp + stat_cor(method = "pearson")
-
-```
-```{r}
-genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "MYB")) 
-
-    formula <- as.formula("MYB ~ hpv")
-    
-    #plot and split by patient:   
-    stat.test = compare_means(formula = formula ,data = genes_by_tp,method = "wilcox.test",p.adjust.method = "fdr") # Add pairwise comparisons p-value
-    
-    
-
-    plt = ggplot(genes_by_tp, aes(x = hpv, y = MYB))+ 
-      geom_violin()+ geom_boxplot(width=0.1,outlier.shape = NA) +
-      ylim(min(genes_by_tp$MYB),max(genes_by_tp$MYB)*1.25)
-    plt = plt +stat_pvalue_manual(stat.test, label = "{p.adj}",  #add p value
-                                  y.position = max(genes_by_tp$MYB)*1.08) # set position at the top value
-    plt
-```
-```{r}
-# plot by patients
-genes_by_tp = FetchData(object = opscc,vars = c("MYB","patient")) %>% 
-  dplyr::group_by(patient) %>% 
-  summarise(MYB = mean(MYB)) %>%
-  mutate (hpv = if_else(
-  condition = patient %in% hpv_neg ,true = "HPV-",false = "HPV+"))
-
-formula <- as.formula("MYB ~ hpv")
-
-#plot and split by patient:
-stat.test = compare_means(
-  formula = formula ,
-  data = genes_by_tp,
-  method = "wilcox.test",
-  p.adjust.method = "fdr"
-) # Add pairwise comparisons p-value
 
 
 
-plt = ggplot(genes_by_tp, aes(x = hpv, y = MYB)) +
-  geom_boxplot(width = 0.1,outlier.shape = NA) + geom_jitter(shape=16, position=position_jitter(0.2))
-plt = plt + stat_pvalue_manual(stat.test,
-                               label = paste0(stat.test$method, ", p = {p.adj}"),
-                               #add p value
-                               y.position = 0.2)+ ggtitle("By sample") # set position at the top value
-plt
-```
 
-```{r}
-hpv_16_genes = rownames(opscc_hpvPos)[ startsWith(x =rownames(opscc_hpvPos),prefix =  "HPV16")]
-a = filter.umi(matrix = opscc_hpvPos@assays$RNA@counts,cells = colnames(opscc_hpvPos %>% subset(patient == "OP14")),whitelist = HPVgenes)
-genes = hpv_16_genes[hpv_16_genes %in% rownames(a)]
-score = a[genes,] %>% colMeans()
 
-myb_vs_hpv = data.frame(hpv_score = score, MYB= a["MYB",],row.names = colnames(a))
-
-sp <- ggscatter(myb_vs_hpv, x = "hpv_score", y = "MYB",
-   add = "reg.line",  # Add regressin line
-   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
-   conf.int = TRUE # Add confidence interval
-   )
-# Add correlation coefficient
-sp + stat_cor(method = "pearson")
-```
