@@ -32,14 +32,14 @@ opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
 ```{r}
 name = "5Kvargenes"
 opscc_hpvPos = SetIdent(object = opscc_hpvPos,value = "hpv")
-opscc_hpvPos = FindVariableFeatures(object = opscc_hpvPos,nfeatures = 1000)
+opscc_hpvPos = FindVariableFeatures(object = opscc_hpvPos,nfeatures = 5000)
 # find DEG
 features = VariableFeatures(object = opscc_hpvPos)
 deg = FindMarkers(object = opscc_hpvPos,ident.1 = "HPV+",ident.2 = "HPV-",
             features = features,test.use = "LR",latent.vars = "patient",
             logfc.threshold = 0,min.pct = 0.1,
             mean.fxn = function(x) {
-              return(log2(rowMeans(x)+1)) # change func to calculate logFC in log space data (default to exponent data)
+              return(rowMeans(x)+1) # change func to calculate logFC in log space data (default to exponent data)
             })
 deg$fdr<-p.adjust(p = as.vector(deg$p_val) ,method = "fdr")
 
