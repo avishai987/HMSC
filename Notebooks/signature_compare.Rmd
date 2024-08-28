@@ -54,6 +54,33 @@ all_deg = list(hmsc_top = hmsc_top, opscc_top = opscc_top, scc_top = scc_top)
 library(ggVennDiagram)
 ggVennDiagram(all_deg)
 ```
+# Save data
+```{r}
+# create data
+deg_up_list = list(hmsc_up_deg = hmsc_top,
+          opscc_up_deg = opscc_top,
+          scc_up_deg = scc_top,
+          hmsc_opscc = intersect(hmsc_top,opscc_top), 
+          hmsc_scc = intersect(hmsc_top,scc_top),
+          opscc_scc = intersect(opscc_top,scc_top), 
+          shared = intersect(intersect(hmsc_top,opscc_top),scc_top)
+          )
+# save
+library(openxlsx)
+wb <- createWorkbook()
+addWorksheet(wb, sheetName = "Sheet1")
+
+for (i in 1:length(deg_up_list)) {
+    writeData(wb, "Sheet1", names(deg_up_list)[i], startCol = i, startRow = 1,  
+          rowNames = FALSE) #write name
+  
+  writeData(wb, "Sheet1", deg_up_list[[i]], startCol = i, startRow = 2,  
+          rowNames = FALSE)
+}
+
+saveWorkbook(wb, "./Data_out/signature_compare/all_datasets_up_deg.xlsx", overwrite = TRUE)
+```
+
 # HMSC GSEA
 
 ```{r}
@@ -66,6 +93,10 @@ plt[[1]] + aes(size=nes)+
     size = guide_legend(title="NES",reverse=T))
 
 
+```
+```{r}
+# save
+write.xlsx(hyp_obj$data$up$data,"./Data_out/signature_compare/HMSC_GSEA.xlsx")
 ```
 
 # OPSCC GSEA
@@ -85,7 +116,10 @@ plt[[2]] + aes(size=nes) +scale_size(trans = 'reverse')+
 
 
 ```
-
+```{r}
+# save
+write.xlsx(hyp_obj$data$up$data,"./Data_out/signature_compare/OPSCC_GSEA.xlsx")
+```
 # SCC GSEA
 ```{r}
 ranked_vec = scc_deg[,"avg_diff"]%>% setNames(rownames(scc_deg)) %>% na.omit() # make named vector
@@ -101,6 +135,11 @@ plt[[2]] + aes(size=nes) +scale_size(trans = 'reverse')+
     size = guide_legend(title="NES",reverse=F))
 
 ```
+```{r}
+# save
+write.xlsx(hyp_obj$data$up$data,"./Data_out/signature_compare/SCC_GSEA.xlsx")
+```
+
 # OPSCC boxplot
 ```{r}
 
