@@ -49,7 +49,7 @@ source("./Notebooks/TCGA/TCGA_functions.R")
 
 
 ```{r}
-# find hpv signature genes
+# load hpv signature genes
 opscc_deg = readRDS(file = "./Data_out/opscc_deg.rds")
 
 avg_diff_cutoff = 0.4
@@ -60,11 +60,10 @@ signature
   
 ```
 
-```{r}
-project_name = "TCGA-HNSC"
-```
+
 
 ```{r}
+# load TPM data
 HNSC_tpm = readRDS("./Data_out/TCGA_survival_analysis/TCGA_HNSC_TPM.RDS")
 
 if (params$log_tpm) {
@@ -74,8 +73,11 @@ if (params$log_tpm) {
 ```
 
 ```{r}
+# load clinical data
+project_name = "TCGA-HNSC"
+
 clinical_data <- GDCquery_clinic(project_name, "clinical")
-OPSCC_tissues = c("Base of tongue, NOS",
+OPSCC_tissues = c("Base of tongue, NOS", #filter only OPSCC
 "Oropharynx, NOS",
 "Posterior wall of oropharynx",
 "Tonsil, NOS")
@@ -83,7 +85,7 @@ clinical_data = clinical_data[clinical_data$tissue_or_organ_of_origin %in% OPSCC
 ```
 
 ```{r}
-# add HPV data by clinical data
+# add HPV status to clinical_data
 cbp_data = read_tsv(file = "./Input_data/TCGA/cbioportal_hnsc_tcga_pan_can_atlas_2018_clinical_data.tsv")
 cbp_data = cbp_data[,c("Patient ID", "Subtype")] %>% dplyr::rename(hpv_status = Subtype) %>% 
   mutate(hpv_status = gsub(,x = hpv_status,pattern = "HNSC_HPV",replacement = "HPV"))
@@ -92,7 +94,7 @@ na_patients = clinical_data[is.na(clinical_data$hpv_status), "submitter_id"]
 ```
 
 ```{r}
-# load data 
+# Add missing HPV status in some samples from PPM data
 library("readxl")
 library(stringr)
 library(ggpubr)
@@ -248,6 +250,24 @@ stat.test
 
 
 bxp <- ggboxplot(gene_status, x = "hpv_status", y = "MYB", fill = "#00AFBB")+
+  geom_jitter()
+stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
+bxp + 
+  stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") 
+
+```
+
+```{r}
+# plot
+library(ggpubr)
+library(rstatix)
+stat.test <- clinical_data %>%
+  t_test(pack_years_smoked ~ hpv_status) %>%
+  add_significance()
+stat.test
+
+
+bxp <- ggboxplot(clinical_data, x = "hpv_status", y = "pack_years_smoked", fill = "#00AFBB")+
   geom_jitter()
 stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
 bxp + 
