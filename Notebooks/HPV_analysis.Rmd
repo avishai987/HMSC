@@ -111,8 +111,85 @@ FeaturePlot(object = hmsc_cancer_cells,features = "MYB",pt.size = 2)
 
 
 
+# fisher test
+```{r}
+DefaultAssay(hmsc_cancer_cells) = "RNA" # calculate MYB positive/negtive from original data
+# set MYB pos/neg
+hmsc_cancer_cells$MYB_status = FetchData(object = hmsc_cancer_cells,vars = "MYB") %>%
+  mutate(MYB_status = if_else(
+    condition = MYB > 0,
+    true = "MYB_positive",
+    false = "MYB_negative"
+  )) %>% 
+  pull(MYB_status)
+
+DefaultAssay(hmsc_cancer_cells) = "integrated"
+
+```
+
+```{r }
+# plot
+library(rstatix)
+
+df  = FetchData(object = hmsc_cancer_cells,
+                vars = c("MYB_status", "hpv33_positive"))  %>%
+  droplevels()
+test = fisher_test(table(df))
+p = ggbarstats(
+  df,
+  MYB_status,
+  hpv33_positive,
+  results.subtitle = FALSE,
+  subtitle = paste0("Fisher's exact test", ", p-value = ",
+                    test$p)
+)
+
+p
+```
+# MYB targets
+
+```{r}
+# load MYB targets
+library("readxl")
+myb_tergets <- read_excel("./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",col_names = T) %>% pull(Gene)
+```
+
+```{r}
+
+# add score
+myb_tergets_score = FetchData(object = hmsc_cancer_cells,vars = myb_tergets,slot = "data") %>% rowMeans()
+myb_tergets_df = data.frame(myb_tergets_score,row.names = names(myb_tergets_score))
+hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = myb_tergets_df)
+
+```
 
 
+```{r}
+
+genes_by_tp = FetchData(object = hmsc_cancer_cells,vars = c("hpv33_positive", "myb_tergets_score"),slot = "data") 
+
+# all cells by patient boxplot
+formula <- as.formula("myb_tergets_score ~ hpv33_positive")
+
+#plot and split by patient:
+stat.test <- genes_by_tp %>%
+  t_test(formula) %>%
+  adjust_pvalue(method = "fdr") %>%
+  add_significance() %>%
+  add_xy_position(x = "hpv33_positive") %>%
+  mutate(p.adj = signif(p.adj, digits = 2))
+stat.test
+
+
+plt = ggplot(genes_by_tp, aes(x = hpv33_positive, y = myb_tergets_score)) +
+  geom_violin(scale = "width",aes(fill = hpv33_positive)) +
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
+  stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
+  geom_jitter()+
+  ggtitle("MYB targets")
+plt
+```
 
 # DEG LR latent vars plate
 
@@ -160,6 +237,7 @@ hyp_dots(hyp_obj,merge = F)
 ```{r}
 acc_deg
 acc_deg[c("MYB","JAG1"),]
+View(acc_deg[myb_tergets,])
 
 ```
 
