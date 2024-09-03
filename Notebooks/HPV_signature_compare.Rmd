@@ -26,7 +26,7 @@ genesets_h  = getGmt("./Input_data/h.all.v7.0.symbols.pluscc.gmt")
 ```{r}
 # find hpv signature genes
 hmsc_deg = read.table(file = "./Data_out/HPV_analysis/hpv_deg_df.csv",row.names = 1)
-opscc_deg = readRDS(file = "./Data_out/opscc_deg_5Kvargenes.rds")
+opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
 scc_deg = readRDS(file = "./Data_out/scc_deg_5Kvargenes.rds")
 
 
