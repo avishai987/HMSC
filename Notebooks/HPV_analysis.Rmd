@@ -270,54 +270,6 @@ dev.off()
 
 ```
 
-## (mean logTPM HPV+) - (mean logTPM HPV-)
-
-
-```{r}
-features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
-acc_deg <-
-  FindMarkers(
-    hmsc_cancer_cells,
-    ident.1 = "positive",
-    ident.2 = "negative",
-    features = features,
-    densify = T,
-    assay = "RNA",
-    test.use = "LR",
-    latent.vars = "plate",
-    logfc.threshold = 0.3,
-    min.pct = 0.1,
-    mean.fxn = function(x) {
-      return((rowMeans(x)+1)) # change func to calculate logFC in log space data (default to exponent data)
-    }
-  )
-acc_deg$fdr<-p.adjust(p = as.vector(acc_deg$p_val) ,method = "fdr" )
-```
-
-
-```{r}
-acc_deg %>% filter(.$fdr<0.05) %>% filter(.$avg_log2FC>log2(1.5)) %>%  arrange(dplyr::desc(.$avg_log2FC)) %>% head(10) %>% rownames() %>% cat(sep = "\n")
-```
-
-
-```{r}
-acc_deg
-acc_deg[c("MYB","JAG1"),]
-```
-
-```{r}
-ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
-
-hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets),up_only = F)
-hyp_dots(hyp_obj,merge = F)
-
-```
-
-
-```{r}
-volcano_plot(de_genes = acc_deg,fc_cutoff = 1.3, fdr_cutoff = 0.1,show_gene_names = c("MYB","JAG1"),ident1 = "HPV33 positive",ident2 = "HPV33 negative",top_genes_text = 10)+xlab("avg diff")
-```
-
 
 ```{r}
 # save deg
