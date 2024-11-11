@@ -236,7 +236,7 @@ hyp_dots(hyp_obj,merge = F)
 
 ```{r}
 acc_deg
-acc_deg[c("MYB","JAG1"),]
+acc_deg[c("MYB","JAG1","MYC"),]
 View(acc_deg[myb_tergets,])
 
 ```
@@ -253,11 +253,13 @@ plt = volcano_plot(
   fdr_cutoff = 0.1,
   ident1 = "HPV33 positive",
   ident2 = "HPV33 negative",
-  top_genes_text = 10
+  top_genes_text = 10,show_gene_names = c("MYB","JAG1","MYC")
 ) + ggtitle("Differential Gene Expression by HPV Status
 ")
 plt
 ```
+
+
 
 
 ```{r}
