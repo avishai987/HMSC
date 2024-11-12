@@ -47,7 +47,7 @@ opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = hpv_score_df)
 # set MYB pos/neg
 opscc_hpvPos$MYB_status = FetchData(object = opscc_hpvPos,vars = "MYB") %>%
   mutate(MYB_status = if_else(
-    condition = MYB>0,
+    condition = MYB> 0,
     true = "MYB_positive",
     false = "MYB_negative"
   )) %>% 
@@ -57,12 +57,12 @@ opscc_hpvPos$MYB_status = FetchData(object = opscc_hpvPos,vars = "MYB") %>%
 ```
 
 ```{r fig.height=10, fig.width=15}
-# plot
+
 library(rstatix)
 myplots <- list()  # new empty list
 
 
-for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) {
+for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) { #OP13 has no MYB+ cells
   patient_data = subset(x = opscc_hpvPos, subset = patient == patient_name)
   df  = FetchData(object = patient_data,
                   vars = c("hpv", "MYB_status","hpv_score"))  %>%
@@ -83,6 +83,45 @@ for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) {
 }
 ggarrange(plotlist = myplots)
 
+```
+ 
+## Samples average
+
+```{r}
+total_cells_df  = FetchData(object = opscc_hpvPos, vars = c("patient")) %>% dplyr::count(patient, name = "total_cells")
+df  = FetchData(object = opscc_hpvPos,
+                vars = c("hpv", "MYB_status", "hpv_score", "patient"))  %>%
+  mutate(hpv = if_else(
+    condition = hpv_score >= 3,
+    true = "HPV+",
+    false = "HPV-")) %>%
+  select(-hpv_score) %>%
+  group_by(patient,MYB_status) %>%
+  dplyr::count(hpv) %>%
+  left_join(total_cells_df, by = "patient") %>% 
+  mutate(relative_n = round((n/total_cells)*1000,digits = 0)) %>% 
+  group_by(MYB_status,hpv) %>% 
+  summarise(total_relative_n = sum(relative_n)) %>% 
+  droplevels()
+
+
+
+df_wide = 
+  df %>%
+  pivot_wider(names_from = hpv, values_from = total_relative_n) %>%
+  column_to_rownames("MYB_status") 
+    
+  test = fisher_test(df_wide)
+  p = ggbarstats(
+    df,
+    MYB_status,
+    hpv,
+    counts = total_relative_n,
+    results.subtitle = FALSE,
+    subtitle = paste0("Fisher's exact test", ", p-value = ",
+                      test$p)
+  ,title = "OPSCC")
+p
 ```
 
 # MYB targets
