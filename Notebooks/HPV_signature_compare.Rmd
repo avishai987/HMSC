@@ -25,8 +25,8 @@ genesets_h  = getGmt("./Input_data/h.all.v7.0.symbols.pluscc.gmt")
 # signature
 ```{r}
 # find hpv signature genes
-hmsc_deg = read.table(file = "./Data_out/HPV_analysis/hpv_deg_df.csv",row.names = 1)
-opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
+hmsc_deg = read.table(file = "./Rendered_notebooks/HPV_analysis/HPV_analysis_2024_11_13/hpv_deg_df.csv",row.names = 1)
+opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/02_findDEG_logFC_2024_11_13/opscc_deg_5Kvargenes.rds")
 scc_deg = readRDS(file = "./Data_out/scc_deg_5Kvargenes.rds")
 
 
@@ -34,14 +34,14 @@ DT::datatable(hmsc_deg, caption = "hmsc_deg")
 DT::datatable(opscc_deg, caption = "opscc_deg")
 DT::datatable(scc_deg, caption = "scc_deg")
 
-avg_diff_cutoff = 0.1
+log2FC_cutoff = log2(1.3)
 fdr_cutoff = 0.1
 
-hmsc_top = hmsc_deg %>% filter(avg_diff > avg_diff_cutoff &
+hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2FC_cutoff &
                                  fdr < fdr_cutoff) %>% rownames()
-opscc_top = opscc_deg %>% filter(avg_diff > avg_diff_cutoff &
+opscc_top = opscc_deg %>% filter(avg_log2FC > log2FC_cutoff &
                                    fdr < fdr_cutoff) %>% rownames()
-scc_top = scc_deg %>% filter(avg_diff > avg_diff_cutoff &
+scc_top = scc_deg %>% filter(avg_log2FC > log2FC_cutoff &
                                fdr < fdr_cutoff) %>% rownames()
 
 print ("intersect genes:")
