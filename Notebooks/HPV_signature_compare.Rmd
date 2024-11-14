@@ -78,8 +78,21 @@ for (i in 1:length(deg_up_list)) {
           rowNames = FALSE)
 }
 
-saveWorkbook(wb, "./Data_out/signature_compare/all_datasets_up_deg.xlsx", overwrite = TRUE)
+saveWorkbook(wb,  paste0(params$data_out_dir,"all_datasets_up_deg.xlsx"), overwrite = TRUE)
 ```
+
+```{r}
+# save shared signature
+write(intersect(intersect(hmsc_top,opscc_top),scc_top), file = paste0(params$data_out_dir,"shared_HPV_signature.txt"))
+
+```
+
+## OPSCC and HMSC
+```{r}
+ggvenn(list(hmsc_top = hmsc_top, opscc_top = opscc_top),auto_scale = T)
+
+```
+
 
 # HMSC GSEA
 
