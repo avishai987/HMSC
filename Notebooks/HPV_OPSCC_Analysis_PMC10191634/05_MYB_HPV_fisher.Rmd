@@ -1,0 +1,231 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+---
+
+
+
+# Functions
+
+```{r warning=FALSE}
+```
+
+# Data
+
+```{r}
+opscc = readRDS("./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS")
+library(readxl)
+metadata = read_excel(path = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx",
+          sheet = "S4 - Cell Table",progress = T,skip = 1,col_names = T)
+
+# remove HPV- patients
+hpv_neg<-c("OP10","OP12","OP16","OP19","OP8")
+hpv_pos = unique(metadata$Patient)[! unique(metadata$Patient) %in% hpv_neg]
+opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
+```
+
+```{r}
+# get hpv genes and calc score
+hpv_16_genes = rownames(opscc_hpvPos)[ startsWith(x =rownames(opscc_hpvPos),prefix =  "HPV16")]
+hpv_score = FetchData(object = opscc_hpvPos,vars = hpv_16_genes,slot = "counts") %>% rowSums()
+hpv_score_df = data.frame(hpv_score,row.names = names(hpv_score))
+opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = hpv_score_df)
+```
+
+# fisher test
+```{r}
+# set MYB pos/neg
+opscc_hpvPos$MYB_status = FetchData(object = opscc_hpvPos,vars = "MYB") %>%
+  mutate(MYB_status = if_else(
+    condition = MYB> 0,
+    true = "MYB+",
+    false = "MYB-"
+  )) %>% 
+  pull(MYB_status)
+
+#set HPV to consider + if hpv_score>3
+opscc_hpvPos$hpv = FetchData(object = opscc_hpvPos,vars = "hpv") %>%
+ mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) %>% 
+  pull(hpv)
+
+```
+
+```{r fig.height=7, fig.width=10}
+library(stats)
+total_cells_df  = FetchData(object = opscc_hpvPos, vars = c("patient","hpv")) %>%
+  group_by(patient,hpv) %>%
+  dplyr::count(patient, name = "total_cells")
+
+
+df  = FetchData(object = opscc_hpvPos, vars = c("hpv", "MYB_status","hpv_score","patient"))  %>%
+    filter(patient != "OP13") %>% 
+    mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) %>% 
+    select(-hpv_score) %>% 
+    droplevels()  %>% 
+    group_by(patient,MYB_status) %>%
+    dplyr::count(hpv) 
+
+df2  = FetchData(object = opscc_hpvPos, vars = c("hpv", "MYB_status","hpv_score","patient"))  %>%
+    filter(patient != "OP13") %>% 
+    mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) %>% 
+    select(-hpv_score) %>% 
+    droplevels()   
+
+all_stat.test= data.frame()
+for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) { #OP13 has no MYB+ cells
+  stat.test = df2 %>% filter(patient == patient_name) %>% select(-patient) %>% table() %>%
+  fisher_test() %>% as.data.frame() %>% mutate(patient = patient_name, group1 = "HPV+", group2 = "HPV+")
+  all_stat.test = rbind(all_stat.test,stat.test)
+}
+all_stat.test$p.adj = p.adjust(all_stat.test$p,method = "fdr") %>% signif(digits = 3)
+
+
+
+df <- left_join(df, total_cells_df, by=c('patient'='patient', 'hpv'='hpv')) %>% 
+  mutate( total_cells_perc = ((n/total_cells)))
+
+
+  
+ggplot(df, aes(fill=MYB_status, y=total_cells_perc, x=hpv)) + 
+    geom_bar(position="stack", stat="identity") +
+    facet_wrap(patient ~ .) +
+    scale_y_continuous(
+      limits = c(-0.1,1.06),
+      labels       = ~ insight::format_percent(., digits = 0L),
+      breaks       = seq(from = 0.0, to = 1.0, by = 0.10),
+      minor_breaks = seq(from = 0.05, to = 0.95, by = 0.10)
+    ) +
+    exec(
+      geom_label,
+      data = df,
+      mapping  = aes(label = paste0(round(total_cells_perc*100),"%"), group = MYB_status),
+      position = position_fill(vjust = 0.5), fill = "white",alpha = 1.0,size = 3.5
+    ) +
+    geom_text(data = filter(df,MYB_status == "MYB+"), aes(label = paste("n=",total_cells),y =-0.1),size = 3.5)+
+    paletteer::scale_fill_paletteer_d("RColorBrewer::Dark2")+
+   stat_pvalue_manual(all_stat.test, label = "p = {p.adj}",y.position = 1, inherit.aes = FALSE,position = position_nudge(x = -0.5, y = 0))+
+    ylab("Cells")+ xlab("HPV_status")
+
+
+
+```
+
+
+```{r fig.height=10, fig.width=15}
+
+library(rstatix)
+myplots <- list()  # new empty list
+
+
+for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) { #OP13 has no MYB+ cells
+  patient_data = subset(x = opscc_hpvPos, subset = patient == patient_name)
+  df  = FetchData(object = patient_data,
+                  vars = c("hpv", "MYB_status","hpv_score"))  %>%
+   
+    select(-hpv_score) %>% 
+    droplevels()
+  test = fisher_test(table(df))
+  p = ggbarstats(
+    df,
+    MYB_status,
+    hpv,
+    results.subtitle = FALSE,
+    subtitle = paste0("Fisher's exact test", ", p-value = ",
+                      test$p)
+  ,title = patient_name)
+  myplots[[patient_name]] <- p  # add each plot into plot list
+
+}
+ggarrange(plotlist = myplots,common.legend = T)
+
+```
+ 
+## Samples average
+
+```{r}
+total_cells_df  = FetchData(object = opscc_hpvPos, vars = c("patient")) %>% dplyr::count(patient, name = "total_cells")
+df  = FetchData(object = opscc_hpvPos,
+                vars = c("hpv", "MYB_status", "hpv_score", "patient")) %>%
+  select(-hpv_score) %>%
+  group_by(patient,MYB_status) %>%
+  dplyr::count(hpv) %>%
+  left_join(total_cells_df, by = "patient") %>% 
+  mutate(relative_n = round((n/total_cells)*1000,digits = 0)) %>% 
+  group_by(MYB_status,hpv) %>% 
+  summarise(total_relative_n = sum(relative_n)) %>% 
+  droplevels()
+
+
+
+df_wide = 
+  df %>%
+  pivot_wider(names_from = hpv, values_from = total_relative_n) %>%
+  column_to_rownames("MYB_status") 
+    
+  test = fisher_test(df_wide)
+  p = ggbarstats(
+    df,
+    MYB_status,
+    hpv,
+    counts = total_relative_n,
+    results.subtitle = FALSE,
+    # subtitle = paste0("Fisher's exact test", ", p-value = ", test$p) # depends in the normalized amount of cells
+  ,title = "OPSCC")
+p
+
+```
+
+# MYB targets
+
+```{r}
+# load MYB targets
+library("readxl")
+myb_tergets <- read_excel("./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",col_names = T) %>% pull(Gene)
+```
+
+```{r}
+# add score
+myb_tergets_score = FetchData(object = opscc_hpvPos,vars = myb_tergets,slot = "data") %>% rowMeans()
+myb_tergets_df = data.frame(myb_tergets_score,row.names = names(myb_tergets_score))
+opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = myb_tergets_df)
+```
+
+
+```{r fig.height=6, fig.width=10}
+genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "myb_tergets_score","hpv_score","patient"),slot = "data")  %>% 
+  mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) 
+
+
+# all cells by patient boxplot
+formula <- as.formula("myb_tergets_score ~ hpv")
+
+#plot and split by patient:
+stat.test <- genes_by_tp %>%
+  group_by(patient) %>%
+  t_test(formula) %>%
+  adjust_pvalue(method = "fdr") %>%
+  add_significance() %>%
+  add_xy_position(x = "hpv") %>%
+  mutate(p.adj = signif(p.adj, digits = 2))
+stat.test
+
+
+plt = ggplot(genes_by_tp, aes(x = hpv, y = myb_tergets_score)) +
+  geom_violin(scale = "width",aes(fill = hpv)) +
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
+  facet_wrap( ~ patient, scales = "free") +
+  stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
+  ggtitle("MYB targets")
+plt
+```

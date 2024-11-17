@@ -1,0 +1,81 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_document: 
+    
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: TRUE
+    number_sections: true
+    toc_depth: 2
+    df-print: paged
+  html_notebook: 
+    
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+params:
+  data_out_dir: NULL
+  figs_out_dir: NULL
+---
+
+
+
+# Functions
+
+```{r warning=FALSE}
+source_from_github(repositoy = "DEG_functions",version = "0.2.54")
+
+```
+
+# Data
+
+```{r}
+hmsc_deg = read.table(file = "./Rendered_notebooks/HPV_analysis/HPV_analysis_2024_11_13/hpv_deg_df.csv",row.names = 1)
+opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/02_findDEG_logFC_2024_11_13/opscc_deg_5Kvargenes.rds")
+
+opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
+
+
+log2FC_cutoff = log2(1.1)
+fdr_cutoff = 0.1
+
+hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2FC_cutoff &
+                                 fdr < fdr_cutoff) %>% rownames()
+opscc_top = opscc_deg %>% filter(avg_diff > log2FC_cutoff &
+                                   fdr < fdr_cutoff) %>% rownames()
+
+intersected_genes = intersect(hmsc_top,opscc_top)
+intersected_genes
+```
+
+
+```{r}
+opscc_deg$avg_log2FC = opscc_deg$avg_diff
+plt = volcano_plot(
+  de_genes = opscc_deg,
+  fc_cutoff = 1.1,
+  fdr_cutoff = 0.1,
+  ident1 = "HPV33 positive",
+  ident2 = "HPV33 negative",
+  top_genes_text = 0,show_gene_names = intersected_genes) +
+  ggtitle("Differential Gene Expression by HPV Status")  + 
+  expand_limits(y = c(0, 4))+
+  coord_cartesian(clip = "off")
+
+plt
+```
+```{r}
+pdf(paste0(params$data_out_dir,"OPSCC_HPVon_HPVoff_volcano.pdf"))
+plt
+dev.off()
+```
+
