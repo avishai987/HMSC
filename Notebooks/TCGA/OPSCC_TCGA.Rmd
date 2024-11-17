@@ -50,10 +50,10 @@ source("./Notebooks/TCGA/TCGA_functions.R")
 
 ```{r}
 # load hpv signature genes
-opscc_deg = readRDS(file = "./Data_out/opscc_deg.rds")
+opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
 
 avg_diff_cutoff = 0.4
-fdr_cutoff = 0.1
+fdr_cutoff = 0.05
 signature = opscc_deg %>% filter(avg_diff > avg_diff_cutoff &
                                   fdr < fdr_cutoff) %>% rownames()
 signature
@@ -85,7 +85,7 @@ clinical_data = clinical_data[clinical_data$tissue_or_organ_of_origin %in% OPSCC
 ```
 
 ```{r}
-# add HPV status to clinical_data
+# add HPV status  from cbioportal to clinical_data
 cbp_data = read_tsv(file = "./Input_data/TCGA/cbioportal_hnsc_tcga_pan_can_atlas_2018_clinical_data.tsv")
 cbp_data = cbp_data[,c("Patient ID", "Subtype")] %>% dplyr::rename(hpv_status = Subtype) %>% 
   mutate(hpv_status = gsub(,x = hpv_status,pattern = "HNSC_HPV",replacement = "HPV"))
@@ -143,10 +143,7 @@ p = TCGAanalyze_survival(
 p[[1]]/p[[2]]
 ```
 
-# HPV+ signature
-
-
-
+# HPV
 
 
 ```{r fig.height=6, fig.width=8}
@@ -174,7 +171,7 @@ ggscatter(clinical_data_with_scores, x = "MYB", y = "pack_years_smoked",
 
 ```
 
-# MYB - HPV correlation
+# MYB - HPV PPM correlation
 
 ```{r}
 # load data 
@@ -224,12 +221,44 @@ sp + stat_cor(method = "pearson")
 
 ```
 
+# HPV signature - HPV T test
+
+```{r}
+# create data
+
+gene_status = set_clinical_data(clin_data = clinical_data,genes = signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify)
+gene_status$patient = rownames(gene_status)
+gene_status = inner_join(x = gene_status,y = clinical_data[,c("submitter_id","hpv_status")],by = c("patient"="submitter_id"))
+
+paged_table(gene_status)
+```
+
+```{r}
+# plot
+library(ggpubr)
+library(rstatix)
+stat.test <- gene_status %>%
+  t_test(score ~ hpv_status) %>%
+  add_significance()
+stat.test
+
+
+bxp <- ggboxplot(gene_status, x = "hpv_status", y = "score", fill = "#00AFBB")+
+  geom_jitter()
+stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
+bxp + 
+  stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") 
+
+```
+
+
+
 # MYB- HPV T test
 
 ```{r}
 # create data
 
-gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYB",tpm_data_frame = HNSC_tpm,stratify = params$stratify)
+gene_status = set_clinical_data(clin_data = clinical_data,genes = "MYC",tpm_data_frame = HNSC_tpm,stratify = params$stratify)
 gene_status$patient = rownames(gene_status)
 gene_status = inner_join(x = gene_status,y = clinical_data[,c("submitter_id","hpv_status")],by = c("patient"="submitter_id"))
 
@@ -244,12 +273,12 @@ paged_table(gene_status)
 library(ggpubr)
 library(rstatix)
 stat.test <- gene_status %>%
-  t_test(MYB ~ hpv_status) %>%
+  t_test(MYC ~ hpv_status) %>%
   add_significance()
 stat.test
 
 
-bxp <- ggboxplot(gene_status, x = "hpv_status", y = "MYB", fill = "#00AFBB")+
+bxp <- ggboxplot(gene_status, x = "hpv_status", y = "MYC", fill = "#00AFBB")+
   geom_jitter()
 stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
 bxp + 
@@ -374,7 +403,11 @@ p[[1]]/p[[2]]
 
 # shared signature
 ```{r}
-shared_signature = readRDS(file = "./Data_out/temp/shared_signature.RDS")
+fileName =  
+"./Rendered_notebooks/HPV_signature_compare/HPV_signature_compare_2024_09_08/shared_HPV_signature.txt"
+
+shared_signature = scan(fileName, character(), quote = "")
+
 ```
 
 ```{r}
@@ -402,6 +435,36 @@ p = TCGAanalyze_survival(
 p[[1]]/p[[2]]
 ```
 
+## T test
+
+
+```{r}
+# create data
+
+gene_status = set_clinical_data(clin_data = clinical_data,genes = shared_signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify)
+gene_status$patient = rownames(gene_status)
+gene_status = inner_join(x = gene_status,y = clinical_data[,c("submitter_id","hpv_status")],by = c("patient"="submitter_id"))
+
+paged_table(gene_status)
+```
+
+```{r}
+# plot
+library(ggpubr)
+library(rstatix)
+stat.test <- gene_status %>%
+  t_test(score ~ hpv_status) %>%
+  add_significance()
+stat.test
+
+
+bxp <- ggboxplot(gene_status, x = "hpv_status", y = "score", fill = "#00AFBB")+
+  geom_jitter()
+stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
+bxp + 
+  stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") 
+
+```
 # HMSC signature
 
 ```{r}
