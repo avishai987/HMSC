@@ -53,16 +53,15 @@ deg = FindMarkers(object = opscc_hpvPos,ident.1 = "HPV+",ident.2 = "HPV-",
             features = features,test.use = "LR",latent.vars = "patient",
             logfc.threshold = 0,min.pct = 0.1,
             mean.fxn = function(x) {
-              return(rowMeans(x)+1) # change func to calculate logFC in log space data (default to exponent data)
+            return(log(rowMeans(x) + 1, base = 2)) # change func to calculate logFC in log space data (default to exponent data)
             })
 deg$fdr<-p.adjust(p = as.vector(deg$p_val) ,method = "fdr")
-
+paged_table(deg)
 ```
 
 ```{r}
 # save
-data_to_save = deg %>% dplyr::rename(avg_diff = avg_log2FC) #rename avg_log2FC because here we calculate diff
-saveRDS(object = data_to_save,file = paste0(params$data_out_dir,"opscc_deg_5Kvargenes.rds"))
+saveRDS(object = deg,file = paste0(params$data_out_dir,"opscc_deg_5Kvargenes.rds"))
 ```
 
 
