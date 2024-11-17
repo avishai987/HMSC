@@ -33,6 +33,8 @@ paged_table(as.data.frame(unlist(params)))
 
 # Functions
 
+
+
 ```{r warning=FALSE}
 source_from_github(repositoy = "DEG_functions",version = "0.2.54")
 source_from_github(repositoy = "HMSC_functions",version = "0.1.14",script_name = "functions.R")
@@ -68,6 +70,12 @@ genesets_h  = getGmt("./Input_data/h.all.v7.0.symbols.pluscc.gmt")
 ```{r}
 DimPlot(hmsc_acc_pri_cancer,group.by = "patient.ident",label = T)
 ```
+<div class="fold o">
+```{r}
+devtools::session_info()
+```
+</div>
+
 ```{r}
 # calculate lum/myo spectrum
 

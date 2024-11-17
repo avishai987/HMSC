@@ -5,10 +5,10 @@ date: '`r Sys.time()`'
 output: 
   html_notebook: 
     code_folding: hide
-    toc: yes
-    toc_collapse: yes
-    toc_float: 
-      collapsed: FALSE
+    toc: true
+    toc_collapse: true
+    toc_float:
+      collapsed: false
     number_sections: true
     toc_depth: 1
   html_document: 
@@ -19,6 +19,7 @@ output:
       collapsed: TRUE
     number_sections: true
     toc_depth: 2
+    df_print: paged
 params: 
   data_out_dir: "./Data_out/HPV_analysis/" 
 ---
@@ -72,7 +73,7 @@ hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = HPV33,col.
 FeaturePlot(hmsc_cancer_cells,features = "HPV33.reads",max.cutoff = 10)
 ```
 
-
+# HPV reads count
 ```{r}
 
 data = FetchData(object = hmsc_cancer_cells,vars = "HPV33.reads")
@@ -91,7 +92,7 @@ ggplot(data=data, aes(x=factor(bin,levels = c("0 reads","1 reads","2 reads","3-2
   geom_text(aes(label=count), vjust=-0.5, color="black", size=3.5)
 ```
 
-
+# MYB comparision
 ```{r}
 hpv33_positive = HPV33 %>% dplyr::mutate(hpv33_positive = case_when(reads >= 10 ~ "positive",
                                                                     reads < 10 ~ "negative")
@@ -111,7 +112,7 @@ FeaturePlot(object = hmsc_cancer_cells,features = "MYB",pt.size = 2)
 
 
 
-# fisher test
+# Fisher test
 ```{r}
 DefaultAssay(hmsc_cancer_cells) = "RNA" # calculate MYB positive/negtive from original data
 # set MYB pos/neg
@@ -193,7 +194,6 @@ plt
 
 # DEG LR latent vars plate
 
-## (mean logTPM HPV+) - (mean logTPM HPV-)
 
 ```{r}
 DefaultAssay(hmsc_cancer_cells) = "integrated"
@@ -202,7 +202,7 @@ hmsc_cancer_cells = SetIdent(hmsc_cancer_cells,value = "hpv33_positive")
 
 
 
-```{r}
+```{r echo = T, results = 'hide'}
 features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
 acc_deg <-
   FindMarkers(
@@ -234,11 +234,10 @@ hyp_dots(hyp_obj,merge = F)
 
 ```
 
-```{r}
-acc_deg
-acc_deg[c("MYB","JAG1","MYC"),]
-View(acc_deg[myb_tergets,])
+```{r paged.print=TRUE}
 
+paged_table(acc_deg[c("MYB","JAG1","MYC"),])
+paged_table(acc_deg)
 ```
 
 
@@ -273,8 +272,8 @@ dev.off()
 
 ```{r}
 # save deg
-data_to_save = acc_deg %>% dplyr::rename(avg_diff = avg_log2FC) #rename avg_log2FC because here we calculate diff
-write.table(x  = data_to_save,file = paste0(params$data_out_dir,"hpv_deg_df.csv"),row.names = rownames(data_to_save),)
+data_to_save = acc_deg
+write.table(x  = data_to_save,file = paste0(params$data_out_dir,"hpv_deg_df.csv"),row.names = rownames(data_to_save))
 
 ```
 

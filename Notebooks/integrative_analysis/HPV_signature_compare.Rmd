@@ -31,6 +31,7 @@ params:
 # Functions
 
 ```{r warning=FALSE}
+library(xlsx)
 source_from_github(repositoy = "DEG_functions",version = "0.2.54")
 genesets_h  = getGmt("./Input_data/h.all.v7.0.symbols.pluscc.gmt")
 ```
@@ -66,15 +67,21 @@ intersect(hmsc_top,opscc_top)
 
 ## OPSCC and HMSC
 ```{r}
-ggvenn(list(hmsc_top = hmsc_top, opscc_top = opscc_top),auto_scale = T)
+library(ggvenn)
+p = ggvenn::ggvenn(list(hmsc_top = hmsc_top, opscc_top = opscc_top),auto_scale = T)
 
 ```
 
+```{r}
+pdf(paste0(params$data_out_dir,"venn_HMSC_OPSCC_DEG.pdf"))
+p
+dev.off()
+```
 
 # HMSC GSEA
 
 ```{r}
-ranked_vec = hmsc_deg[,"avg_diff"]%>% setNames(rownames(hmsc_deg)) %>% na.omit() # make named vector
+ranked_vec = hmsc_deg[,"avg_log2FC"]%>% setNames(rownames(hmsc_deg)) %>% na.omit() # make named vector
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)
@@ -92,7 +99,7 @@ write.xlsx(hyp_obj$data$up$data, paste0(params$data_out_dir,"HMSC_GSEA.xlsx"))
 # OPSCC GSEA
 
 ```{r}
-ranked_vec = opscc_deg[,"avg_diff"]%>% setNames(rownames(opscc_deg)) %>% na.omit() # make named vector
+ranked_vec = opscc_deg[,"avg_log2FC"]%>% setNames(rownames(opscc_deg)) %>% na.omit() # make named vector
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)
@@ -127,5 +134,5 @@ write.xlsx(hyp_obj$data$up$data,  paste0(params$data_out_dir,"OPSCC_GSEA.xlsx"))
 ```
 ```{r}
 # save
-write.xlsx(hyp_obj$data$up$data,paste0(params$data_out_dir,"SCC_GSEA.xlsx"))
+# write.xlsx(hyp_obj$data$up$data,paste0(params$data_out_dir,"SCC_GSEA.xlsx"))
 ```
