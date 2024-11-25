@@ -78,6 +78,8 @@ original_myo_genes = c( "TP63", "TP73", "CAV1", "CDH3", "KRT5", "KRT14", "ACTA2"
 original_lum_genes = c("KIT", "EHF", "ELF5", "KRT7", "CLDN3", "CLDN4", "CD24", "LGALS3", "LCN2", "SLPI" )
 ```
 
+
+
 ```{r fig.height=8, fig.width=12}
 FeaturePlot(hmsc_cancer_cells,features = original_myo_genes)
 FeaturePlot(hmsc_cancer_cells,features = original_lum_genes)
@@ -264,6 +266,52 @@ dev.off()
 
 ```
 
+notch scatter plot
 
+```{r}
+DefaultAssay(hmsc_cancer_cells) = "integrated"
+```
+
+```{r}
+
+myo_genes =  c("COL16A1" ,"RP1-39G22.4","CD200",   "MYLK","TP63","KCNMB1",  "ADAMTS2", "CLIC3",   "SNCG","ACTA2",   "TAGLN","CNN1" ,"MIR7974",  
+ "MYL9","POM121L9P" )
+
+
+myoscore=FetchData(object =hmsc_cancer_cells,vars =  myo_genes) %>% rowMeans()
+  
+notch_genes = c("JAG1","JAG2","DLL1")
+
+notch_scores = hmsc_cancer_cells %>% FetchData(vars = notch_genes) %>% rowMeans()
+
+data = data.frame(notch_score = notch_scores,myo_score = myoscore)
+```
+
+
+```{r}
+sp <- ggscatter(data, x = "notch_score", y = "myo_score",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   )
+# Add correlation coefficient
+sp + stat_cor(method = "spearman", label.x = 3, label.y = 5)
+
+```
+
+```{r}
+high_notch =names(notch_scores[notch_scores>6])
+myoscore = myoscore[!names(myoscore) == high_notch]
+
+data = data.frame(notch_score = notch_scores_filtered,myo_score = myoscore)
+sp <- ggscatter(data, x = "notch_score", y = "myo_score",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   )
+# Add correlation coefficient
+sp + stat_cor(method = "pearson", label.x = 3, label.y = 5)
+
+```
 
 
