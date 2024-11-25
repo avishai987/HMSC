@@ -25,7 +25,7 @@ output:
 params:
   stratify: "M"
   log_tpm: TRUE
-  data_out_dir: NULL
+  data_out_dir: "./Data_out/HPV_analysis/"
   figs_out_dir: NULL
 ---
 
@@ -50,11 +50,13 @@ source("./Notebooks/TCGA/TCGA_functions.R")
 
 ```{r}
 # load hpv signature genes
-opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
+opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/02_findDEG_2024_11_14/opscc_deg_5Kvargenes.rds")
+hmsc_deg = read.table(file = "./Rendered_notebooks/HMSC/HPV_analysis/HPV_analysis_2024_11_13/hpv_deg_df.csv",row.names = 1)
+hmsc_signatue = rownames(hmsc_deg[hmsc_deg$fdr<0.05 & hmsc_deg$avg_log2FC>log2(1.5),])
 
-avg_diff_cutoff = 0.4
+avg_log2FC_cutoff = log2(1.2)
 fdr_cutoff = 0.05
-signature = opscc_deg %>% filter(avg_diff > avg_diff_cutoff &
+signature = opscc_deg %>% filter(avg_log2FC > avg_log2FC_cutoff &
                                   fdr < fdr_cutoff) %>% rownames()
 signature
   
@@ -157,19 +159,7 @@ p = TCGAanalyze_survival(
 p[[1]]/p[[2]]
 ```
 
-# MYB- smoking correlation
-```{r}
-# scatter plot
 
-ggscatter(clinical_data_with_scores, x = "MYB", y = "pack_years_smoked",
-          add = "reg.line",                                 # Add regression line
-          conf.int = TRUE,                                  # Add confidence interval
-          add.params = list(color = "blue",
-                            fill = "lightgray")
-          )+
-  stat_cor(method = "pearson", label.x = 3, label.y = 30)  # Add correlation coefficient
-
-```
 
 # MYB - HPV PPM correlation
 
@@ -181,7 +171,7 @@ library(ggpubr)
 TCGA_HPV_data <- read_excel("./Input_data/TCGA/PMC3806554_ncomms3513-s5.xlsx",skip = 2)
 TCGA_HPV_data$submitter_id = TCGA_HPV_data$`Sample Barcode` %>% str_sub( start = 1, end = 12) 
 rownames(TCGA_HPV_data) = TCGA_HPV_data$submitter_id
-TCGA_HPV_data = TCGA_HPV_data %>% filter(Cancer == "CESC")
+TCGA_HPV_data = TCGA_HPV_data %>% filter(Cancer == "HNSC")
 ```
 
 ```{r}
@@ -286,23 +276,7 @@ bxp +
 
 ```
 
-```{r}
-# plot
-library(ggpubr)
-library(rstatix)
-stat.test <- clinical_data %>%
-  t_test(pack_years_smoked ~ hpv_status) %>%
-  add_significance()
-stat.test
 
-
-bxp <- ggboxplot(clinical_data, x = "hpv_status", y = "pack_years_smoked", fill = "#00AFBB")+
-  geom_jitter()
-stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
-bxp + 
-  stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") 
-
-```
 
 # MYB and HPV survival plot
 
@@ -467,15 +441,7 @@ bxp +
 ```
 # HMSC signature
 
-```{r}
-# load
-hmsc_deg = read.table(file = "./Data_out/HPV_analysis/hpv_deg_df.csv",row.names = 1)
-  avg_diff_cutoff = 1
-  fdr_cutoff = 0.1
-  signature = hmsc_deg %>% filter(avg_diff>avg_diff_cutoff & fdr<fdr_cutoff) %>% rownames()
-  signature
 
-```
 
 ```{r}
 gene_status = set_clinical_data(clin_data = clinical_data,genes = signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "HPV+ signature")
@@ -500,4 +466,9 @@ p = TCGAanalyze_survival(
 )
 
 p[[1]]/p[[2]]
+```
+```{r}
+pdf(height=6,width=8,file = paste0(params$data_out_dir,"OPSCC_TCGA_HPV_signature_from_HMSC.pdf"))
+p[[1]]/p[[2]]
+dev.off()
 ```
