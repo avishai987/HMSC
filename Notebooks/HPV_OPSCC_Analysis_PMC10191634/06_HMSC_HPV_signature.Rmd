@@ -1,0 +1,137 @@
+---
+title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+author: "Avishai Wizel"
+date: '`r Sys.time()`'
+output: 
+  html_notebook: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: FALSE
+    number_sections: true
+    toc_depth: 1
+    
+  html_document: 
+    code_folding: hide
+    toc: yes
+    toc_collapse: yes
+    toc_float: 
+      collapsed: TRUE
+    number_sections: true
+    toc_depth: 2
+    df-print: paged
+    
+params:
+  data_out_dir: NULL
+  figs_out_dir: NULL
+---
+
+
+
+# Functions
+
+```{r warning=FALSE}
+library(rstatix)
+```
+
+# Data
+
+```{r}
+opscc = readRDS("./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS")
+library(readxl)
+metadata = read_excel(path = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx",
+          sheet = "S4 - Cell Table",progress = T,skip = 1,col_names = T)
+
+# remove HPV- patients
+hpv_neg<-c("OP10","OP12","OP16","OP19","OP8")
+hpv_pos = unique(metadata$Patient)[! unique(metadata$Patient) %in% hpv_neg]
+opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
+
+hmsc_deg = read.table(file = "./Rendered_notebooks/HMSC/HPV_analysis/HPV_analysis_2024_11_13/hpv_deg_df.csv",row.names = 1)
+hmsc_signatue = rownames(hmsc_deg[hmsc_deg$fdr<0.05 & hmsc_deg$avg_log2FC>log2(1.3),])
+hmsc_signatue
+```
+
+
+```{r}
+# get hpv genes and calc score
+hpv_16_genes = rownames(opscc_hpvPos)[ startsWith(x =rownames(opscc_hpvPos),prefix =  "HPV16")]
+hpv_score = FetchData(object = opscc_hpvPos,vars = hpv_16_genes,slot = "counts") %>% rowSums()
+hpv_score_df = data.frame(hpv_score,row.names = names(hpv_score))
+opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = hpv_score_df)
+```
+
+```{r}
+
+#set HPV to consider + if hpv_score>3
+opscc_hpvPos$hpv = FetchData(object = opscc_hpvPos,vars = "hpv") %>%
+ mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) %>% 
+  pull(hpv)
+
+```
+
+
+```{r}
+opscc_hpvPos = ScaleData(object = opscc_hpvPos,features = hmsc_signatue)
+DoHeatmap(object = opscc_hpvPos,features = hmsc_signatue,group.by = "hpv")
+```
+```{r fig.height=15}
+data = FetchData(object = opscc_hpvPos, vars = c(hmsc_signatue,"patient"))
+data[] <- data %>%  group_by(patient) %>% mutate(across(is.numeric, ~ as.numeric(scale(.)))) %>% ungroup() 
+data = data %>% select(-patient) 
+data = data %>% t() %>% as.data.frame()
+
+annotation_data = FetchData(object = opscc_hpvPos, vars = c("patient","hpv")) %>% dplyr::arrange(patient,hpv)
+column_ha = HeatmapAnnotation(hpv = annotation_data[,2])
+data = data[,rownames(annotation_data)] #order data like annotation
+data = na.omit(data)
+p = ComplexHeatmap::Heatmap(
+  data,
+  show_column_names = F,
+  row_names_gp = grid::gpar(fontsize = 7),
+  cluster_rows = T,
+  top_annotation = column_ha,
+  name = "Z-score expression",use_raster = F,cluster_columns = F,column_split   = annotation_data$patient,
+  column_gap = unit(2, "mm"), border = TRUE,show_parent_dend_line = FALSE, show_column_dend = FALSE,cluster_column_slices = F
+)
+  
+p
+```
+```{r}
+
+# add score
+hpv_signature_score = FetchData(object = opscc_hpvPos,vars = hmsc_signatue,slot = "data") %>% rowMeans()
+hpv_signature = data.frame(hpv_signature_score,row.names = names(hpv_signature_score))
+opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = hpv_signature)
+
+```
+
+
+```{r fig.height=6, fig.width=8}
+
+genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "hpv_signature_score","patient"),slot = "data") 
+
+
+
+#plot and split by patient:
+stat.test <- genes_by_tp %>%
+  group_by(patient) %>% 
+  # filter (patient != "OP13") %>% 
+  t_test(hpv_signature_score ~ hpv) %>%
+  adjust_pvalue(method = "fdr") %>%
+  add_significance() %>%
+  add_xy_position(x = "hpv") %>%
+  mutate(p.adj = signif(p.adj, digits = 2))
+stat.test
+
+
+plt = ggplot(genes_by_tp, aes(x = hpv, y = hpv_signature_score)) +
+  geom_violin(scale = "width",aes(fill = hpv)) +
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
+  stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
+  facet_wrap("patient")+
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
+  ggtitle("HMSC HPV signature")
+plt
+```
