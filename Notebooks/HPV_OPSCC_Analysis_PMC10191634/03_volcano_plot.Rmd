@@ -39,7 +39,7 @@ source_from_github(repositoy = "DEG_functions",version = "0.2.54")
 # Data
 
 ```{r}
-hmsc_deg = read.table(file = "./Rendered_notebooks/HPV_analysis/HPV_analysis_2024_11_13/hpv_deg_df.csv",row.names = 1)
+hmsc_deg = read.table(file = "./Rendered_notebooks/HMSC/HPV_analysis/HPV_analysis_2024_11_13/hpv_deg_df.csv",row.names = 1)
 opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/02_findDEG_logFC_2024_11_13/opscc_deg_5Kvargenes.rds")
 
 opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
@@ -56,6 +56,8 @@ opscc_top = opscc_deg %>% filter(avg_diff > log2FC_cutoff &
 intersected_genes = intersect(hmsc_top,opscc_top)
 intersected_genes
 ```
+
+
 
 
 ```{r}
@@ -79,3 +81,17 @@ plt
 dev.off()
 ```
 
+
+```{r}
+# save deg
+data_to_save = opscc_deg
+write.table(x  = data_to_save,file = paste0(params$data_out_dir,"OPSCC_hpv_deg_df.csv"),row.names = rownames(data_to_save),sep = ",")
+
+```
+
+```{r}
+# save deg
+data_to_save = hmsc_deg
+write.table(x  = data_to_save,file = paste0(params$data_out_dir,"HMSC_hpv_deg_df.csv"),row.names = rownames(data_to_save),sep = ",")
+
+```
