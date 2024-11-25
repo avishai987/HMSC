@@ -259,7 +259,11 @@ p[[1]]/p[[2]]
 
 # shared signature
 ```{r}
-shared_signature = readRDS(file = "./Data_out/temp/shared_signature.RDS")
+fileName =  
+"./Rendered_notebooks/HPV_signature_compare/HPV_signature_compare_2024_09_08/shared_HPV_signature.txt"
+
+shared_signature = scan(fileName, character(), quote = "")
+
 ```
 
 ```{r}
