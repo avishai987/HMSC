@@ -86,3 +86,57 @@ dir.create(path = new_dir_path,recursive = T)
 
 render(input = notebook_path, output_format = "html_document",output_file = "01_preprocess",knit_root_dir = getwd(),output_dir = new_dir_path,params = list(data_out_dir = new_dir_path))
 ```
+
+```{r}
+notebook_path = "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/Notebooks/cNMF/cNMF_HMSC_02_get_results.Rmd"
+dir_name = str_remove(string = notebook_path, pattern = paste0(getwd(), "/Notebooks/")) %>% 
+  str_remove(pattern = ".Rmd") 
+new_dir_path = paste0("./Rendered_notebooks/",dir_name,"/")
+dir.create(path = new_dir_path,recursive = T)
+
+render(input = notebook_path, output_format = "html_document",output_file = "cNMF_HMSC_02_get_results",knit_root_dir = getwd(),output_dir = new_dir_path,params = list(data_out_dir = new_dir_path))
+```
+
+```{r}
+# 
+my_render <- function(notebook_path = rstudioapi::getSourceEditorContext()$path , params = list(), 
+                      filename =   gsub(x = basename(rstudioapi::getSourceEditorContext()$path ),pattern = "\\.Rmd",replacement = ""),
+                      suffix = NULL) 
+  {
+  message("Rendering")
+  print(notebook_path)
+  message("to:")
+
+
+  rstudioapi::documentSave(rstudioapi::getSourceEditorContext()$id)
+  dir_name = str_remove(string = notebook_path, pattern = paste0(getwd(), "/Notebooks/")) %>%
+    str_remove(pattern = ".Rmd")
+  new_dir_path = paste0("./Rendered_notebooks/", dir_name, "/")
+  
+    if (!is.null(suffix)) {
+    filename = paste(filename,suffix,sep = "_")
+    }
+  
+  file_with_time_stamp = paste(filename,format(Sys.time(), "%Y_%m_%d"),sep = "_")
+  dir_time_stamp = paste0(new_dir_path, "/",file_with_time_stamp,"/")
+  dir.create(path = dir_time_stamp, recursive = T)
+  
+  params[["data_out_dir"]] = dir_time_stamp
+  # params[["figs_out_dir"]] = dir_time_stamp
+  
+  print(dir_time_stamp)
+
+  rmarkdown::render(
+    input = notebook_path,
+    output_format = "html_document",
+    output_file = filename,
+    knit_root_dir = getwd(),
+    output_dir = dir_time_stamp,
+    params = params,envir = new.env() 
+  )
+}
+
+```
+
+
+
