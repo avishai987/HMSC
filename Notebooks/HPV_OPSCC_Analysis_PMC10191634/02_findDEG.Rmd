@@ -2,16 +2,15 @@
 title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
-output: 
-  html_notebook: 
-    code_folding: hide
-    toc: yes
-    toc_collapse: yes
-    toc_float: 
-      collapsed: FALSE
-    number_sections: true
-    toc_depth: 1
-    
+output:
+  # html_notebook: 
+  #   code_folding: hide
+  #   toc: true
+  #   toc_collapse: true
+  #   toc_float:
+  #     collapsed: false
+  #   number_sections: true
+  #   toc_depth: 1
   html_document: 
     code_folding: hide
     toc: yes
@@ -20,11 +19,11 @@ output:
       collapsed: TRUE
     number_sections: true
     toc_depth: 2
-    df-print: paged
-    
-params:
-  data_out_dir: NULL
-  figs_out_dir: NULL
+    df_print: paged
+params: 
+  data_out_dir: "./temp_data/" 
+  input_data: !r c(opscc =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS", metadata = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx")
+  output_data: !r c("opscc_deg_5Kvargenes.rds")
 ---
 
 
@@ -32,9 +31,9 @@ params:
 
 
 ```{r}
-opscc = readRDS("./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS")
+opscc = readRDS(params$input_data["opscc"])
 library(readxl)
-metadata = read_excel(path = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx",
+metadata = read_excel(path = params$input_data["metadata"],
           sheet = "S4 - Cell Table",progress = T,skip = 1,col_names = T)
 
 # remove HPV- patients
@@ -61,7 +60,8 @@ paged_table(deg)
 
 ```{r}
 # save
-saveRDS(object = deg,file = paste0(params$data_out_dir,"opscc_deg_5Kvargenes.rds"))
+saveRDS(object = deg,file = paste0(params$data_out_dir,params$output_data))
+write.csv(x = deg,file =  paste0(params$data_out_dir,"OPSCC_HPV_DEG.csv"))
 ```
 
 

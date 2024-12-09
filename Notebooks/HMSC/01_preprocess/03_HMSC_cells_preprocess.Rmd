@@ -5,12 +5,23 @@ date: '`r Sys.time()`'
 output: 
   html_notebook: 
     code_folding: hide
+    toc: true
+    toc_collapse: true
+    toc_float:
+      collapsed: false
+    number_sections: true
+    toc_depth: 1
+  html_document: 
+    code_folding: hide
     toc: yes
     toc_collapse: yes
     toc_float: 
-      collapsed: FALSE
+      collapsed: TRUE
     number_sections: true
-    toc_depth: 1
+    toc_depth: 2
+    df_print: paged
+params: 
+  data_out_dir: "./temp_data/" 
 ---
 
 
@@ -173,24 +184,19 @@ dir.create(output_dir_path)
 ```
 
 ```{r}
-file_name = paste0(output_dir_path,"/acc1_cancer_cells_2500features_integrated_V5.RDS")
-object = acc.combined
 
-if (!file.exists(file_name)){
-  saveRDS(object = object,file =file_name)
-}else (stop("file exists"))
+file_name = paste0(params$data_out_dir,"acc1_cancer_cells_2500features_integrated_V5.RDS")
+
+saveRDS(object = acc.combined,file =file_name)
 ```
+
+
+# session info
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName"> Show/Hide </button>  
+<div id="BlockName" class="collapse">  
 ```{r}
-# save html notebook
-rstudioapi::documentSave()
-html_path = rstudioapi::getSourceEditorContext()$path  %>% gsub(pattern = "Rmd",replacement = "nb.html")
-file.rename(from = html_path, 
-            to = paste0(output_dir_path,"/",
-  gsub(
-    x = basename(html_path),
-    pattern = "nb.html",
-    replacement = "html"
-  )
-)
-)
+library(devtools)
+session_info()
 ```
+
+</div>

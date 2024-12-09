@@ -2,9 +2,16 @@
 title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
-output: 
+output:
+  # html_notebook: 
+  #   code_folding: hide
+  #   toc: true
+  #   toc_collapse: true
+  #   toc_float:
+  #     collapsed: false
+  #   number_sections: true
+  #   toc_depth: 1
   html_document: 
-    
     code_folding: hide
     toc: yes
     toc_collapse: yes
@@ -12,19 +19,13 @@ output:
       collapsed: TRUE
     number_sections: true
     toc_depth: 2
-    df-print: paged
-  html_notebook: 
-    
-    code_folding: hide
-    toc: yes
-    toc_collapse: yes
-    toc_float: 
-      collapsed: FALSE
-    number_sections: true
-    toc_depth: 1
-params:
-  data_out_dir: NULL
-  figs_out_dir: NULL
+    df_print: paged
+params: 
+  data_out_dir: "./temp_data/" 
+  input_data: !r c(
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
+    opscc_deg = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds",
+    global_params  = "./Input_data/global_params.R")
 ---
 
 
@@ -33,42 +34,39 @@ params:
 
 ```{r warning=FALSE}
 source_from_github(repositoy = "DEG_functions",version = "0.2.54")
-
+source(params$input_data["global_params"])
 ```
 
 # Data
 
 ```{r}
-hmsc_deg = read.table(file = "./Rendered_notebooks/HMSC/HPV_analysis/HPV_analysis_2024_11_13/hpv_deg_df.csv",row.names = 1)
-opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/02_findDEG_logFC_2024_11_13/opscc_deg_5Kvargenes.rds")
+opscc_deg = readRDS(file = params$input_data["opscc_deg"])
+hmsc_deg = read.table(file =  params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
 
-opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
+hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2(volcano_fc) &
+                                 fdr < volcano_fdr) %>% rownames()
+opscc_top = opscc_deg %>% filter(avg_log2FC > log2(volcano_fc) &
+                                   fdr < volcano_fdr) %>% rownames()
 
-
-log2FC_cutoff = log2(1.1)
-fdr_cutoff = 0.1
-
-hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2FC_cutoff &
-                                 fdr < fdr_cutoff) %>% rownames()
-opscc_top = opscc_deg %>% filter(avg_diff > log2FC_cutoff &
-                                   fdr < fdr_cutoff) %>% rownames()
-
+print ("intersect genes:")
 intersected_genes = intersect(hmsc_top,opscc_top)
 intersected_genes
+
 ```
 
 
 
 
-```{r}
-opscc_deg$avg_log2FC = opscc_deg$avg_diff
+```{r fig.height=7, fig.width=7}
 plt = volcano_plot(
   de_genes = opscc_deg,
   fc_cutoff = 1.1,
-  fdr_cutoff = 0.1,
+  fdr_cutoff = volcano_fdr,
   ident1 = "HPV33 positive",
   ident2 = "HPV33 negative",
-  top_genes_text = 0,show_gene_names = intersected_genes) +
+  top_genes_text = 0,
+  show_gene_names = intersected_genes
+  ) +
   ggtitle("Differential Gene Expression by HPV Status")  + 
   expand_limits(y = c(0, 4))+
   coord_cartesian(clip = "off")
@@ -82,16 +80,4 @@ dev.off()
 ```
 
 
-```{r}
-# save deg
-data_to_save = opscc_deg
-write.table(x  = data_to_save,file = paste0(params$data_out_dir,"OPSCC_hpv_deg_df.csv"),row.names = rownames(data_to_save),sep = ",")
 
-```
-
-```{r}
-# save deg
-data_to_save = hmsc_deg
-write.table(x  = data_to_save,file = paste0(params$data_out_dir,"HMSC_hpv_deg_df.csv"),row.names = rownames(data_to_save),sep = ",")
-
-```

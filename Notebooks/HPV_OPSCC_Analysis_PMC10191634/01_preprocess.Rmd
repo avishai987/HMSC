@@ -2,15 +2,15 @@
 title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
-output: 
-  html_notebook: 
-    code_folding: hide
-    toc: yes
-    toc_collapse: yes
-    toc_float: 
-      collapsed: FALSE
-    number_sections: true
-    toc_depth: 1
+output:
+  # html_notebook:
+  #   code_folding: hide
+  #   toc: true
+  #   toc_collapse: true
+  #   toc_float:
+  #     collapsed: false
+  #   number_sections: true
+  #   toc_depth: 1
   html_document: 
     code_folding: hide
     toc: yes
@@ -19,9 +19,16 @@ output:
       collapsed: TRUE
     number_sections: true
     toc_depth: 2
+    df_print: paged
 params: 
-  data_out_dir: "./Data_out/" 
+  data_out_dir: "./temp_data/" 
+  input_data: !r c(
+    matrix = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_OPSCC.mtx.gz",
+    b1 = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_barcodes.txt.gz",
+    g1 = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_genes.txt.gz")
+  output_data: !r c("opscc_suerat.RDS")
 ---
+
 
 Read Data and create seurat object
 Code and data from: https://github.com/micmin3/HPV_OPSCC_Analysis
@@ -35,9 +42,9 @@ Code and data from: https://github.com/micmin3/HPV_OPSCC_Analysis
 
 ```{r}
 #| Read data
-matrix<-Matrix::readMM("./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_OPSCC.mtx.gz")
-b1<-read.table("./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_barcodes.txt.gz")
-g1<-read.table("./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_genes.txt.gz")
+matrix<-Matrix::readMM(params$input_data["matrix"])
+b1<-read.table(params$input_data["b1"])
+g1<-read.table(params$input_data["g1"])
 ```
 
 ```{r}
@@ -70,7 +77,11 @@ seurat_metadata = data.frame(row.names = metadata$Cell_barcode,hpv = metadata$HP
 opscc = AddMetaData(object = opscc,metadata = seurat_metadata)
 ```
 
+
+
 ```{r}
 #| save
-saveRDS(object = opscc,file = paste0(params$data_out_dir,"opscc_suerat.RDS"))
+file_name = paste0(params$data_out_dir,params$output_data)
+
+saveRDS(object = opscc,file =file_name)
 ```

@@ -2,32 +2,47 @@
 title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
-description: "dfgdf"
-output: 
-  html_notebook: 
+output:
+  # html_notebook: 
+  #   code_folding: hide
+  #   toc: true
+  #   toc_collapse: true
+  #   toc_float:
+  #     collapsed: false
+  #   number_sections: true
+  #   toc_depth: 1
+  html_document: 
     code_folding: hide
     toc: yes
     toc_collapse: yes
     toc_float: 
-      collapsed: FALSE
+      collapsed: TRUE
     number_sections: true
-    toc_depth: 1
----
+    toc_depth: 2
+    df_print: paged
+params: 
+  data_out_dir: "./temp_data/" 
+  input_data: !r c(
+          acc1_cancer_cells = "./Reports/HMSC/01_preprocess/03_HMSC_cells_preprocess/acc1_cancer_cells_2500features_integrated_V5.RDS",
+          cancer_cells = "./Reports/HMSC/01_preprocess/02_Cancer_filtering/acc_cancer_cells.RDS")
+  output_data: c("hmsc_acc_pri_cancer_processed.RDS")
+---         
 
 Create all cancer cells with integrated HMSC and ACC
 
 
-# Functionss
+# Functions
 
-```{r warning=FALSE}
+```{r}
+
 ```
 
 
 # Data
 
 ```{r}
-acc1_cancer_cells = readRDS("./Data_out/HMSC_cells_preprocess_2024-05-12/acc1_cancer_cells_2500features_integrated_V5.RDS")
-cancer_cells = read_rds("./Data_out/02_Cancer_filtering_2024-05-12/acc_cancer_cells.RDS")
+acc1_cancer_cells = readRDS("./Reports/HMSC/01_preprocess/03_HMSC_cells_preprocess/acc1_cancer_cells_2500features_integrated_V5.RDS")
+cancer_cells = read_rds("./Reports/HMSC/01_preprocess/02_Cancer_filtering/acc_cancer_cells.RDS")
 ```
 
 # ACC primary + HMSC
@@ -76,33 +91,25 @@ hmsc_acc_cancer <- FindNeighbors(hmsc_acc_cancer, dims = pc2use)
 hmsc_acc_cancer <- FindClusters(hmsc_acc_cancer, resolution = 1)
 hmsc_acc_cancer <- RunUMAP(hmsc_acc_cancer, dims = pc2use)
 ```
+
 ```{r}
 DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "patient.ident")
 ```
 
-```{r}
-script_name = rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")
-output_dir_path = paste0("./Data_out/",script_name,"_",Sys.Date())
-dir.create(output_dir_path)
 
-```
 
 ```{r}
-file_name = paste0(output_dir_path,"/hmsc_acc_pri_cancer_processed.RDS")
+file_name = paste0(params$data_out_dir,"hmsc_acc_pri_cancer_processed.RDS")
 saveRDS(object = hmsc_acc_cancer,file = file_name)
 ```
 
+
+# session info
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName"> Show/Hide </button>  
+<div id="BlockName" class="collapse">  
 ```{r}
-# save html notebook
-rstudioapi::documentSave()
-html_path = rstudioapi::getSourceEditorContext()$path  %>% gsub(pattern = "Rmd",replacement = "nb.html")
-file.rename(from = html_path, 
-            to = paste0(output_dir_path,"/",
-  gsub(
-    x = basename(html_path),
-    pattern = "nb.html",
-    replacement = "html"
-  )
-)
-)
+library(devtools)
+session_info()
 ```
+
+</div>

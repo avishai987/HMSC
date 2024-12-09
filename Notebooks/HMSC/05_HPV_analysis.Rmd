@@ -2,15 +2,15 @@
 title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
-output: 
-  html_notebook: 
-    code_folding: hide
-    toc: true
-    toc_collapse: true
-    toc_float:
-      collapsed: false
-    number_sections: true
-    toc_depth: 1
+output:
+  # html_notebook: 
+  #   code_folding: hide
+  #   toc: true
+  #   toc_collapse: true
+  #   toc_float:
+  #     collapsed: false
+  #   number_sections: true
+  #   toc_depth: 1
   html_document: 
     code_folding: hide
     toc: yes
@@ -21,7 +21,11 @@ output:
     toc_depth: 2
     df_print: paged
 params: 
-  data_out_dir: "./Data_out/HPV_analysis/" 
+  data_out_dir: "./temp_data/" 
+  input_data: !r c(
+    hmsc_cancer_cells = "./Reports/HMSC/01_preprocess/03_HMSC_cells_preprocess/acc1_cancer_cells_2500features_integrated_V5.RDS",
+    genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
+    global_params  = "./Input_data/global_params.R")
 ---
 
 
@@ -33,15 +37,15 @@ source_from_github(repositoy = "DEG_functions",version = "0.2.54")
 source_from_github(repositoy = "HMSC_functions",version = "0.1.14",script_name = "functions.R")
 source_from_github(repositoy = "sc_general_functions",version = "0.1.34",script_name = "functions.R")
 library(hypeR)
-
+source(params$input_data["global_params"])
 ```
 
 # Data
 
 ```{r}
-hmsc_cancer_cells = readRDS("./Data_out/03_HMSC_cells_preprocess_2024-05-12/acc1_cancer_cells_2500features_integrated_V5.RDS")
-genesets  = getGmt("./Input_data/h.all.v7.0.symbols.pluscc.gmt")
-
+hmsc_cancer_cells = readRDS(params$input_data["hmsc_cancer_cells"])
+genesets_h  = getGmt(params$input_data["genesets_h"])
+pid_genesets = getGmt("./Input_data/c2.cp.pid.v2024.1.Hs.symbols.gmt")
 ```
 
 # HPV UMAP
@@ -152,7 +156,7 @@ p
 ```{r}
 # load MYB targets
 library("readxl")
-myb_tergets <- read_excel("./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",col_names = T) %>% pull(Gene)
+myb_tergets <- read_excel("./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",col_names = T) %>% plyr::rename( replace = c("Total grade 2 MYB signal" = "MYB_signal")) %>%  filter (MYB_signal>25) %>%  pull(Gene)
 ```
 
 ```{r}
@@ -204,6 +208,7 @@ hmsc_cancer_cells = SetIdent(hmsc_cancer_cells,value = "hpv33_positive")
 
 ```{r echo = T, results = 'hide'}
 features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
+
 # plate2 = hmsc_cancer_cells[,hmsc_cancer_cells$plate == "ACC.plate2"]
 # plate3 = hmsc_cancer_cells[,hmsc_cancer_cells$plate == "ACC1.P3"]
 # 
@@ -216,8 +221,6 @@ features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing 
 # combine_gene = c(VariableFeatures(plate2), VariableFeatures(plate3))
 # 
 # xor_genes = combine_gene[! combine_gene %in%  intersect(VariableFeatures(plate2), VariableFeatures(plate3))]
-
-
 
 
 acc_deg <-
@@ -233,7 +236,7 @@ acc_deg <-
     logfc.threshold = 0.1,
     min.pct = 0.1,
     mean.fxn = function(x) {
-      return(log(rowMeans(x) + 1, base = 2)) # change func to calculate logFC in log space data (default to exponent data)
+      return(log2(rowMeans(x)+1)) # change func to calculate logFC in log space data (default to exponent data)
     }
   )
 acc_deg$fdr<-p.adjust(p = as.vector(acc_deg$p_val) ,method = "fdr")
@@ -245,9 +248,12 @@ acc_deg$fdr<-p.adjust(p = as.vector(acc_deg$p_val) ,method = "fdr")
 
 
 ```{r}
+acc_deg$score = acc_deg$avg_log2FC*-log10(acc_deg$fdr)
 ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
 
-hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets),up_only = F)
+genesets =geneIds(genesets_h)
+genesets[["myb_targets"]] = myb_tergets
+hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = genesets,up_only = F)
 p = hyp_dots(hyp_obj,merge = F)
 p[[1]]
 p[[2]]
@@ -264,7 +270,7 @@ dev.off()
 ```{r paged.print=TRUE}
 
 paged_table(acc_deg[c("MYB","JAG1","MYC"),])
-paged_table(acc_deg)
+paged_table(acc_deg[myb_tergets, ])
 ```
 
 
@@ -275,8 +281,8 @@ volcano plot log2(mean logTPM HPV+/mean logTPM HPV-)
 ```{r}
 plt = volcano_plot(
   de_genes = acc_deg,
-  fc_cutoff = 1.3,
-  fdr_cutoff = 0.1,
+  fc_cutoff = volcano_fc,
+  fdr_cutoff =volcano_fdr,
   ident1 = "HPV33 positive",
   ident2 = "HPV33 negative",
   top_genes_text = 10,show_gene_names = c("MYB","JAG1","MYC")
@@ -298,10 +304,7 @@ dev.off()
 
 
 ```{r}
-# save deg
-data_to_save = acc_deg
-write.table(x  = data_to_save,file = paste0(params$data_out_dir,"hpv_deg_df.csv"),row.names = rownames(data_to_save))
-
+write.csv(x  = acc_deg,file = paste0(params$data_out_dir,"HMSC_hpv_deg_df.csv"),row.names = T)
 ```
 
 
