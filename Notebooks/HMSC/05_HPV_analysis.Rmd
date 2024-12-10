@@ -156,7 +156,8 @@ p
 ```{r}
 # load MYB targets
 library("readxl")
-myb_tergets <- read_excel("./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",col_names = T) %>% plyr::rename( replace = c("Total grade 2 MYB signal" = "MYB_signal")) %>%  filter (MYB_signal>25) %>%  pull(Gene)
+myb_tergets <- read_excel("./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",col_names = T) %>% 
+  pull(Gene)
 ```
 
 ```{r}
@@ -208,20 +209,9 @@ hmsc_cancer_cells = SetIdent(hmsc_cancer_cells,value = "hpv33_positive")
 
 ```{r echo = T, results = 'hide'}
 features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
+hmsc_cancer_cells = FindVariableFeatures(hmsc_cancer_cells,nfeatures = 15000,assay = "RNA")
 
-# plate2 = hmsc_cancer_cells[,hmsc_cancer_cells$plate == "ACC.plate2"]
-# plate3 = hmsc_cancer_cells[,hmsc_cancer_cells$plate == "ACC1.P3"]
-# 
-# plate2 = FindVariableFeatures(plate2,nfeatures = 15000,assay = "RNA")
-# plate3 = FindVariableFeatures(plate3,nfeatures = 15000,assay = "RNA")
-# 
-# which(VariableFeatures(plate2,assay = "RNA")  %in% "MYB")
-# which(VariableFeatures(plate3,assay = "RNA")  %in% "MYB")
-# 
-# combine_gene = c(VariableFeatures(plate2), VariableFeatures(plate3))
-# 
-# xor_genes = combine_gene[! combine_gene %in%  intersect(VariableFeatures(plate2), VariableFeatures(plate3))]
-
+features = VariableFeatures(hmsc_cancer_cells,assay = "RNA")
 
 acc_deg <-
   FindMarkers(
@@ -252,6 +242,7 @@ acc_deg$score = acc_deg$avg_log2FC*-log10(acc_deg$fdr)
 ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
 
 genesets =geneIds(genesets_h)
+myb_tergets = myb_tergets[myb_tergets %in% features]
 genesets[["myb_targets"]] = myb_tergets
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = genesets,up_only = F)
 p = hyp_dots(hyp_obj,merge = F)
@@ -335,6 +326,62 @@ ggboxplot(
   palette = "jco",
   add = "jitter"
 )+ stat_pvalue_manual(stat.test,y.position = 13, label = "p = {p}",remove.bracket = T)
+```
+# OPSCC signature
+
+```{r}
+avg_log2FC_cutoff = log2(1.1)
+fdr_cutoff = 0.05
+
+
+opscc_deg = readRDS(file = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
+hmsc_deg = read.table(file = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",row.names = 1,sep = ",",header = T)
+
+hmsc_signatue = rownames(hmsc_deg[hmsc_deg$fdr<fdr_cutoff & hmsc_deg$avg_log2FC>avg_log2FC_cutoff,])
+
+
+opscc_signature = opscc_deg %>% filter(avg_log2FC > avg_log2FC_cutoff &
+                                  fdr < fdr_cutoff) %>% rownames()
+opscc_signature
+```
+
+```{r}
+
+# add score
+opscc_hpv_score = FetchData(object = hmsc_cancer_cells,vars = opscc_signature,slot = "data") %>% rowMeans()
+hpv_signature = data.frame(opscc_hpv_score,row.names = names(opscc_hpv_score))
+hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = hpv_signature)
+
+```
+
+
+
+
+```{r}
+
+genes_by_tp = FetchData(object = hmsc_cancer_cells,vars = c("hpv33_positive", "opscc_hpv_score"),slot = "data") 
+
+# all cells by patient boxplot
+formula <- as.formula("opscc_hpv_score  ~ hpv33_positive")
+
+#plot and split by patient:
+stat.test <- genes_by_tp %>%
+  t_test(formula) %>%
+  adjust_pvalue(method = "fdr") %>%
+  add_significance() %>%
+  add_xy_position(x = "hpv33_positive") %>%
+  mutate(p.adj = signif(p.adj, digits = 2))
+stat.test
+
+
+plt = ggplot(genes_by_tp, aes(x = hpv33_positive, y = opscc_hpv_score )) +
+  geom_violin(scale = "width",aes(fill = hpv33_positive)) +
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
+  stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
+  geom_jitter()+
+  ggtitle("opscc_hpv_score ")
+plt
 ```
 
 
