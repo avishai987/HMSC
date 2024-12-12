@@ -37,10 +37,20 @@ get_targets_and_depens <- function(notebook_path) {
   
   report_path = get_report_target_path(notebook_path)
   targets = c(targets,report_path)
-  if (!out_of_date(targets,dependencies)) {
+  if (!out_of_date(targets, dependencies)) {
     cli::cli_alert_success("Targets are up to date")
-  }else{
+    
+
+  } else{
     cli::cat_line(cli::col_red("Targets are out of date"))
+    # Ask the user a question and get a response
+    answer <- readline(prompt = "Do you want to proceed? (y/n): ")
+    # Check the response and perform an action if the response is "yes"
+    if (tolower(answer) == "y") {
+      # The action you want to perform
+      cat("Rendering...\n")
+      # Add your code to perform the action here
+    } else{ stop("Abort") }
   }
   return(list(targets = targets, dependencies = dependencies))
 }
@@ -65,6 +75,8 @@ my_render <- function(notebook_path , params = list())
   )
 }
 ```
+
+
 
 
 ```{r}
@@ -207,7 +219,6 @@ make_with_recipe(
   label = "TCGA built datasets")
 
 # pipe$build() 
-pipe
-show_pipeline(as = "visnetwork")
+
 ```
 
