@@ -12,7 +12,7 @@
 <meta name="author" content="Avishai Wizel" />
 
 
-<title>makepipe</title>
+<title>build_TCGA_datasets</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1566,9 +1566,9 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">makepipe</h1>
+<h1 class="title toc-ignore">build_TCGA_datasets</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2024-12-08 13:07:23.709451</h4>
+<h4 class="date">2024-12-12 14:53:55.526005</h4>
 
 </div>
 
@@ -1576,10 +1576,14 @@ border-radius: 0px;
 <pre class="r"><code>library(TCGAbiolinks)
 library(biomaRt)
 library(kableExtra)
-library(rmarkdown)</code></pre>
+library(rmarkdown)
+ensembl = readRDS(params$input_data)
+print(getGDCInfo()$data_release)</code></pre>
+<pre><code>## [1] &quot;Data Release 41.0 - August 28, 2024&quot;</code></pre>
 <pre class="r"><code>build_datasets &lt;- function(project_name, filter = list(sample_type = c(&quot;Primary Tumor&quot;))) {
   library(data.table)
-
+  data_dir = paste0(params$data_out_dir,&quot;GDCdata&quot;)
+  
   # from https://github.com/BioinformaticsFMRP/TCGAbiolinks/issues/493#issuecomment-1083311661
   # Defines the query to the GDC
   query &lt;- GDCquery(project = project_name,
@@ -1592,12 +1596,12 @@ library(rmarkdown)</code></pre>
   metadata &lt;- query[[1]][[1]]
   
   # Download data using api
-  GDCdownload(query, method = &quot;api&quot;,directory = paste0(params$data_out_dir,&quot;GDCdata&quot;))
+  GDCdownload(query, method = &quot;api&quot;,directory = data_dir)
   
   # Get main directory where data is stored
-  main_dir &lt;- file.path(&quot;GDCdata&quot;, project_name)
+  main_dir &lt;- file.path(data_dir, project_name)
   # Get file list of downloaded files
-  file_list &lt;- file.path(&quot;GDCdata&quot;, project_name,list.files(main_dir,recursive = TRUE)) 
+  file_list &lt;- file.path(data_dir, project_name,list.files(main_dir,recursive = TRUE)) 
   
   # Read first downloaded to get gene names
   test_tab &lt;- read.table(file = file_list[1], sep = &#39;\t&#39;, header = TRUE)
@@ -1615,12 +1619,13 @@ library(rmarkdown)</code></pre>
     test_tab &lt;- test_tab[-c(1:4),]
     # Column bind of tpm and counts data
     tpm_data_frame &lt;- cbind(tpm_data_frame, test_tab[,9])
-    sample_id = strsplit(file_list[i],split = &quot;/&quot;)[[1]][6]
+    sample_id = basename(dirname(file_list[i])) # get dir name
     sample_name = metadata[metadata$id == sample_id ,&quot;cases.submitter_id&quot;]
     colnames(tpm_data_frame)[i+1] = sample_name # col 1 is gene
     # count_data_frame &lt;- cbind(count_data_frame, test_tab[,4])
     # Print progres from 0 to 1
-    print(i/length(file_list))
+    message(i/length(file_list)*100, &quot; % completed \n&quot;)
+
   }
   # update col names
   colnames(tpm_data_frame)[1] = &quot;Gene&quot;
@@ -1636,7 +1641,6 @@ library(rmarkdown)</code></pre>
   
   
   # remove all rows that are not gene symbols
-  ensembl = useMart(biomart=&quot;ensembl&quot;, dataset=&quot;hsapiens_gene_ensembl&quot;,host = &quot;https://useast.ensembl.org/&quot;)
   results &lt;- getBM(attributes=c(&quot;ensembl_gene_id&quot;,&quot;hgnc_symbol&quot;,&quot;transcript_biotype&quot;), mart=ensembl)
   not_symbol = !genes %in% results$hgnc_symbol
   genes = genes[!not_symbol]
@@ -1680,317 +1684,315 @@ library(rmarkdown)</code></pre>
 <pre><code>## Downloading data for project TCGA-CESC</code></pre>
 <pre><code>## Of the 309 files for download 309 already exist.</code></pre>
 <pre><code>## All samples have been already downloaded</code></pre>
-<pre><code>## [1] 0.003236246
-## [1] 0.006472492
-## [1] 0.009708738
-## [1] 0.01294498
-## [1] 0.01618123
-## [1] 0.01941748
-## [1] 0.02265372
-## [1] 0.02588997
-## [1] 0.02912621
-## [1] 0.03236246
-## [1] 0.03559871
-## [1] 0.03883495
-## [1] 0.0420712
-## [1] 0.04530744
-## [1] 0.04854369
-## [1] 0.05177994
-## [1] 0.05501618
-## [1] 0.05825243
-## [1] 0.06148867
-## [1] 0.06472492
-## [1] 0.06796117
-## [1] 0.07119741
-## [1] 0.07443366
-## [1] 0.0776699
-## [1] 0.08090615
-## [1] 0.08414239
-## [1] 0.08737864
-## [1] 0.09061489
-## [1] 0.09385113
-## [1] 0.09708738
-## [1] 0.1003236
-## [1] 0.1035599
-## [1] 0.1067961
-## [1] 0.1100324
-## [1] 0.1132686
-## [1] 0.1165049
-## [1] 0.1197411
-## [1] 0.1229773
-## [1] 0.1262136
-## [1] 0.1294498
-## [1] 0.1326861
-## [1] 0.1359223
-## [1] 0.1391586
-## [1] 0.1423948
-## [1] 0.1456311
-## [1] 0.1488673
-## [1] 0.1521036
-## [1] 0.1553398
-## [1] 0.1585761
-## [1] 0.1618123
-## [1] 0.1650485
-## [1] 0.1682848
-## [1] 0.171521
-## [1] 0.1747573
-## [1] 0.1779935
-## [1] 0.1812298
-## [1] 0.184466
-## [1] 0.1877023
-## [1] 0.1909385
-## [1] 0.1941748
-## [1] 0.197411
-## [1] 0.2006472
-## [1] 0.2038835
-## [1] 0.2071197
-## [1] 0.210356
-## [1] 0.2135922
-## [1] 0.2168285
-## [1] 0.2200647
-## [1] 0.223301
-## [1] 0.2265372
-## [1] 0.2297735
-## [1] 0.2330097
-## [1] 0.236246
-## [1] 0.2394822
-## [1] 0.2427184
-## [1] 0.2459547
-## [1] 0.2491909
-## [1] 0.2524272
-## [1] 0.2556634
-## [1] 0.2588997
-## [1] 0.2621359
-## [1] 0.2653722
-## [1] 0.2686084
-## [1] 0.2718447
-## [1] 0.2750809
-## [1] 0.2783172
-## [1] 0.2815534
-## [1] 0.2847896
-## [1] 0.2880259
-## [1] 0.2912621
-## [1] 0.2944984
-## [1] 0.2977346
-## [1] 0.3009709
-## [1] 0.3042071
-## [1] 0.3074434
-## [1] 0.3106796
-## [1] 0.3139159
-## [1] 0.3171521
-## [1] 0.3203883
-## [1] 0.3236246
-## [1] 0.3268608
-## [1] 0.3300971
-## [1] 0.3333333
-## [1] 0.3365696
-## [1] 0.3398058
-## [1] 0.3430421
-## [1] 0.3462783
-## [1] 0.3495146
-## [1] 0.3527508
-## [1] 0.3559871
-## [1] 0.3592233
-## [1] 0.3624595
-## [1] 0.3656958
-## [1] 0.368932
-## [1] 0.3721683
-## [1] 0.3754045
-## [1] 0.3786408
-## [1] 0.381877
-## [1] 0.3851133
-## [1] 0.3883495
-## [1] 0.3915858
-## [1] 0.394822
-## [1] 0.3980583
-## [1] 0.4012945
-## [1] 0.4045307
-## [1] 0.407767
-## [1] 0.4110032
-## [1] 0.4142395
-## [1] 0.4174757
-## [1] 0.420712
-## [1] 0.4239482
-## [1] 0.4271845
-## [1] 0.4304207
-## [1] 0.433657
-## [1] 0.4368932
-## [1] 0.4401294
-## [1] 0.4433657
-## [1] 0.4466019
-## [1] 0.4498382
-## [1] 0.4530744
-## [1] 0.4563107
-## [1] 0.4595469
-## [1] 0.4627832
-## [1] 0.4660194
-## [1] 0.4692557
-## [1] 0.4724919
-## [1] 0.4757282
-## [1] 0.4789644
-## [1] 0.4822006
-## [1] 0.4854369
-## [1] 0.4886731
-## [1] 0.4919094
-## [1] 0.4951456
-## [1] 0.4983819
-## [1] 0.5016181
-## [1] 0.5048544
-## [1] 0.5080906
-## [1] 0.5113269
-## [1] 0.5145631
-## [1] 0.5177994
-## [1] 0.5210356
-## [1] 0.5242718
-## [1] 0.5275081
-## [1] 0.5307443
-## [1] 0.5339806
-## [1] 0.5372168
-## [1] 0.5404531
-## [1] 0.5436893
-## [1] 0.5469256
-## [1] 0.5501618
-## [1] 0.5533981
-## [1] 0.5566343
-## [1] 0.5598706
-## [1] 0.5631068
-## [1] 0.566343
-## [1] 0.5695793
-## [1] 0.5728155
-## [1] 0.5760518
-## [1] 0.579288
-## [1] 0.5825243
-## [1] 0.5857605
-## [1] 0.5889968
-## [1] 0.592233
-## [1] 0.5954693
-## [1] 0.5987055
-## [1] 0.6019417
-## [1] 0.605178
-## [1] 0.6084142
-## [1] 0.6116505
-## [1] 0.6148867
-## [1] 0.618123
-## [1] 0.6213592
-## [1] 0.6245955
-## [1] 0.6278317
-## [1] 0.631068
-## [1] 0.6343042
-## [1] 0.6375405
-## [1] 0.6407767
-## [1] 0.6440129
-## [1] 0.6472492
-## [1] 0.6504854
-## [1] 0.6537217
-## [1] 0.6569579
-## [1] 0.6601942
-## [1] 0.6634304
-## [1] 0.6666667
-## [1] 0.6699029
-## [1] 0.6731392
-## [1] 0.6763754
-## [1] 0.6796117
-## [1] 0.6828479
-## [1] 0.6860841
-## [1] 0.6893204
-## [1] 0.6925566
-## [1] 0.6957929
-## [1] 0.6990291
-## [1] 0.7022654
-## [1] 0.7055016
-## [1] 0.7087379
-## [1] 0.7119741
-## [1] 0.7152104
-## [1] 0.7184466
-## [1] 0.7216828
-## [1] 0.7249191
-## [1] 0.7281553
-## [1] 0.7313916
-## [1] 0.7346278
-## [1] 0.7378641
-## [1] 0.7411003
-## [1] 0.7443366
-## [1] 0.7475728
-## [1] 0.7508091
-## [1] 0.7540453
-## [1] 0.7572816
-## [1] 0.7605178
-## [1] 0.763754
-## [1] 0.7669903
-## [1] 0.7702265
-## [1] 0.7734628
-## [1] 0.776699
-## [1] 0.7799353
-## [1] 0.7831715
-## [1] 0.7864078
-## [1] 0.789644
-## [1] 0.7928803
-## [1] 0.7961165
-## [1] 0.7993528
-## [1] 0.802589
-## [1] 0.8058252
-## [1] 0.8090615
-## [1] 0.8122977
-## [1] 0.815534
-## [1] 0.8187702
-## [1] 0.8220065
-## [1] 0.8252427
-## [1] 0.828479
-## [1] 0.8317152
-## [1] 0.8349515
-## [1] 0.8381877
-## [1] 0.8414239
-## [1] 0.8446602
-## [1] 0.8478964
-## [1] 0.8511327
-## [1] 0.8543689
-## [1] 0.8576052
-## [1] 0.8608414
-## [1] 0.8640777
-## [1] 0.8673139
-## [1] 0.8705502
-## [1] 0.8737864
-## [1] 0.8770227
-## [1] 0.8802589
-## [1] 0.8834951
-## [1] 0.8867314
-## [1] 0.8899676
-## [1] 0.8932039
-## [1] 0.8964401
-## [1] 0.8996764
-## [1] 0.9029126
-## [1] 0.9061489
-## [1] 0.9093851
-## [1] 0.9126214
-## [1] 0.9158576
-## [1] 0.9190939
-## [1] 0.9223301
-## [1] 0.9255663
-## [1] 0.9288026
-## [1] 0.9320388
-## [1] 0.9352751
-## [1] 0.9385113
-## [1] 0.9417476
-## [1] 0.9449838
-## [1] 0.9482201
-## [1] 0.9514563
-## [1] 0.9546926
-## [1] 0.9579288
-## [1] 0.961165
-## [1] 0.9644013
-## [1] 0.9676375
-## [1] 0.9708738
-## [1] 0.97411
-## [1] 0.9773463
-## [1] 0.9805825
-## [1] 0.9838188
-## [1] 0.987055
-## [1] 0.9902913
-## [1] 0.9935275
-## [1] 0.9967638
-## [1] 1</code></pre>
-<pre><code>## Ensembl site unresponsive, trying asia mirror</code></pre>
-<pre><code>## Ensembl site unresponsive, trying www mirror</code></pre>
+<pre><code>## 0.323624595469256 % completed</code></pre>
+<pre><code>## 0.647249190938511 % completed</code></pre>
+<pre><code>## 0.970873786407767 % completed</code></pre>
+<pre><code>## 1.29449838187702 % completed</code></pre>
+<pre><code>## 1.61812297734628 % completed</code></pre>
+<pre><code>## 1.94174757281553 % completed</code></pre>
+<pre><code>## 2.26537216828479 % completed</code></pre>
+<pre><code>## 2.58899676375405 % completed</code></pre>
+<pre><code>## 2.9126213592233 % completed</code></pre>
+<pre><code>## 3.23624595469256 % completed</code></pre>
+<pre><code>## 3.55987055016181 % completed</code></pre>
+<pre><code>## 3.88349514563107 % completed</code></pre>
+<pre><code>## 4.20711974110032 % completed</code></pre>
+<pre><code>## 4.53074433656958 % completed</code></pre>
+<pre><code>## 4.85436893203883 % completed</code></pre>
+<pre><code>## 5.17799352750809 % completed</code></pre>
+<pre><code>## 5.50161812297735 % completed</code></pre>
+<pre><code>## 5.8252427184466 % completed</code></pre>
+<pre><code>## 6.14886731391586 % completed</code></pre>
+<pre><code>## 6.47249190938511 % completed</code></pre>
+<pre><code>## 6.79611650485437 % completed</code></pre>
+<pre><code>## 7.11974110032362 % completed</code></pre>
+<pre><code>## 7.44336569579288 % completed</code></pre>
+<pre><code>## 7.76699029126214 % completed</code></pre>
+<pre><code>## 8.09061488673139 % completed</code></pre>
+<pre><code>## 8.41423948220065 % completed</code></pre>
+<pre><code>## 8.7378640776699 % completed</code></pre>
+<pre><code>## 9.06148867313916 % completed</code></pre>
+<pre><code>## 9.38511326860841 % completed</code></pre>
+<pre><code>## 9.70873786407767 % completed</code></pre>
+<pre><code>## 10.0323624595469 % completed</code></pre>
+<pre><code>## 10.3559870550162 % completed</code></pre>
+<pre><code>## 10.6796116504854 % completed</code></pre>
+<pre><code>## 11.0032362459547 % completed</code></pre>
+<pre><code>## 11.3268608414239 % completed</code></pre>
+<pre><code>## 11.6504854368932 % completed</code></pre>
+<pre><code>## 11.9741100323625 % completed</code></pre>
+<pre><code>## 12.2977346278317 % completed</code></pre>
+<pre><code>## 12.621359223301 % completed</code></pre>
+<pre><code>## 12.9449838187702 % completed</code></pre>
+<pre><code>## 13.2686084142395 % completed</code></pre>
+<pre><code>## 13.5922330097087 % completed</code></pre>
+<pre><code>## 13.915857605178 % completed</code></pre>
+<pre><code>## 14.2394822006472 % completed</code></pre>
+<pre><code>## 14.5631067961165 % completed</code></pre>
+<pre><code>## 14.8867313915858 % completed</code></pre>
+<pre><code>## 15.210355987055 % completed</code></pre>
+<pre><code>## 15.5339805825243 % completed</code></pre>
+<pre><code>## 15.8576051779935 % completed</code></pre>
+<pre><code>## 16.1812297734628 % completed</code></pre>
+<pre><code>## 16.504854368932 % completed</code></pre>
+<pre><code>## 16.8284789644013 % completed</code></pre>
+<pre><code>## 17.1521035598706 % completed</code></pre>
+<pre><code>## 17.4757281553398 % completed</code></pre>
+<pre><code>## 17.7993527508091 % completed</code></pre>
+<pre><code>## 18.1229773462783 % completed</code></pre>
+<pre><code>## 18.4466019417476 % completed</code></pre>
+<pre><code>## 18.7702265372168 % completed</code></pre>
+<pre><code>## 19.0938511326861 % completed</code></pre>
+<pre><code>## 19.4174757281553 % completed</code></pre>
+<pre><code>## 19.7411003236246 % completed</code></pre>
+<pre><code>## 20.0647249190939 % completed</code></pre>
+<pre><code>## 20.3883495145631 % completed</code></pre>
+<pre><code>## 20.7119741100324 % completed</code></pre>
+<pre><code>## 21.0355987055016 % completed</code></pre>
+<pre><code>## 21.3592233009709 % completed</code></pre>
+<pre><code>## 21.6828478964401 % completed</code></pre>
+<pre><code>## 22.0064724919094 % completed</code></pre>
+<pre><code>## 22.3300970873786 % completed</code></pre>
+<pre><code>## 22.6537216828479 % completed</code></pre>
+<pre><code>## 22.9773462783171 % completed</code></pre>
+<pre><code>## 23.3009708737864 % completed</code></pre>
+<pre><code>## 23.6245954692557 % completed</code></pre>
+<pre><code>## 23.9482200647249 % completed</code></pre>
+<pre><code>## 24.2718446601942 % completed</code></pre>
+<pre><code>## 24.5954692556634 % completed</code></pre>
+<pre><code>## 24.9190938511327 % completed</code></pre>
+<pre><code>## 25.2427184466019 % completed</code></pre>
+<pre><code>## 25.5663430420712 % completed</code></pre>
+<pre><code>## 25.8899676375405 % completed</code></pre>
+<pre><code>## 26.2135922330097 % completed</code></pre>
+<pre><code>## 26.537216828479 % completed</code></pre>
+<pre><code>## 26.8608414239482 % completed</code></pre>
+<pre><code>## 27.1844660194175 % completed</code></pre>
+<pre><code>## 27.5080906148867 % completed</code></pre>
+<pre><code>## 27.831715210356 % completed</code></pre>
+<pre><code>## 28.1553398058252 % completed</code></pre>
+<pre><code>## 28.4789644012945 % completed</code></pre>
+<pre><code>## 28.8025889967638 % completed</code></pre>
+<pre><code>## 29.126213592233 % completed</code></pre>
+<pre><code>## 29.4498381877023 % completed</code></pre>
+<pre><code>## 29.7734627831715 % completed</code></pre>
+<pre><code>## 30.0970873786408 % completed</code></pre>
+<pre><code>## 30.42071197411 % completed</code></pre>
+<pre><code>## 30.7443365695793 % completed</code></pre>
+<pre><code>## 31.0679611650485 % completed</code></pre>
+<pre><code>## 31.3915857605178 % completed</code></pre>
+<pre><code>## 31.7152103559871 % completed</code></pre>
+<pre><code>## 32.0388349514563 % completed</code></pre>
+<pre><code>## 32.3624595469256 % completed</code></pre>
+<pre><code>## 32.6860841423948 % completed</code></pre>
+<pre><code>## 33.0097087378641 % completed</code></pre>
+<pre><code>## 33.3333333333333 % completed</code></pre>
+<pre><code>## 33.6569579288026 % completed</code></pre>
+<pre><code>## 33.9805825242718 % completed</code></pre>
+<pre><code>## 34.3042071197411 % completed</code></pre>
+<pre><code>## 34.6278317152104 % completed</code></pre>
+<pre><code>## 34.9514563106796 % completed</code></pre>
+<pre><code>## 35.2750809061489 % completed</code></pre>
+<pre><code>## 35.5987055016181 % completed</code></pre>
+<pre><code>## 35.9223300970874 % completed</code></pre>
+<pre><code>## 36.2459546925566 % completed</code></pre>
+<pre><code>## 36.5695792880259 % completed</code></pre>
+<pre><code>## 36.8932038834951 % completed</code></pre>
+<pre><code>## 37.2168284789644 % completed</code></pre>
+<pre><code>## 37.5404530744337 % completed</code></pre>
+<pre><code>## 37.8640776699029 % completed</code></pre>
+<pre><code>## 38.1877022653722 % completed</code></pre>
+<pre><code>## 38.5113268608414 % completed</code></pre>
+<pre><code>## 38.8349514563107 % completed</code></pre>
+<pre><code>## 39.1585760517799 % completed</code></pre>
+<pre><code>## 39.4822006472492 % completed</code></pre>
+<pre><code>## 39.8058252427184 % completed</code></pre>
+<pre><code>## 40.1294498381877 % completed</code></pre>
+<pre><code>## 40.453074433657 % completed</code></pre>
+<pre><code>## 40.7766990291262 % completed</code></pre>
+<pre><code>## 41.1003236245955 % completed</code></pre>
+<pre><code>## 41.4239482200647 % completed</code></pre>
+<pre><code>## 41.747572815534 % completed</code></pre>
+<pre><code>## 42.0711974110032 % completed</code></pre>
+<pre><code>## 42.3948220064725 % completed</code></pre>
+<pre><code>## 42.7184466019417 % completed</code></pre>
+<pre><code>## 43.042071197411 % completed</code></pre>
+<pre><code>## 43.3656957928803 % completed</code></pre>
+<pre><code>## 43.6893203883495 % completed</code></pre>
+<pre><code>## 44.0129449838188 % completed</code></pre>
+<pre><code>## 44.336569579288 % completed</code></pre>
+<pre><code>## 44.6601941747573 % completed</code></pre>
+<pre><code>## 44.9838187702265 % completed</code></pre>
+<pre><code>## 45.3074433656958 % completed</code></pre>
+<pre><code>## 45.6310679611651 % completed</code></pre>
+<pre><code>## 45.9546925566343 % completed</code></pre>
+<pre><code>## 46.2783171521036 % completed</code></pre>
+<pre><code>## 46.6019417475728 % completed</code></pre>
+<pre><code>## 46.9255663430421 % completed</code></pre>
+<pre><code>## 47.2491909385113 % completed</code></pre>
+<pre><code>## 47.5728155339806 % completed</code></pre>
+<pre><code>## 47.8964401294498 % completed</code></pre>
+<pre><code>## 48.2200647249191 % completed</code></pre>
+<pre><code>## 48.5436893203884 % completed</code></pre>
+<pre><code>## 48.8673139158576 % completed</code></pre>
+<pre><code>## 49.1909385113269 % completed</code></pre>
+<pre><code>## 49.5145631067961 % completed</code></pre>
+<pre><code>## 49.8381877022654 % completed</code></pre>
+<pre><code>## 50.1618122977346 % completed</code></pre>
+<pre><code>## 50.4854368932039 % completed</code></pre>
+<pre><code>## 50.8090614886731 % completed</code></pre>
+<pre><code>## 51.1326860841424 % completed</code></pre>
+<pre><code>## 51.4563106796116 % completed</code></pre>
+<pre><code>## 51.7799352750809 % completed</code></pre>
+<pre><code>## 52.1035598705502 % completed</code></pre>
+<pre><code>## 52.4271844660194 % completed</code></pre>
+<pre><code>## 52.7508090614887 % completed</code></pre>
+<pre><code>## 53.0744336569579 % completed</code></pre>
+<pre><code>## 53.3980582524272 % completed</code></pre>
+<pre><code>## 53.7216828478964 % completed</code></pre>
+<pre><code>## 54.0453074433657 % completed</code></pre>
+<pre><code>## 54.3689320388349 % completed</code></pre>
+<pre><code>## 54.6925566343042 % completed</code></pre>
+<pre><code>## 55.0161812297735 % completed</code></pre>
+<pre><code>## 55.3398058252427 % completed</code></pre>
+<pre><code>## 55.663430420712 % completed</code></pre>
+<pre><code>## 55.9870550161812 % completed</code></pre>
+<pre><code>## 56.3106796116505 % completed</code></pre>
+<pre><code>## 56.6343042071197 % completed</code></pre>
+<pre><code>## 56.957928802589 % completed</code></pre>
+<pre><code>## 57.2815533980583 % completed</code></pre>
+<pre><code>## 57.6051779935275 % completed</code></pre>
+<pre><code>## 57.9288025889968 % completed</code></pre>
+<pre><code>## 58.252427184466 % completed</code></pre>
+<pre><code>## 58.5760517799353 % completed</code></pre>
+<pre><code>## 58.8996763754045 % completed</code></pre>
+<pre><code>## 59.2233009708738 % completed</code></pre>
+<pre><code>## 59.546925566343 % completed</code></pre>
+<pre><code>## 59.8705501618123 % completed</code></pre>
+<pre><code>## 60.1941747572816 % completed</code></pre>
+<pre><code>## 60.5177993527508 % completed</code></pre>
+<pre><code>## 60.8414239482201 % completed</code></pre>
+<pre><code>## 61.1650485436893 % completed</code></pre>
+<pre><code>## 61.4886731391586 % completed</code></pre>
+<pre><code>## 61.8122977346278 % completed</code></pre>
+<pre><code>## 62.1359223300971 % completed</code></pre>
+<pre><code>## 62.4595469255663 % completed</code></pre>
+<pre><code>## 62.7831715210356 % completed</code></pre>
+<pre><code>## 63.1067961165049 % completed</code></pre>
+<pre><code>## 63.4304207119741 % completed</code></pre>
+<pre><code>## 63.7540453074434 % completed</code></pre>
+<pre><code>## 64.0776699029126 % completed</code></pre>
+<pre><code>## 64.4012944983819 % completed</code></pre>
+<pre><code>## 64.7249190938511 % completed</code></pre>
+<pre><code>## 65.0485436893204 % completed</code></pre>
+<pre><code>## 65.3721682847896 % completed</code></pre>
+<pre><code>## 65.6957928802589 % completed</code></pre>
+<pre><code>## 66.0194174757282 % completed</code></pre>
+<pre><code>## 66.3430420711974 % completed</code></pre>
+<pre><code>## 66.6666666666667 % completed</code></pre>
+<pre><code>## 66.9902912621359 % completed</code></pre>
+<pre><code>## 67.3139158576052 % completed</code></pre>
+<pre><code>## 67.6375404530744 % completed</code></pre>
+<pre><code>## 67.9611650485437 % completed</code></pre>
+<pre><code>## 68.2847896440129 % completed</code></pre>
+<pre><code>## 68.6084142394822 % completed</code></pre>
+<pre><code>## 68.9320388349515 % completed</code></pre>
+<pre><code>## 69.2556634304207 % completed</code></pre>
+<pre><code>## 69.57928802589 % completed</code></pre>
+<pre><code>## 69.9029126213592 % completed</code></pre>
+<pre><code>## 70.2265372168285 % completed</code></pre>
+<pre><code>## 70.5501618122977 % completed</code></pre>
+<pre><code>## 70.873786407767 % completed</code></pre>
+<pre><code>## 71.1974110032362 % completed</code></pre>
+<pre><code>## 71.5210355987055 % completed</code></pre>
+<pre><code>## 71.8446601941748 % completed</code></pre>
+<pre><code>## 72.168284789644 % completed</code></pre>
+<pre><code>## 72.4919093851133 % completed</code></pre>
+<pre><code>## 72.8155339805825 % completed</code></pre>
+<pre><code>## 73.1391585760518 % completed</code></pre>
+<pre><code>## 73.462783171521 % completed</code></pre>
+<pre><code>## 73.7864077669903 % completed</code></pre>
+<pre><code>## 74.1100323624595 % completed</code></pre>
+<pre><code>## 74.4336569579288 % completed</code></pre>
+<pre><code>## 74.7572815533981 % completed</code></pre>
+<pre><code>## 75.0809061488673 % completed</code></pre>
+<pre><code>## 75.4045307443366 % completed</code></pre>
+<pre><code>## 75.7281553398058 % completed</code></pre>
+<pre><code>## 76.0517799352751 % completed</code></pre>
+<pre><code>## 76.3754045307443 % completed</code></pre>
+<pre><code>## 76.6990291262136 % completed</code></pre>
+<pre><code>## 77.0226537216828 % completed</code></pre>
+<pre><code>## 77.3462783171521 % completed</code></pre>
+<pre><code>## 77.6699029126214 % completed</code></pre>
+<pre><code>## 77.9935275080906 % completed</code></pre>
+<pre><code>## 78.3171521035599 % completed</code></pre>
+<pre><code>## 78.6407766990291 % completed</code></pre>
+<pre><code>## 78.9644012944984 % completed</code></pre>
+<pre><code>## 79.2880258899676 % completed</code></pre>
+<pre><code>## 79.6116504854369 % completed</code></pre>
+<pre><code>## 79.9352750809062 % completed</code></pre>
+<pre><code>## 80.2588996763754 % completed</code></pre>
+<pre><code>## 80.5825242718447 % completed</code></pre>
+<pre><code>## 80.9061488673139 % completed</code></pre>
+<pre><code>## 81.2297734627832 % completed</code></pre>
+<pre><code>## 81.5533980582524 % completed</code></pre>
+<pre><code>## 81.8770226537217 % completed</code></pre>
+<pre><code>## 82.2006472491909 % completed</code></pre>
+<pre><code>## 82.5242718446602 % completed</code></pre>
+<pre><code>## 82.8478964401295 % completed</code></pre>
+<pre><code>## 83.1715210355987 % completed</code></pre>
+<pre><code>## 83.495145631068 % completed</code></pre>
+<pre><code>## 83.8187702265372 % completed</code></pre>
+<pre><code>## 84.1423948220065 % completed</code></pre>
+<pre><code>## 84.4660194174757 % completed</code></pre>
+<pre><code>## 84.789644012945 % completed</code></pre>
+<pre><code>## 85.1132686084142 % completed</code></pre>
+<pre><code>## 85.4368932038835 % completed</code></pre>
+<pre><code>## 85.7605177993528 % completed</code></pre>
+<pre><code>## 86.084142394822 % completed</code></pre>
+<pre><code>## 86.4077669902913 % completed</code></pre>
+<pre><code>## 86.7313915857605 % completed</code></pre>
+<pre><code>## 87.0550161812298 % completed</code></pre>
+<pre><code>## 87.378640776699 % completed</code></pre>
+<pre><code>## 87.7022653721683 % completed</code></pre>
+<pre><code>## 88.0258899676375 % completed</code></pre>
+<pre><code>## 88.3495145631068 % completed</code></pre>
+<pre><code>## 88.673139158576 % completed</code></pre>
+<pre><code>## 88.9967637540453 % completed</code></pre>
+<pre><code>## 89.3203883495146 % completed</code></pre>
+<pre><code>## 89.6440129449838 % completed</code></pre>
+<pre><code>## 89.9676375404531 % completed</code></pre>
+<pre><code>## 90.2912621359223 % completed</code></pre>
+<pre><code>## 90.6148867313916 % completed</code></pre>
+<pre><code>## 90.9385113268608 % completed</code></pre>
+<pre><code>## 91.2621359223301 % completed</code></pre>
+<pre><code>## 91.5857605177994 % completed</code></pre>
+<pre><code>## 91.9093851132686 % completed</code></pre>
+<pre><code>## 92.2330097087379 % completed</code></pre>
+<pre><code>## 92.5566343042071 % completed</code></pre>
+<pre><code>## 92.8802588996764 % completed</code></pre>
+<pre><code>## 93.2038834951456 % completed</code></pre>
+<pre><code>## 93.5275080906149 % completed</code></pre>
+<pre><code>## 93.8511326860841 % completed</code></pre>
+<pre><code>## 94.1747572815534 % completed</code></pre>
+<pre><code>## 94.4983818770227 % completed</code></pre>
+<pre><code>## 94.8220064724919 % completed</code></pre>
+<pre><code>## 95.1456310679612 % completed</code></pre>
+<pre><code>## 95.4692556634304 % completed</code></pre>
+<pre><code>## 95.7928802588997 % completed</code></pre>
+<pre><code>## 96.1165048543689 % completed</code></pre>
+<pre><code>## 96.4401294498382 % completed</code></pre>
+<pre><code>## 96.7637540453075 % completed</code></pre>
+<pre><code>## 97.0873786407767 % completed</code></pre>
+<pre><code>## 97.4110032362459 % completed</code></pre>
+<pre><code>## 97.7346278317152 % completed</code></pre>
+<pre><code>## 98.0582524271845 % completed</code></pre>
+<pre><code>## 98.3818770226537 % completed</code></pre>
+<pre><code>## 98.705501618123 % completed</code></pre>
+<pre><code>## 99.0291262135922 % completed</code></pre>
+<pre><code>## 99.3527508090615 % completed</code></pre>
+<pre><code>## 99.6763754045307 % completed</code></pre>
+<pre><code>## 100 % completed</code></pre>
 <pre class="r"><code>saveRDS(cesc_tpm,file = paste0(params$data_out_dir,&quot;TCGA_CESC_TPM.RDS&quot;))</code></pre>
 </div>
 <div id="opscc" class="section level1" number="2">
@@ -2022,574 +2024,572 @@ library(rmarkdown)</code></pre>
 <pre><code>## Downloading data for project TCGA-HNSC</code></pre>
 <pre><code>## Of the 566 files for download 566 already exist.</code></pre>
 <pre><code>## All samples have been already downloaded</code></pre>
-<pre><code>## [1] 0.001766784
-## [1] 0.003533569
-## [1] 0.005300353
-## [1] 0.007067138
-## [1] 0.008833922
-## [1] 0.01060071
-## [1] 0.01236749
-## [1] 0.01413428
-## [1] 0.01590106
-## [1] 0.01766784
-## [1] 0.01943463
-## [1] 0.02120141
-## [1] 0.0229682
-## [1] 0.02473498
-## [1] 0.02650177
-## [1] 0.02826855
-## [1] 0.03003534
-## [1] 0.03180212
-## [1] 0.0335689
-## [1] 0.03533569
-## [1] 0.03710247
-## [1] 0.03886926
-## [1] 0.04063604
-## [1] 0.04240283
-## [1] 0.04416961
-## [1] 0.0459364
-## [1] 0.04770318
-## [1] 0.04946996
-## [1] 0.05123675
-## [1] 0.05300353
-## [1] 0.05477032
-## [1] 0.0565371
-## [1] 0.05830389
-## [1] 0.06007067
-## [1] 0.06183746
-## [1] 0.06360424
-## [1] 0.06537102
-## [1] 0.06713781
-## [1] 0.06890459
-## [1] 0.07067138
-## [1] 0.07243816
-## [1] 0.07420495
-## [1] 0.07597173
-## [1] 0.07773852
-## [1] 0.0795053
-## [1] 0.08127208
-## [1] 0.08303887
-## [1] 0.08480565
-## [1] 0.08657244
-## [1] 0.08833922
-## [1] 0.09010601
-## [1] 0.09187279
-## [1] 0.09363958
-## [1] 0.09540636
-## [1] 0.09717314
-## [1] 0.09893993
-## [1] 0.1007067
-## [1] 0.1024735
-## [1] 0.1042403
-## [1] 0.1060071
-## [1] 0.1077739
-## [1] 0.1095406
-## [1] 0.1113074
-## [1] 0.1130742
-## [1] 0.114841
-## [1] 0.1166078
-## [1] 0.1183746
-## [1] 0.1201413
-## [1] 0.1219081
-## [1] 0.1236749
-## [1] 0.1254417
-## [1] 0.1272085
-## [1] 0.1289753
-## [1] 0.130742
-## [1] 0.1325088
-## [1] 0.1342756
-## [1] 0.1360424
-## [1] 0.1378092
-## [1] 0.139576
-## [1] 0.1413428
-## [1] 0.1431095
-## [1] 0.1448763
-## [1] 0.1466431
-## [1] 0.1484099
-## [1] 0.1501767
-## [1] 0.1519435
-## [1] 0.1537102
-## [1] 0.155477
-## [1] 0.1572438
-## [1] 0.1590106
-## [1] 0.1607774
-## [1] 0.1625442
-## [1] 0.164311
-## [1] 0.1660777
-## [1] 0.1678445
-## [1] 0.1696113
-## [1] 0.1713781
-## [1] 0.1731449
-## [1] 0.1749117
-## [1] 0.1766784
-## [1] 0.1784452
-## [1] 0.180212
-## [1] 0.1819788
-## [1] 0.1837456
-## [1] 0.1855124
-## [1] 0.1872792
-## [1] 0.1890459
-## [1] 0.1908127
-## [1] 0.1925795
-## [1] 0.1943463
-## [1] 0.1961131
-## [1] 0.1978799
-## [1] 0.1996466
-## [1] 0.2014134
-## [1] 0.2031802
-## [1] 0.204947
-## [1] 0.2067138
-## [1] 0.2084806
-## [1] 0.2102473
-## [1] 0.2120141
-## [1] 0.2137809
-## [1] 0.2155477
-## [1] 0.2173145
-## [1] 0.2190813
-## [1] 0.2208481
-## [1] 0.2226148
-## [1] 0.2243816
-## [1] 0.2261484
-## [1] 0.2279152
-## [1] 0.229682
-## [1] 0.2314488
-## [1] 0.2332155
-## [1] 0.2349823
-## [1] 0.2367491
-## [1] 0.2385159
-## [1] 0.2402827
-## [1] 0.2420495
-## [1] 0.2438163
-## [1] 0.245583
-## [1] 0.2473498
-## [1] 0.2491166
-## [1] 0.2508834
-## [1] 0.2526502
-## [1] 0.254417
-## [1] 0.2561837
-## [1] 0.2579505
-## [1] 0.2597173
-## [1] 0.2614841
-## [1] 0.2632509
-## [1] 0.2650177
-## [1] 0.2667845
-## [1] 0.2685512
-## [1] 0.270318
-## [1] 0.2720848
-## [1] 0.2738516
-## [1] 0.2756184
-## [1] 0.2773852
-## [1] 0.2791519
-## [1] 0.2809187
-## [1] 0.2826855
-## [1] 0.2844523
-## [1] 0.2862191
-## [1] 0.2879859
-## [1] 0.2897527
-## [1] 0.2915194
-## [1] 0.2932862
-## [1] 0.295053
-## [1] 0.2968198
-## [1] 0.2985866
-## [1] 0.3003534
-## [1] 0.3021201
-## [1] 0.3038869
-## [1] 0.3056537
-## [1] 0.3074205
-## [1] 0.3091873
-## [1] 0.3109541
-## [1] 0.3127208
-## [1] 0.3144876
-## [1] 0.3162544
-## [1] 0.3180212
-## [1] 0.319788
-## [1] 0.3215548
-## [1] 0.3233216
-## [1] 0.3250883
-## [1] 0.3268551
-## [1] 0.3286219
-## [1] 0.3303887
-## [1] 0.3321555
-## [1] 0.3339223
-## [1] 0.335689
-## [1] 0.3374558
-## [1] 0.3392226
-## [1] 0.3409894
-## [1] 0.3427562
-## [1] 0.344523
-## [1] 0.3462898
-## [1] 0.3480565
-## [1] 0.3498233
-## [1] 0.3515901
-## [1] 0.3533569
-## [1] 0.3551237
-## [1] 0.3568905
-## [1] 0.3586572
-## [1] 0.360424
-## [1] 0.3621908
-## [1] 0.3639576
-## [1] 0.3657244
-## [1] 0.3674912
-## [1] 0.369258
-## [1] 0.3710247
-## [1] 0.3727915
-## [1] 0.3745583
-## [1] 0.3763251
-## [1] 0.3780919
-## [1] 0.3798587
-## [1] 0.3816254
-## [1] 0.3833922
-## [1] 0.385159
-## [1] 0.3869258
-## [1] 0.3886926
-## [1] 0.3904594
-## [1] 0.3922261
-## [1] 0.3939929
-## [1] 0.3957597
-## [1] 0.3975265
-## [1] 0.3992933
-## [1] 0.4010601
-## [1] 0.4028269
-## [1] 0.4045936
-## [1] 0.4063604
-## [1] 0.4081272
-## [1] 0.409894
-## [1] 0.4116608
-## [1] 0.4134276
-## [1] 0.4151943
-## [1] 0.4169611
-## [1] 0.4187279
-## [1] 0.4204947
-## [1] 0.4222615
-## [1] 0.4240283
-## [1] 0.4257951
-## [1] 0.4275618
-## [1] 0.4293286
-## [1] 0.4310954
-## [1] 0.4328622
-## [1] 0.434629
-## [1] 0.4363958
-## [1] 0.4381625
-## [1] 0.4399293
-## [1] 0.4416961
-## [1] 0.4434629
-## [1] 0.4452297
-## [1] 0.4469965
-## [1] 0.4487633
-## [1] 0.45053
-## [1] 0.4522968
-## [1] 0.4540636
-## [1] 0.4558304
-## [1] 0.4575972
-## [1] 0.459364
-## [1] 0.4611307
-## [1] 0.4628975
-## [1] 0.4646643
-## [1] 0.4664311
-## [1] 0.4681979
-## [1] 0.4699647
-## [1] 0.4717314
-## [1] 0.4734982
-## [1] 0.475265
-## [1] 0.4770318
-## [1] 0.4787986
-## [1] 0.4805654
-## [1] 0.4823322
-## [1] 0.4840989
-## [1] 0.4858657
-## [1] 0.4876325
-## [1] 0.4893993
-## [1] 0.4911661
-## [1] 0.4929329
-## [1] 0.4946996
-## [1] 0.4964664
-## [1] 0.4982332
-## [1] 0.5
-## [1] 0.5017668
-## [1] 0.5035336
-## [1] 0.5053004
-## [1] 0.5070671
-## [1] 0.5088339
-## [1] 0.5106007
-## [1] 0.5123675
-## [1] 0.5141343
-## [1] 0.5159011
-## [1] 0.5176678
-## [1] 0.5194346
-## [1] 0.5212014
-## [1] 0.5229682
-## [1] 0.524735
-## [1] 0.5265018
-## [1] 0.5282686
-## [1] 0.5300353
-## [1] 0.5318021
-## [1] 0.5335689
-## [1] 0.5353357
-## [1] 0.5371025
-## [1] 0.5388693
-## [1] 0.540636
-## [1] 0.5424028
-## [1] 0.5441696
-## [1] 0.5459364
-## [1] 0.5477032
-## [1] 0.54947
-## [1] 0.5512367
-## [1] 0.5530035
-## [1] 0.5547703
-## [1] 0.5565371
-## [1] 0.5583039
-## [1] 0.5600707
-## [1] 0.5618375
-## [1] 0.5636042
-## [1] 0.565371
-## [1] 0.5671378
-## [1] 0.5689046
-## [1] 0.5706714
-## [1] 0.5724382
-## [1] 0.5742049
-## [1] 0.5759717
-## [1] 0.5777385
-## [1] 0.5795053
-## [1] 0.5812721
-## [1] 0.5830389
-## [1] 0.5848057
-## [1] 0.5865724
-## [1] 0.5883392
-## [1] 0.590106
-## [1] 0.5918728
-## [1] 0.5936396
-## [1] 0.5954064
-## [1] 0.5971731
-## [1] 0.5989399
-## [1] 0.6007067
-## [1] 0.6024735
-## [1] 0.6042403
-## [1] 0.6060071
-## [1] 0.6077739
-## [1] 0.6095406
-## [1] 0.6113074
-## [1] 0.6130742
-## [1] 0.614841
-## [1] 0.6166078
-## [1] 0.6183746
-## [1] 0.6201413
-## [1] 0.6219081
-## [1] 0.6236749
-## [1] 0.6254417
-## [1] 0.6272085
-## [1] 0.6289753
-## [1] 0.630742
-## [1] 0.6325088
-## [1] 0.6342756
-## [1] 0.6360424
-## [1] 0.6378092
-## [1] 0.639576
-## [1] 0.6413428
-## [1] 0.6431095
-## [1] 0.6448763
-## [1] 0.6466431
-## [1] 0.6484099
-## [1] 0.6501767
-## [1] 0.6519435
-## [1] 0.6537102
-## [1] 0.655477
-## [1] 0.6572438
-## [1] 0.6590106
-## [1] 0.6607774
-## [1] 0.6625442
-## [1] 0.664311
-## [1] 0.6660777
-## [1] 0.6678445
-## [1] 0.6696113
-## [1] 0.6713781
-## [1] 0.6731449
-## [1] 0.6749117
-## [1] 0.6766784
-## [1] 0.6784452
-## [1] 0.680212
-## [1] 0.6819788
-## [1] 0.6837456
-## [1] 0.6855124
-## [1] 0.6872792
-## [1] 0.6890459
-## [1] 0.6908127
-## [1] 0.6925795
-## [1] 0.6943463
-## [1] 0.6961131
-## [1] 0.6978799
-## [1] 0.6996466
-## [1] 0.7014134
-## [1] 0.7031802
-## [1] 0.704947
-## [1] 0.7067138
-## [1] 0.7084806
-## [1] 0.7102473
-## [1] 0.7120141
-## [1] 0.7137809
-## [1] 0.7155477
-## [1] 0.7173145
-## [1] 0.7190813
-## [1] 0.7208481
-## [1] 0.7226148
-## [1] 0.7243816
-## [1] 0.7261484
-## [1] 0.7279152
-## [1] 0.729682
-## [1] 0.7314488
-## [1] 0.7332155
-## [1] 0.7349823
-## [1] 0.7367491
-## [1] 0.7385159
-## [1] 0.7402827
-## [1] 0.7420495
-## [1] 0.7438163
-## [1] 0.745583
-## [1] 0.7473498
-## [1] 0.7491166
-## [1] 0.7508834
-## [1] 0.7526502
-## [1] 0.754417
-## [1] 0.7561837
-## [1] 0.7579505
-## [1] 0.7597173
-## [1] 0.7614841
-## [1] 0.7632509
-## [1] 0.7650177
-## [1] 0.7667845
-## [1] 0.7685512
-## [1] 0.770318
-## [1] 0.7720848
-## [1] 0.7738516
-## [1] 0.7756184
-## [1] 0.7773852
-## [1] 0.7791519
-## [1] 0.7809187
-## [1] 0.7826855
-## [1] 0.7844523
-## [1] 0.7862191
-## [1] 0.7879859
-## [1] 0.7897527
-## [1] 0.7915194
-## [1] 0.7932862
-## [1] 0.795053
-## [1] 0.7968198
-## [1] 0.7985866
-## [1] 0.8003534
-## [1] 0.8021201
-## [1] 0.8038869
-## [1] 0.8056537
-## [1] 0.8074205
-## [1] 0.8091873
-## [1] 0.8109541
-## [1] 0.8127208
-## [1] 0.8144876
-## [1] 0.8162544
-## [1] 0.8180212
-## [1] 0.819788
-## [1] 0.8215548
-## [1] 0.8233216
-## [1] 0.8250883
-## [1] 0.8268551
-## [1] 0.8286219
-## [1] 0.8303887
-## [1] 0.8321555
-## [1] 0.8339223
-## [1] 0.835689
-## [1] 0.8374558
-## [1] 0.8392226
-## [1] 0.8409894
-## [1] 0.8427562
-## [1] 0.844523
-## [1] 0.8462898
-## [1] 0.8480565
-## [1] 0.8498233
-## [1] 0.8515901
-## [1] 0.8533569
-## [1] 0.8551237
-## [1] 0.8568905
-## [1] 0.8586572
-## [1] 0.860424
-## [1] 0.8621908
-## [1] 0.8639576
-## [1] 0.8657244
-## [1] 0.8674912
-## [1] 0.869258
-## [1] 0.8710247
-## [1] 0.8727915
-## [1] 0.8745583
-## [1] 0.8763251
-## [1] 0.8780919
-## [1] 0.8798587
-## [1] 0.8816254
-## [1] 0.8833922
-## [1] 0.885159
-## [1] 0.8869258
-## [1] 0.8886926
-## [1] 0.8904594
-## [1] 0.8922261
-## [1] 0.8939929
-## [1] 0.8957597
-## [1] 0.8975265
-## [1] 0.8992933
-## [1] 0.9010601
-## [1] 0.9028269
-## [1] 0.9045936
-## [1] 0.9063604
-## [1] 0.9081272
-## [1] 0.909894
-## [1] 0.9116608
-## [1] 0.9134276
-## [1] 0.9151943
-## [1] 0.9169611
-## [1] 0.9187279
-## [1] 0.9204947
-## [1] 0.9222615
-## [1] 0.9240283
-## [1] 0.9257951
-## [1] 0.9275618
-## [1] 0.9293286
-## [1] 0.9310954
-## [1] 0.9328622
-## [1] 0.934629
-## [1] 0.9363958
-## [1] 0.9381625
-## [1] 0.9399293
-## [1] 0.9416961
-## [1] 0.9434629
-## [1] 0.9452297
-## [1] 0.9469965
-## [1] 0.9487633
-## [1] 0.95053
-## [1] 0.9522968
-## [1] 0.9540636
-## [1] 0.9558304
-## [1] 0.9575972
-## [1] 0.959364
-## [1] 0.9611307
-## [1] 0.9628975
-## [1] 0.9646643
-## [1] 0.9664311
-## [1] 0.9681979
-## [1] 0.9699647
-## [1] 0.9717314
-## [1] 0.9734982
-## [1] 0.975265
-## [1] 0.9770318
-## [1] 0.9787986
-## [1] 0.9805654
-## [1] 0.9823322
-## [1] 0.9840989
-## [1] 0.9858657
-## [1] 0.9876325
-## [1] 0.9893993
-## [1] 0.9911661
-## [1] 0.9929329
-## [1] 0.9946996
-## [1] 0.9964664
-## [1] 0.9982332
-## [1] 1</code></pre>
-<pre><code>## Ensembl site unresponsive, trying useast mirror</code></pre>
-<pre><code>## Ensembl site unresponsive, trying uswest mirror</code></pre>
+<pre><code>## 0.176678445229682 % completed</code></pre>
+<pre><code>## 0.353356890459364 % completed</code></pre>
+<pre><code>## 0.530035335689046 % completed</code></pre>
+<pre><code>## 0.706713780918728 % completed</code></pre>
+<pre><code>## 0.88339222614841 % completed</code></pre>
+<pre><code>## 1.06007067137809 % completed</code></pre>
+<pre><code>## 1.23674911660777 % completed</code></pre>
+<pre><code>## 1.41342756183746 % completed</code></pre>
+<pre><code>## 1.59010600706714 % completed</code></pre>
+<pre><code>## 1.76678445229682 % completed</code></pre>
+<pre><code>## 1.9434628975265 % completed</code></pre>
+<pre><code>## 2.12014134275618 % completed</code></pre>
+<pre><code>## 2.29681978798587 % completed</code></pre>
+<pre><code>## 2.47349823321555 % completed</code></pre>
+<pre><code>## 2.65017667844523 % completed</code></pre>
+<pre><code>## 2.82685512367491 % completed</code></pre>
+<pre><code>## 3.00353356890459 % completed</code></pre>
+<pre><code>## 3.18021201413428 % completed</code></pre>
+<pre><code>## 3.35689045936396 % completed</code></pre>
+<pre><code>## 3.53356890459364 % completed</code></pre>
+<pre><code>## 3.71024734982332 % completed</code></pre>
+<pre><code>## 3.886925795053 % completed</code></pre>
+<pre><code>## 4.06360424028269 % completed</code></pre>
+<pre><code>## 4.24028268551237 % completed</code></pre>
+<pre><code>## 4.41696113074205 % completed</code></pre>
+<pre><code>## 4.59363957597173 % completed</code></pre>
+<pre><code>## 4.77031802120141 % completed</code></pre>
+<pre><code>## 4.9469964664311 % completed</code></pre>
+<pre><code>## 5.12367491166078 % completed</code></pre>
+<pre><code>## 5.30035335689046 % completed</code></pre>
+<pre><code>## 5.47703180212014 % completed</code></pre>
+<pre><code>## 5.65371024734982 % completed</code></pre>
+<pre><code>## 5.8303886925795 % completed</code></pre>
+<pre><code>## 6.00706713780919 % completed</code></pre>
+<pre><code>## 6.18374558303887 % completed</code></pre>
+<pre><code>## 6.36042402826855 % completed</code></pre>
+<pre><code>## 6.53710247349823 % completed</code></pre>
+<pre><code>## 6.71378091872792 % completed</code></pre>
+<pre><code>## 6.8904593639576 % completed</code></pre>
+<pre><code>## 7.06713780918728 % completed</code></pre>
+<pre><code>## 7.24381625441696 % completed</code></pre>
+<pre><code>## 7.42049469964664 % completed</code></pre>
+<pre><code>## 7.59717314487632 % completed</code></pre>
+<pre><code>## 7.77385159010601 % completed</code></pre>
+<pre><code>## 7.95053003533569 % completed</code></pre>
+<pre><code>## 8.12720848056537 % completed</code></pre>
+<pre><code>## 8.30388692579505 % completed</code></pre>
+<pre><code>## 8.48056537102473 % completed</code></pre>
+<pre><code>## 8.65724381625442 % completed</code></pre>
+<pre><code>## 8.8339222614841 % completed</code></pre>
+<pre><code>## 9.01060070671378 % completed</code></pre>
+<pre><code>## 9.18727915194346 % completed</code></pre>
+<pre><code>## 9.36395759717314 % completed</code></pre>
+<pre><code>## 9.54063604240283 % completed</code></pre>
+<pre><code>## 9.71731448763251 % completed</code></pre>
+<pre><code>## 9.89399293286219 % completed</code></pre>
+<pre><code>## 10.0706713780919 % completed</code></pre>
+<pre><code>## 10.2473498233216 % completed</code></pre>
+<pre><code>## 10.4240282685512 % completed</code></pre>
+<pre><code>## 10.6007067137809 % completed</code></pre>
+<pre><code>## 10.7773851590106 % completed</code></pre>
+<pre><code>## 10.9540636042403 % completed</code></pre>
+<pre><code>## 11.13074204947 % completed</code></pre>
+<pre><code>## 11.3074204946996 % completed</code></pre>
+<pre><code>## 11.4840989399293 % completed</code></pre>
+<pre><code>## 11.660777385159 % completed</code></pre>
+<pre><code>## 11.8374558303887 % completed</code></pre>
+<pre><code>## 12.0141342756184 % completed</code></pre>
+<pre><code>## 12.1908127208481 % completed</code></pre>
+<pre><code>## 12.3674911660777 % completed</code></pre>
+<pre><code>## 12.5441696113074 % completed</code></pre>
+<pre><code>## 12.7208480565371 % completed</code></pre>
+<pre><code>## 12.8975265017668 % completed</code></pre>
+<pre><code>## 13.0742049469965 % completed</code></pre>
+<pre><code>## 13.2508833922261 % completed</code></pre>
+<pre><code>## 13.4275618374558 % completed</code></pre>
+<pre><code>## 13.6042402826855 % completed</code></pre>
+<pre><code>## 13.7809187279152 % completed</code></pre>
+<pre><code>## 13.9575971731449 % completed</code></pre>
+<pre><code>## 14.1342756183746 % completed</code></pre>
+<pre><code>## 14.3109540636042 % completed</code></pre>
+<pre><code>## 14.4876325088339 % completed</code></pre>
+<pre><code>## 14.6643109540636 % completed</code></pre>
+<pre><code>## 14.8409893992933 % completed</code></pre>
+<pre><code>## 15.017667844523 % completed</code></pre>
+<pre><code>## 15.1943462897526 % completed</code></pre>
+<pre><code>## 15.3710247349823 % completed</code></pre>
+<pre><code>## 15.547703180212 % completed</code></pre>
+<pre><code>## 15.7243816254417 % completed</code></pre>
+<pre><code>## 15.9010600706714 % completed</code></pre>
+<pre><code>## 16.0777385159011 % completed</code></pre>
+<pre><code>## 16.2544169611307 % completed</code></pre>
+<pre><code>## 16.4310954063604 % completed</code></pre>
+<pre><code>## 16.6077738515901 % completed</code></pre>
+<pre><code>## 16.7844522968198 % completed</code></pre>
+<pre><code>## 16.9611307420495 % completed</code></pre>
+<pre><code>## 17.1378091872792 % completed</code></pre>
+<pre><code>## 17.3144876325088 % completed</code></pre>
+<pre><code>## 17.4911660777385 % completed</code></pre>
+<pre><code>## 17.6678445229682 % completed</code></pre>
+<pre><code>## 17.8445229681979 % completed</code></pre>
+<pre><code>## 18.0212014134276 % completed</code></pre>
+<pre><code>## 18.1978798586572 % completed</code></pre>
+<pre><code>## 18.3745583038869 % completed</code></pre>
+<pre><code>## 18.5512367491166 % completed</code></pre>
+<pre><code>## 18.7279151943463 % completed</code></pre>
+<pre><code>## 18.904593639576 % completed</code></pre>
+<pre><code>## 19.0812720848057 % completed</code></pre>
+<pre><code>## 19.2579505300353 % completed</code></pre>
+<pre><code>## 19.434628975265 % completed</code></pre>
+<pre><code>## 19.6113074204947 % completed</code></pre>
+<pre><code>## 19.7879858657244 % completed</code></pre>
+<pre><code>## 19.9646643109541 % completed</code></pre>
+<pre><code>## 20.1413427561837 % completed</code></pre>
+<pre><code>## 20.3180212014134 % completed</code></pre>
+<pre><code>## 20.4946996466431 % completed</code></pre>
+<pre><code>## 20.6713780918728 % completed</code></pre>
+<pre><code>## 20.8480565371025 % completed</code></pre>
+<pre><code>## 21.0247349823322 % completed</code></pre>
+<pre><code>## 21.2014134275618 % completed</code></pre>
+<pre><code>## 21.3780918727915 % completed</code></pre>
+<pre><code>## 21.5547703180212 % completed</code></pre>
+<pre><code>## 21.7314487632509 % completed</code></pre>
+<pre><code>## 21.9081272084806 % completed</code></pre>
+<pre><code>## 22.0848056537102 % completed</code></pre>
+<pre><code>## 22.2614840989399 % completed</code></pre>
+<pre><code>## 22.4381625441696 % completed</code></pre>
+<pre><code>## 22.6148409893993 % completed</code></pre>
+<pre><code>## 22.791519434629 % completed</code></pre>
+<pre><code>## 22.9681978798587 % completed</code></pre>
+<pre><code>## 23.1448763250883 % completed</code></pre>
+<pre><code>## 23.321554770318 % completed</code></pre>
+<pre><code>## 23.4982332155477 % completed</code></pre>
+<pre><code>## 23.6749116607774 % completed</code></pre>
+<pre><code>## 23.8515901060071 % completed</code></pre>
+<pre><code>## 24.0282685512367 % completed</code></pre>
+<pre><code>## 24.2049469964664 % completed</code></pre>
+<pre><code>## 24.3816254416961 % completed</code></pre>
+<pre><code>## 24.5583038869258 % completed</code></pre>
+<pre><code>## 24.7349823321555 % completed</code></pre>
+<pre><code>## 24.9116607773852 % completed</code></pre>
+<pre><code>## 25.0883392226148 % completed</code></pre>
+<pre><code>## 25.2650176678445 % completed</code></pre>
+<pre><code>## 25.4416961130742 % completed</code></pre>
+<pre><code>## 25.6183745583039 % completed</code></pre>
+<pre><code>## 25.7950530035336 % completed</code></pre>
+<pre><code>## 25.9717314487633 % completed</code></pre>
+<pre><code>## 26.1484098939929 % completed</code></pre>
+<pre><code>## 26.3250883392226 % completed</code></pre>
+<pre><code>## 26.5017667844523 % completed</code></pre>
+<pre><code>## 26.678445229682 % completed</code></pre>
+<pre><code>## 26.8551236749117 % completed</code></pre>
+<pre><code>## 27.0318021201413 % completed</code></pre>
+<pre><code>## 27.208480565371 % completed</code></pre>
+<pre><code>## 27.3851590106007 % completed</code></pre>
+<pre><code>## 27.5618374558304 % completed</code></pre>
+<pre><code>## 27.7385159010601 % completed</code></pre>
+<pre><code>## 27.9151943462898 % completed</code></pre>
+<pre><code>## 28.0918727915194 % completed</code></pre>
+<pre><code>## 28.2685512367491 % completed</code></pre>
+<pre><code>## 28.4452296819788 % completed</code></pre>
+<pre><code>## 28.6219081272085 % completed</code></pre>
+<pre><code>## 28.7985865724382 % completed</code></pre>
+<pre><code>## 28.9752650176678 % completed</code></pre>
+<pre><code>## 29.1519434628975 % completed</code></pre>
+<pre><code>## 29.3286219081272 % completed</code></pre>
+<pre><code>## 29.5053003533569 % completed</code></pre>
+<pre><code>## 29.6819787985866 % completed</code></pre>
+<pre><code>## 29.8586572438163 % completed</code></pre>
+<pre><code>## 30.0353356890459 % completed</code></pre>
+<pre><code>## 30.2120141342756 % completed</code></pre>
+<pre><code>## 30.3886925795053 % completed</code></pre>
+<pre><code>## 30.565371024735 % completed</code></pre>
+<pre><code>## 30.7420494699647 % completed</code></pre>
+<pre><code>## 30.9187279151943 % completed</code></pre>
+<pre><code>## 31.095406360424 % completed</code></pre>
+<pre><code>## 31.2720848056537 % completed</code></pre>
+<pre><code>## 31.4487632508834 % completed</code></pre>
+<pre><code>## 31.6254416961131 % completed</code></pre>
+<pre><code>## 31.8021201413428 % completed</code></pre>
+<pre><code>## 31.9787985865724 % completed</code></pre>
+<pre><code>## 32.1554770318021 % completed</code></pre>
+<pre><code>## 32.3321554770318 % completed</code></pre>
+<pre><code>## 32.5088339222615 % completed</code></pre>
+<pre><code>## 32.6855123674912 % completed</code></pre>
+<pre><code>## 32.8621908127208 % completed</code></pre>
+<pre><code>## 33.0388692579505 % completed</code></pre>
+<pre><code>## 33.2155477031802 % completed</code></pre>
+<pre><code>## 33.3922261484099 % completed</code></pre>
+<pre><code>## 33.5689045936396 % completed</code></pre>
+<pre><code>## 33.7455830388693 % completed</code></pre>
+<pre><code>## 33.9222614840989 % completed</code></pre>
+<pre><code>## 34.0989399293286 % completed</code></pre>
+<pre><code>## 34.2756183745583 % completed</code></pre>
+<pre><code>## 34.452296819788 % completed</code></pre>
+<pre><code>## 34.6289752650177 % completed</code></pre>
+<pre><code>## 34.8056537102473 % completed</code></pre>
+<pre><code>## 34.982332155477 % completed</code></pre>
+<pre><code>## 35.1590106007067 % completed</code></pre>
+<pre><code>## 35.3356890459364 % completed</code></pre>
+<pre><code>## 35.5123674911661 % completed</code></pre>
+<pre><code>## 35.6890459363958 % completed</code></pre>
+<pre><code>## 35.8657243816254 % completed</code></pre>
+<pre><code>## 36.0424028268551 % completed</code></pre>
+<pre><code>## 36.2190812720848 % completed</code></pre>
+<pre><code>## 36.3957597173145 % completed</code></pre>
+<pre><code>## 36.5724381625442 % completed</code></pre>
+<pre><code>## 36.7491166077738 % completed</code></pre>
+<pre><code>## 36.9257950530035 % completed</code></pre>
+<pre><code>## 37.1024734982332 % completed</code></pre>
+<pre><code>## 37.2791519434629 % completed</code></pre>
+<pre><code>## 37.4558303886926 % completed</code></pre>
+<pre><code>## 37.6325088339223 % completed</code></pre>
+<pre><code>## 37.8091872791519 % completed</code></pre>
+<pre><code>## 37.9858657243816 % completed</code></pre>
+<pre><code>## 38.1625441696113 % completed</code></pre>
+<pre><code>## 38.339222614841 % completed</code></pre>
+<pre><code>## 38.5159010600707 % completed</code></pre>
+<pre><code>## 38.6925795053004 % completed</code></pre>
+<pre><code>## 38.86925795053 % completed</code></pre>
+<pre><code>## 39.0459363957597 % completed</code></pre>
+<pre><code>## 39.2226148409894 % completed</code></pre>
+<pre><code>## 39.3992932862191 % completed</code></pre>
+<pre><code>## 39.5759717314488 % completed</code></pre>
+<pre><code>## 39.7526501766784 % completed</code></pre>
+<pre><code>## 39.9293286219081 % completed</code></pre>
+<pre><code>## 40.1060070671378 % completed</code></pre>
+<pre><code>## 40.2826855123675 % completed</code></pre>
+<pre><code>## 40.4593639575972 % completed</code></pre>
+<pre><code>## 40.6360424028269 % completed</code></pre>
+<pre><code>## 40.8127208480565 % completed</code></pre>
+<pre><code>## 40.9893992932862 % completed</code></pre>
+<pre><code>## 41.1660777385159 % completed</code></pre>
+<pre><code>## 41.3427561837456 % completed</code></pre>
+<pre><code>## 41.5194346289753 % completed</code></pre>
+<pre><code>## 41.696113074205 % completed</code></pre>
+<pre><code>## 41.8727915194346 % completed</code></pre>
+<pre><code>## 42.0494699646643 % completed</code></pre>
+<pre><code>## 42.226148409894 % completed</code></pre>
+<pre><code>## 42.4028268551237 % completed</code></pre>
+<pre><code>## 42.5795053003534 % completed</code></pre>
+<pre><code>## 42.756183745583 % completed</code></pre>
+<pre><code>## 42.9328621908127 % completed</code></pre>
+<pre><code>## 43.1095406360424 % completed</code></pre>
+<pre><code>## 43.2862190812721 % completed</code></pre>
+<pre><code>## 43.4628975265018 % completed</code></pre>
+<pre><code>## 43.6395759717314 % completed</code></pre>
+<pre><code>## 43.8162544169611 % completed</code></pre>
+<pre><code>## 43.9929328621908 % completed</code></pre>
+<pre><code>## 44.1696113074205 % completed</code></pre>
+<pre><code>## 44.3462897526502 % completed</code></pre>
+<pre><code>## 44.5229681978799 % completed</code></pre>
+<pre><code>## 44.6996466431095 % completed</code></pre>
+<pre><code>## 44.8763250883392 % completed</code></pre>
+<pre><code>## 45.0530035335689 % completed</code></pre>
+<pre><code>## 45.2296819787986 % completed</code></pre>
+<pre><code>## 45.4063604240283 % completed</code></pre>
+<pre><code>## 45.583038869258 % completed</code></pre>
+<pre><code>## 45.7597173144876 % completed</code></pre>
+<pre><code>## 45.9363957597173 % completed</code></pre>
+<pre><code>## 46.113074204947 % completed</code></pre>
+<pre><code>## 46.2897526501767 % completed</code></pre>
+<pre><code>## 46.4664310954064 % completed</code></pre>
+<pre><code>## 46.643109540636 % completed</code></pre>
+<pre><code>## 46.8197879858657 % completed</code></pre>
+<pre><code>## 46.9964664310954 % completed</code></pre>
+<pre><code>## 47.1731448763251 % completed</code></pre>
+<pre><code>## 47.3498233215548 % completed</code></pre>
+<pre><code>## 47.5265017667844 % completed</code></pre>
+<pre><code>## 47.7031802120141 % completed</code></pre>
+<pre><code>## 47.8798586572438 % completed</code></pre>
+<pre><code>## 48.0565371024735 % completed</code></pre>
+<pre><code>## 48.2332155477032 % completed</code></pre>
+<pre><code>## 48.4098939929329 % completed</code></pre>
+<pre><code>## 48.5865724381625 % completed</code></pre>
+<pre><code>## 48.7632508833922 % completed</code></pre>
+<pre><code>## 48.9399293286219 % completed</code></pre>
+<pre><code>## 49.1166077738516 % completed</code></pre>
+<pre><code>## 49.2932862190813 % completed</code></pre>
+<pre><code>## 49.469964664311 % completed</code></pre>
+<pre><code>## 49.6466431095406 % completed</code></pre>
+<pre><code>## 49.8233215547703 % completed</code></pre>
+<pre><code>## 50 % completed</code></pre>
+<pre><code>## 50.1766784452297 % completed</code></pre>
+<pre><code>## 50.3533568904594 % completed</code></pre>
+<pre><code>## 50.530035335689 % completed</code></pre>
+<pre><code>## 50.7067137809187 % completed</code></pre>
+<pre><code>## 50.8833922261484 % completed</code></pre>
+<pre><code>## 51.0600706713781 % completed</code></pre>
+<pre><code>## 51.2367491166078 % completed</code></pre>
+<pre><code>## 51.4134275618375 % completed</code></pre>
+<pre><code>## 51.5901060070671 % completed</code></pre>
+<pre><code>## 51.7667844522968 % completed</code></pre>
+<pre><code>## 51.9434628975265 % completed</code></pre>
+<pre><code>## 52.1201413427562 % completed</code></pre>
+<pre><code>## 52.2968197879859 % completed</code></pre>
+<pre><code>## 52.4734982332155 % completed</code></pre>
+<pre><code>## 52.6501766784452 % completed</code></pre>
+<pre><code>## 52.8268551236749 % completed</code></pre>
+<pre><code>## 53.0035335689046 % completed</code></pre>
+<pre><code>## 53.1802120141343 % completed</code></pre>
+<pre><code>## 53.356890459364 % completed</code></pre>
+<pre><code>## 53.5335689045936 % completed</code></pre>
+<pre><code>## 53.7102473498233 % completed</code></pre>
+<pre><code>## 53.886925795053 % completed</code></pre>
+<pre><code>## 54.0636042402827 % completed</code></pre>
+<pre><code>## 54.2402826855124 % completed</code></pre>
+<pre><code>## 54.416961130742 % completed</code></pre>
+<pre><code>## 54.5936395759717 % completed</code></pre>
+<pre><code>## 54.7703180212014 % completed</code></pre>
+<pre><code>## 54.9469964664311 % completed</code></pre>
+<pre><code>## 55.1236749116608 % completed</code></pre>
+<pre><code>## 55.3003533568905 % completed</code></pre>
+<pre><code>## 55.4770318021201 % completed</code></pre>
+<pre><code>## 55.6537102473498 % completed</code></pre>
+<pre><code>## 55.8303886925795 % completed</code></pre>
+<pre><code>## 56.0070671378092 % completed</code></pre>
+<pre><code>## 56.1837455830389 % completed</code></pre>
+<pre><code>## 56.3604240282686 % completed</code></pre>
+<pre><code>## 56.5371024734982 % completed</code></pre>
+<pre><code>## 56.7137809187279 % completed</code></pre>
+<pre><code>## 56.8904593639576 % completed</code></pre>
+<pre><code>## 57.0671378091873 % completed</code></pre>
+<pre><code>## 57.243816254417 % completed</code></pre>
+<pre><code>## 57.4204946996466 % completed</code></pre>
+<pre><code>## 57.5971731448763 % completed</code></pre>
+<pre><code>## 57.773851590106 % completed</code></pre>
+<pre><code>## 57.9505300353357 % completed</code></pre>
+<pre><code>## 58.1272084805654 % completed</code></pre>
+<pre><code>## 58.3038869257951 % completed</code></pre>
+<pre><code>## 58.4805653710247 % completed</code></pre>
+<pre><code>## 58.6572438162544 % completed</code></pre>
+<pre><code>## 58.8339222614841 % completed</code></pre>
+<pre><code>## 59.0106007067138 % completed</code></pre>
+<pre><code>## 59.1872791519435 % completed</code></pre>
+<pre><code>## 59.3639575971731 % completed</code></pre>
+<pre><code>## 59.5406360424028 % completed</code></pre>
+<pre><code>## 59.7173144876325 % completed</code></pre>
+<pre><code>## 59.8939929328622 % completed</code></pre>
+<pre><code>## 60.0706713780919 % completed</code></pre>
+<pre><code>## 60.2473498233215 % completed</code></pre>
+<pre><code>## 60.4240282685512 % completed</code></pre>
+<pre><code>## 60.6007067137809 % completed</code></pre>
+<pre><code>## 60.7773851590106 % completed</code></pre>
+<pre><code>## 60.9540636042403 % completed</code></pre>
+<pre><code>## 61.13074204947 % completed</code></pre>
+<pre><code>## 61.3074204946996 % completed</code></pre>
+<pre><code>## 61.4840989399293 % completed</code></pre>
+<pre><code>## 61.660777385159 % completed</code></pre>
+<pre><code>## 61.8374558303887 % completed</code></pre>
+<pre><code>## 62.0141342756184 % completed</code></pre>
+<pre><code>## 62.1908127208481 % completed</code></pre>
+<pre><code>## 62.3674911660777 % completed</code></pre>
+<pre><code>## 62.5441696113074 % completed</code></pre>
+<pre><code>## 62.7208480565371 % completed</code></pre>
+<pre><code>## 62.8975265017668 % completed</code></pre>
+<pre><code>## 63.0742049469965 % completed</code></pre>
+<pre><code>## 63.2508833922262 % completed</code></pre>
+<pre><code>## 63.4275618374558 % completed</code></pre>
+<pre><code>## 63.6042402826855 % completed</code></pre>
+<pre><code>## 63.7809187279152 % completed</code></pre>
+<pre><code>## 63.9575971731449 % completed</code></pre>
+<pre><code>## 64.1342756183746 % completed</code></pre>
+<pre><code>## 64.3109540636042 % completed</code></pre>
+<pre><code>## 64.4876325088339 % completed</code></pre>
+<pre><code>## 64.6643109540636 % completed</code></pre>
+<pre><code>## 64.8409893992933 % completed</code></pre>
+<pre><code>## 65.017667844523 % completed</code></pre>
+<pre><code>## 65.1943462897526 % completed</code></pre>
+<pre><code>## 65.3710247349823 % completed</code></pre>
+<pre><code>## 65.547703180212 % completed</code></pre>
+<pre><code>## 65.7243816254417 % completed</code></pre>
+<pre><code>## 65.9010600706714 % completed</code></pre>
+<pre><code>## 66.0777385159011 % completed</code></pre>
+<pre><code>## 66.2544169611307 % completed</code></pre>
+<pre><code>## 66.4310954063604 % completed</code></pre>
+<pre><code>## 66.6077738515901 % completed</code></pre>
+<pre><code>## 66.7844522968198 % completed</code></pre>
+<pre><code>## 66.9611307420495 % completed</code></pre>
+<pre><code>## 67.1378091872791 % completed</code></pre>
+<pre><code>## 67.3144876325088 % completed</code></pre>
+<pre><code>## 67.4911660777385 % completed</code></pre>
+<pre><code>## 67.6678445229682 % completed</code></pre>
+<pre><code>## 67.8445229681979 % completed</code></pre>
+<pre><code>## 68.0212014134276 % completed</code></pre>
+<pre><code>## 68.1978798586572 % completed</code></pre>
+<pre><code>## 68.3745583038869 % completed</code></pre>
+<pre><code>## 68.5512367491166 % completed</code></pre>
+<pre><code>## 68.7279151943463 % completed</code></pre>
+<pre><code>## 68.904593639576 % completed</code></pre>
+<pre><code>## 69.0812720848057 % completed</code></pre>
+<pre><code>## 69.2579505300353 % completed</code></pre>
+<pre><code>## 69.434628975265 % completed</code></pre>
+<pre><code>## 69.6113074204947 % completed</code></pre>
+<pre><code>## 69.7879858657244 % completed</code></pre>
+<pre><code>## 69.9646643109541 % completed</code></pre>
+<pre><code>## 70.1413427561837 % completed</code></pre>
+<pre><code>## 70.3180212014134 % completed</code></pre>
+<pre><code>## 70.4946996466431 % completed</code></pre>
+<pre><code>## 70.6713780918728 % completed</code></pre>
+<pre><code>## 70.8480565371025 % completed</code></pre>
+<pre><code>## 71.0247349823322 % completed</code></pre>
+<pre><code>## 71.2014134275618 % completed</code></pre>
+<pre><code>## 71.3780918727915 % completed</code></pre>
+<pre><code>## 71.5547703180212 % completed</code></pre>
+<pre><code>## 71.7314487632509 % completed</code></pre>
+<pre><code>## 71.9081272084806 % completed</code></pre>
+<pre><code>## 72.0848056537102 % completed</code></pre>
+<pre><code>## 72.2614840989399 % completed</code></pre>
+<pre><code>## 72.4381625441696 % completed</code></pre>
+<pre><code>## 72.6148409893993 % completed</code></pre>
+<pre><code>## 72.791519434629 % completed</code></pre>
+<pre><code>## 72.9681978798586 % completed</code></pre>
+<pre><code>## 73.1448763250883 % completed</code></pre>
+<pre><code>## 73.321554770318 % completed</code></pre>
+<pre><code>## 73.4982332155477 % completed</code></pre>
+<pre><code>## 73.6749116607774 % completed</code></pre>
+<pre><code>## 73.8515901060071 % completed</code></pre>
+<pre><code>## 74.0282685512367 % completed</code></pre>
+<pre><code>## 74.2049469964664 % completed</code></pre>
+<pre><code>## 74.3816254416961 % completed</code></pre>
+<pre><code>## 74.5583038869258 % completed</code></pre>
+<pre><code>## 74.7349823321555 % completed</code></pre>
+<pre><code>## 74.9116607773852 % completed</code></pre>
+<pre><code>## 75.0883392226148 % completed</code></pre>
+<pre><code>## 75.2650176678445 % completed</code></pre>
+<pre><code>## 75.4416961130742 % completed</code></pre>
+<pre><code>## 75.6183745583039 % completed</code></pre>
+<pre><code>## 75.7950530035336 % completed</code></pre>
+<pre><code>## 75.9717314487633 % completed</code></pre>
+<pre><code>## 76.1484098939929 % completed</code></pre>
+<pre><code>## 76.3250883392226 % completed</code></pre>
+<pre><code>## 76.5017667844523 % completed</code></pre>
+<pre><code>## 76.678445229682 % completed</code></pre>
+<pre><code>## 76.8551236749117 % completed</code></pre>
+<pre><code>## 77.0318021201414 % completed</code></pre>
+<pre><code>## 77.208480565371 % completed</code></pre>
+<pre><code>## 77.3851590106007 % completed</code></pre>
+<pre><code>## 77.5618374558304 % completed</code></pre>
+<pre><code>## 77.7385159010601 % completed</code></pre>
+<pre><code>## 77.9151943462898 % completed</code></pre>
+<pre><code>## 78.0918727915194 % completed</code></pre>
+<pre><code>## 78.2685512367491 % completed</code></pre>
+<pre><code>## 78.4452296819788 % completed</code></pre>
+<pre><code>## 78.6219081272085 % completed</code></pre>
+<pre><code>## 78.7985865724382 % completed</code></pre>
+<pre><code>## 78.9752650176678 % completed</code></pre>
+<pre><code>## 79.1519434628975 % completed</code></pre>
+<pre><code>## 79.3286219081272 % completed</code></pre>
+<pre><code>## 79.5053003533569 % completed</code></pre>
+<pre><code>## 79.6819787985866 % completed</code></pre>
+<pre><code>## 79.8586572438163 % completed</code></pre>
+<pre><code>## 80.0353356890459 % completed</code></pre>
+<pre><code>## 80.2120141342756 % completed</code></pre>
+<pre><code>## 80.3886925795053 % completed</code></pre>
+<pre><code>## 80.565371024735 % completed</code></pre>
+<pre><code>## 80.7420494699647 % completed</code></pre>
+<pre><code>## 80.9187279151943 % completed</code></pre>
+<pre><code>## 81.095406360424 % completed</code></pre>
+<pre><code>## 81.2720848056537 % completed</code></pre>
+<pre><code>## 81.4487632508834 % completed</code></pre>
+<pre><code>## 81.6254416961131 % completed</code></pre>
+<pre><code>## 81.8021201413428 % completed</code></pre>
+<pre><code>## 81.9787985865724 % completed</code></pre>
+<pre><code>## 82.1554770318021 % completed</code></pre>
+<pre><code>## 82.3321554770318 % completed</code></pre>
+<pre><code>## 82.5088339222615 % completed</code></pre>
+<pre><code>## 82.6855123674912 % completed</code></pre>
+<pre><code>## 82.8621908127209 % completed</code></pre>
+<pre><code>## 83.0388692579505 % completed</code></pre>
+<pre><code>## 83.2155477031802 % completed</code></pre>
+<pre><code>## 83.3922261484099 % completed</code></pre>
+<pre><code>## 83.5689045936396 % completed</code></pre>
+<pre><code>## 83.7455830388693 % completed</code></pre>
+<pre><code>## 83.9222614840989 % completed</code></pre>
+<pre><code>## 84.0989399293286 % completed</code></pre>
+<pre><code>## 84.2756183745583 % completed</code></pre>
+<pre><code>## 84.452296819788 % completed</code></pre>
+<pre><code>## 84.6289752650177 % completed</code></pre>
+<pre><code>## 84.8056537102474 % completed</code></pre>
+<pre><code>## 84.982332155477 % completed</code></pre>
+<pre><code>## 85.1590106007067 % completed</code></pre>
+<pre><code>## 85.3356890459364 % completed</code></pre>
+<pre><code>## 85.5123674911661 % completed</code></pre>
+<pre><code>## 85.6890459363958 % completed</code></pre>
+<pre><code>## 85.8657243816254 % completed</code></pre>
+<pre><code>## 86.0424028268551 % completed</code></pre>
+<pre><code>## 86.2190812720848 % completed</code></pre>
+<pre><code>## 86.3957597173145 % completed</code></pre>
+<pre><code>## 86.5724381625442 % completed</code></pre>
+<pre><code>## 86.7491166077738 % completed</code></pre>
+<pre><code>## 86.9257950530035 % completed</code></pre>
+<pre><code>## 87.1024734982332 % completed</code></pre>
+<pre><code>## 87.2791519434629 % completed</code></pre>
+<pre><code>## 87.4558303886926 % completed</code></pre>
+<pre><code>## 87.6325088339223 % completed</code></pre>
+<pre><code>## 87.8091872791519 % completed</code></pre>
+<pre><code>## 87.9858657243816 % completed</code></pre>
+<pre><code>## 88.1625441696113 % completed</code></pre>
+<pre><code>## 88.339222614841 % completed</code></pre>
+<pre><code>## 88.5159010600707 % completed</code></pre>
+<pre><code>## 88.6925795053003 % completed</code></pre>
+<pre><code>## 88.86925795053 % completed</code></pre>
+<pre><code>## 89.0459363957597 % completed</code></pre>
+<pre><code>## 89.2226148409894 % completed</code></pre>
+<pre><code>## 89.3992932862191 % completed</code></pre>
+<pre><code>## 89.5759717314488 % completed</code></pre>
+<pre><code>## 89.7526501766784 % completed</code></pre>
+<pre><code>## 89.9293286219081 % completed</code></pre>
+<pre><code>## 90.1060070671378 % completed</code></pre>
+<pre><code>## 90.2826855123675 % completed</code></pre>
+<pre><code>## 90.4593639575972 % completed</code></pre>
+<pre><code>## 90.6360424028269 % completed</code></pre>
+<pre><code>## 90.8127208480565 % completed</code></pre>
+<pre><code>## 90.9893992932862 % completed</code></pre>
+<pre><code>## 91.1660777385159 % completed</code></pre>
+<pre><code>## 91.3427561837456 % completed</code></pre>
+<pre><code>## 91.5194346289753 % completed</code></pre>
+<pre><code>## 91.6961130742049 % completed</code></pre>
+<pre><code>## 91.8727915194346 % completed</code></pre>
+<pre><code>## 92.0494699646643 % completed</code></pre>
+<pre><code>## 92.226148409894 % completed</code></pre>
+<pre><code>## 92.4028268551237 % completed</code></pre>
+<pre><code>## 92.5795053003534 % completed</code></pre>
+<pre><code>## 92.756183745583 % completed</code></pre>
+<pre><code>## 92.9328621908127 % completed</code></pre>
+<pre><code>## 93.1095406360424 % completed</code></pre>
+<pre><code>## 93.2862190812721 % completed</code></pre>
+<pre><code>## 93.4628975265018 % completed</code></pre>
+<pre><code>## 93.6395759717314 % completed</code></pre>
+<pre><code>## 93.8162544169611 % completed</code></pre>
+<pre><code>## 93.9929328621908 % completed</code></pre>
+<pre><code>## 94.1696113074205 % completed</code></pre>
+<pre><code>## 94.3462897526502 % completed</code></pre>
+<pre><code>## 94.5229681978799 % completed</code></pre>
+<pre><code>## 94.6996466431095 % completed</code></pre>
+<pre><code>## 94.8763250883392 % completed</code></pre>
+<pre><code>## 95.0530035335689 % completed</code></pre>
+<pre><code>## 95.2296819787986 % completed</code></pre>
+<pre><code>## 95.4063604240283 % completed</code></pre>
+<pre><code>## 95.5830388692579 % completed</code></pre>
+<pre><code>## 95.7597173144876 % completed</code></pre>
+<pre><code>## 95.9363957597173 % completed</code></pre>
+<pre><code>## 96.113074204947 % completed</code></pre>
+<pre><code>## 96.2897526501767 % completed</code></pre>
+<pre><code>## 96.4664310954064 % completed</code></pre>
+<pre><code>## 96.643109540636 % completed</code></pre>
+<pre><code>## 96.8197879858657 % completed</code></pre>
+<pre><code>## 96.9964664310954 % completed</code></pre>
+<pre><code>## 97.1731448763251 % completed</code></pre>
+<pre><code>## 97.3498233215548 % completed</code></pre>
+<pre><code>## 97.5265017667845 % completed</code></pre>
+<pre><code>## 97.7031802120141 % completed</code></pre>
+<pre><code>## 97.8798586572438 % completed</code></pre>
+<pre><code>## 98.0565371024735 % completed</code></pre>
+<pre><code>## 98.2332155477032 % completed</code></pre>
+<pre><code>## 98.4098939929329 % completed</code></pre>
+<pre><code>## 98.5865724381625 % completed</code></pre>
+<pre><code>## 98.7632508833922 % completed</code></pre>
+<pre><code>## 98.9399293286219 % completed</code></pre>
+<pre><code>## 99.1166077738516 % completed</code></pre>
+<pre><code>## 99.2932862190813 % completed</code></pre>
+<pre><code>## 99.469964664311 % completed</code></pre>
+<pre><code>## 99.6466431095406 % completed</code></pre>
+<pre><code>## 99.8233215547703 % completed</code></pre>
+<pre><code>## 100 % completed</code></pre>
 <pre class="r"><code>saveRDS(HNSC_tpm,file = paste0(params$data_out_dir,&quot;TCGA_HNSC_TPM.RDS&quot;))</code></pre>
 </div>
 

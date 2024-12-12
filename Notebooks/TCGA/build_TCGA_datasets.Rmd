@@ -23,10 +23,14 @@ output:
 params:
   log_tpm: FALSE
   data_out_dir: "./temp_data/" 
+  input_data: "./Input_data/hsapiens_gene_ensembl_version_113"
   output_data: !r c("TCGA_HNSC_TPM.RDS","TCGA_CESC_TPM.RDS")
 ---
 
 
+```{r package-options, include=FALSE}
+knitr::opts_knit$set(progress = TRUE, verbose = TRUE)
+```
 
 
 ```{r}
@@ -34,12 +38,15 @@ library(TCGAbiolinks)
 library(biomaRt)
 library(kableExtra)
 library(rmarkdown)
+ensembl = readRDS(params$input_data)
+print(getGDCInfo()$data_release)
 ```
 
 ```{r}
 build_datasets <- function(project_name, filter = list(sample_type = c("Primary Tumor"))) {
   library(data.table)
-
+  data_dir = paste0(params$data_out_dir,"GDCdata")
+  
   # from https://github.com/BioinformaticsFMRP/TCGAbiolinks/issues/493#issuecomment-1083311661
   # Defines the query to the GDC
   query <- GDCquery(project = project_name,
@@ -52,12 +59,12 @@ build_datasets <- function(project_name, filter = list(sample_type = c("Primary 
   metadata <- query[[1]][[1]]
   
   # Download data using api
-  GDCdownload(query, method = "api",directory = paste0(params$data_out_dir,"GDCdata"))
+  GDCdownload(query, method = "api",directory = data_dir)
   
   # Get main directory where data is stored
-  main_dir <- file.path("GDCdata", project_name)
+  main_dir <- file.path(data_dir, project_name)
   # Get file list of downloaded files
-  file_list <- file.path("GDCdata", project_name,list.files(main_dir,recursive = TRUE)) 
+  file_list <- file.path(data_dir, project_name,list.files(main_dir,recursive = TRUE)) 
   
   # Read first downloaded to get gene names
   test_tab <- read.table(file = file_list[1], sep = '\t', header = TRUE)
@@ -75,12 +82,13 @@ build_datasets <- function(project_name, filter = list(sample_type = c("Primary 
     test_tab <- test_tab[-c(1:4),]
     # Column bind of tpm and counts data
     tpm_data_frame <- cbind(tpm_data_frame, test_tab[,9])
-    sample_id = strsplit(file_list[i],split = "/")[[1]][6]
+    sample_id = basename(dirname(file_list[i])) # get dir name
     sample_name = metadata[metadata$id == sample_id ,"cases.submitter_id"]
     colnames(tpm_data_frame)[i+1] = sample_name # col 1 is gene
     # count_data_frame <- cbind(count_data_frame, test_tab[,4])
     # Print progres from 0 to 1
-    print(i/length(file_list))
+    message(i/length(file_list)*100, " % completed \n")
+
   }
   # update col names
   colnames(tpm_data_frame)[1] = "Gene"
@@ -96,7 +104,6 @@ build_datasets <- function(project_name, filter = list(sample_type = c("Primary 
   
   
   # remove all rows that are not gene symbols
-  ensembl = useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl",host = "https://useast.ensembl.org/")
   results <- getBM(attributes=c("ensembl_gene_id","hgnc_symbol","transcript_biotype"), mart=ensembl)
   not_symbol = !genes %in% results$hgnc_symbol
   genes = genes[!not_symbol]
