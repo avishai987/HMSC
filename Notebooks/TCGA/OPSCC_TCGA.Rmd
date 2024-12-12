@@ -26,7 +26,16 @@ params:
   log_tpm: TRUE
   data_out_dir: "./temp_data/" 
   figs_out_dir: NULL
-  input_data: 
+  input_data: !r c(
+    functions = "Notebooks/TCGA/TCGA_functions.R",
+    opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds",
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df_noG2M_cells.csv",
+    myb_tergets = "./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",
+    tp53_data = "./Input_data/TCGA/cbioportal_hnsc_tcga_gdc_TP53_data.tsv",
+    genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
+    HNSC_tpm = "./Reports/TCGA/build_TCGA_datasets/TCGA_HNSC_TPM.RDS",
+    cbp_data = "./Input_data/TCGA/cbioportal_hnsc_tcga_pan_can_atlas_2018_clinical_data.tsv"
+    global_params  = "./Input_data/global_params.R")
 ---
 
 ```{r}
@@ -42,37 +51,38 @@ library(biomaRt)
 library(kableExtra)
 library(rmarkdown)
 library(readxl)
-source("./Notebooks/TCGA/TCGA_functions.R")
+source(params$input_data["functions"])
+
 ```
 
 ```{r}
 # load hpv signature genes
-avg_log2FC_cutoff = log2(1.3)
-fdr_cutoff = 0.05
+avg_log2FC_cutoff = log2(signature_fc)
+fdr_cutoff = signature_fdr
 
 
-opscc_deg = readRDS(file = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
-hmsc_deg = read.table(file = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",row.names = 1,sep = ",",header = T)
+opscc_deg = readRDS(file = params$input_data["opscc_deg"])
+hmsc_deg = read.table(file = params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
 
 hmsc_signatue = rownames(hmsc_deg[hmsc_deg$fdr<fdr_cutoff & hmsc_deg$avg_log2FC>avg_log2FC_cutoff,])
 
 
-signature = opscc_deg %>% filter(avg_log2FC > avg_log2FC_cutoff &
+opscc_signature = opscc_deg %>% filter(avg_log2FC > avg_log2FC_cutoff &
                                   fdr < fdr_cutoff) %>% rownames()
-signature
+opscc_signature
 
-myb_tergets <- read_excel("./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",col_names = T) %>%  pull(Gene)
+myb_tergets <- read_excel(params$input_data["myb_tergets"],col_names = T) %>%  pull(Gene)
 
+tp53_data = read_tsv(file = params$input_data["tp53_data"],col_names = T)
   
 ```
 
 ```{r}
 # load TPM data
-HNSC_tpm = readRDS("./Data_out/TCGA_survival_analysis/TCGA_HNSC_TPM.RDS")
+HNSC_tpm = readRDS(params$input_data["HNSC_tpm"])
 
 if (params$log_tpm) {
   HNSC_tpm = log2(HNSC_tpm+1)
-  
 }
 ```
 
@@ -89,12 +99,23 @@ clinical_data = clinical_data[clinical_data$tissue_or_organ_of_origin %in% OPSCC
 ```
 
 ```{r}
-# add HPV status  from cbioportal to clinical_data
-cbp_data = read_tsv(file = "./Input_data/TCGA/cbioportal_hnsc_tcga_pan_can_atlas_2018_clinical_data.tsv")
+# add HPV statusfrom cbioportal to clinical_data
+cbp_data = read_tsv(file = params$input_data["cbp_data"])
 cbp_data = cbp_data[,c("Patient ID", "Subtype")] %>% dplyr::rename(hpv_status = Subtype) %>% 
   mutate(hpv_status = gsub(,x = hpv_status,pattern = "HNSC_HPV",replacement = "HPV"))
 clinical_data = inner_join(x = clinical_data,y = cbp_data,by = c("submitter_id"="Patient ID"))
 na_patients = clinical_data[is.na(clinical_data$hpv_status), "submitter_id"]
+```
+
+```{r}
+# add TP53 mutation status from cbioportal to clinical_data
+
+tp53_data = tp53_data[,c("Patient ID", "Altered")] %>% dplyr::rename(tp53_status = Altered) %>% 
+  mutate(tp53_status = 
+           case_when(tp53_status == 1 ~ "tp53_mutated",
+                     tp53_status == 0 ~ "tp53_unmutated"))
+clinical_data = inner_join(x = clinical_data,y = tp53_data,by = c("submitter_id"="Patient ID"))
+na_patients = clinical_data[is.na(clinical_data$tp53_data), "submitter_id"]
 ```
 
 # MYB
@@ -168,7 +189,7 @@ sp + stat_cor(method = "pearson")
 
 ```{r}
 # with HPV signature
-gene_status = set_clinical_data(clin_data = clinical_data,genes = signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "HPV+ signature")
+gene_status = set_clinical_data(clin_data = clinical_data,genes = opscc_signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "HPV+ signature")
 gene_status = gene_status[TCGA_HPV_data$submitter_id,] %>% cbind(HPV_PPM = TCGA_HPV_data$ppm) %>% na.omit()
 paged_table(gene_status)
 
@@ -188,7 +209,7 @@ sp + stat_cor(method = "pearson")
 ```{r}
 # create data
 
-gene_status = set_clinical_data(clin_data = clinical_data,genes = signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify)
+gene_status = set_clinical_data(clin_data = clinical_data,genes = opscc_signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify)
 gene_status$patient = rownames(gene_status)
 gene_status = inner_join(x = gene_status,y = clinical_data[,c("submitter_id","hpv_status")],by = c("patient"="submitter_id"))
 
@@ -515,6 +536,38 @@ p = TCGAanalyze_survival(
 (p[[1]]+ggtitle("OPSCC HPV- samples"))/p[[2]]
 ```
 
+## No cell cycle genes
+
+```{r}
+genesets_h  = geneIds(getGmt(params$input_data["genesets_h"]))
+hmsc_signatue_no_cc = hmsc_signatue[!hmsc_signatue %in% genesets_h$HALLMARK_E2F_TARGETS]
+```
+
+```{r}
+clinical_data_hpv_pos = clinical_data  %>% filter(hpv_status == "HPV-")
+
+```
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data_hpv_pos,genes = hmsc_signatue_no_cc,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "HMSC HPV \nsignature no CC")
+paged_table(gene_status)
+```
+
+```{r fig.height=6, fig.width=8}
+clinical_data_with_scores = clinical_data_hpv_pos[clinical_data_hpv_pos$submitter_id %in% rownames(gene_status),]
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    height = 10,
+    width=10,filename = NULL,pval.method = T
+)
+(p[[1]]+ggtitle("OPSCC HPV- samples"))/p[[2]]
+
+```
+
 ## T test
 
 ```{r}
@@ -553,7 +606,7 @@ bxp +
 ## all samples
 
 ```{r}
-gene_status = set_clinical_data(clin_data = clinical_data,genes = signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "OPSCC HPV \nsignature")
+gene_status = set_clinical_data(clin_data = clinical_data,genes = opscc_signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "OPSCC HPV \nsignature")
 paged_table(gene_status)
 ```
 
@@ -582,7 +635,7 @@ clinical_data_hpv_pos = clinical_data  %>% filter(hpv_status == "HPV+")
 ```
 
 ```{r}
-gene_status = set_clinical_data(clin_data = clinical_data_hpv_pos,genes = signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "OPSCC HPV \nsignature")
+gene_status = set_clinical_data(clin_data = clinical_data_hpv_pos,genes = opscc_signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "OPSCC HPV \nsignature")
 paged_table(gene_status)
 ```
 
@@ -611,7 +664,7 @@ clinical_data_hpv_pos = clinical_data  %>% filter(hpv_status == "HPV-")
 ```
 
 ```{r}
-gene_status = set_clinical_data(clin_data = clinical_data_hpv_pos,genes = signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "OPSCC HPV \nsignature")
+gene_status = set_clinical_data(clin_data = clinical_data_hpv_pos,genes = opscc_signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "OPSCC HPV \nsignature")
 paged_table(gene_status)
 ```
 
@@ -627,4 +680,110 @@ p = TCGAanalyze_survival(
     width=10,filename = NULL,pval.method = T
 )
 (p[[1]]+ggtitle("OPSCC HPV- samples"))/p[[2]]
+```
+
+# Additional mutations
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data,genes = "TP53",tpm_data_frame = HNSC_tpm,stratify = params$stratify)
+paged_table(gene_status)
+```
+
+```{r fig.height=6, fig.width=8}
+clinical_data_with_scores = clinical_data[clinical_data$submitter_id %in% rownames(gene_status),]
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    main = "TCGA Set\n GBM",
+    height = 10,
+    width=10,filename = NULL,pval.method	=T
+)
+
+p[[1]]/p[[2]]
+```
+
+## TP53
+
+```{r fig.height=6, fig.width=8}
+p = TCGAanalyze_survival(
+    data = clinical_data,
+    clusterCol = "tp53_status",
+    filename = NULL,pval.method = T
+)
+
+p[[1]]/p[[2]]
+```
+
+## Fisher
+
+```{r}
+# plot
+library(rstatix)
+
+df = clinical_data[,c("tp53_status","hpv_status")]
+test = fisher_test(table(df))
+p = ggbarstats(
+  df,
+  tp53_status,
+  hpv_status,
+  results.subtitle = FALSE,
+  subtitle = paste0("Fisher's exact test", ", p-value = ",
+                    test$p)
+)
+
+p
+```
+
+## TP53 unmutated
+
+```{r}
+clinical_data_for_test = clinical_data  %>% filter(tp53_status == "tp53_unmutated")
+
+```
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data_for_test,genes = hmsc_signatue,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "HMSC HPV \nsignature")
+paged_table(gene_status)
+```
+
+```{r fig.height=6, fig.width=8}
+clinical_data_with_scores = clinical_data_for_test[clinical_data_for_test$submitter_id %in% rownames(gene_status),]
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    height = 10,
+    width=10,filename = NULL,pval.method = T
+)
+(p[[1]]+ggtitle("OPSCC unmutated tp53 samples"))/p[[2]]
+```
+
+## TP53 mutated
+
+```{r}
+clinical_data_for_test = clinical_data  %>% filter(tp53_status == "tp53_mutated") 
+```
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data_for_test,genes = hmsc_signatue,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "HMSC HPV \nsignature") 
+paged_table(gene_status)
+```
+
+```{r fig.height=6, fig.width=8}
+clinical_data_with_scores = clinical_data_for_test[clinical_data_for_test$submitter_id %in% rownames(gene_status),]
+gene_status$patient = rownames(gene_status)
+clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
+
+p = TCGAanalyze_survival(
+    data = clinical_data_with_scores,
+    clusterCol = "gene_status",
+    height = 10,
+    width=10,filename = NULL,pval.method = T
+)
+(p[[1]]+ggtitle("OPSCC mutated tp53 samples"))/p[[2]]
 ```
