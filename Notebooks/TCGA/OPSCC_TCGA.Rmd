@@ -370,66 +370,7 @@ bxp +
 
 ```
 
-# shared signature
 
-```{r}
-fileName =  
-"./Rendered_notebooks/HPV_signature_compare/HPV_signature_compare_2024_09_08/shared_HPV_signature.txt"
-
-shared_signature = scan(fileName, character(), quote = "")
-
-```
-
-```{r}
-gene_status = set_clinical_data(clin_data = clinical_data,genes = shared_signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "HPV+ signature")
-paged_table(gene_status)
-```
-
-```{r fig.height=6, fig.width=8}
-clinical_data_with_scores = clinical_data[clinical_data$submitter_id %in% rownames(gene_status),]
-gene_status$patient = rownames(gene_status)
-clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
-
-p = TCGAanalyze_survival(
-    data = clinical_data_with_scores,
-    clusterCol = "gene_status",
-    main = "TCGA Set\n GBM",
-    height = 10,
-    width=10,filename = NULL,pval.method = T
-)
-
-p[[1]]/p[[2]]
-```
-
-## T test
-
-```{r}
-# create data
-
-gene_status = set_clinical_data(clin_data = clinical_data,genes = shared_signature,tpm_data_frame = HNSC_tpm,stratify = params$stratify)
-gene_status$patient = rownames(gene_status)
-gene_status = inner_join(x = gene_status,y = clinical_data[,c("submitter_id","hpv_status")],by = c("patient"="submitter_id"))
-
-paged_table(gene_status)
-```
-
-```{r}
-# plot
-library(ggpubr)
-library(rstatix)
-stat.test <- gene_status %>%
-  t_test(score ~ hpv_status) %>%
-  add_significance()
-stat.test
-
-
-bxp <- ggboxplot(gene_status, x = "hpv_status", y = "score", fill = "#00AFBB")+
-  geom_jitter()
-stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
-bxp + 
-  stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") 
-
-```
 
 # HMSC signature
 
