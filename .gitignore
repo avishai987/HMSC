@@ -12,3 +12,6 @@ Data_out/
 Input_data/
 *.RDS
 *.rds
+temp_data
+old
+.Renviron
