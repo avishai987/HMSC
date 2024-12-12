@@ -25,7 +25,6 @@ params:
   stratify: "M"
   log_tpm: TRUE
   data_out_dir: "./temp_data/" 
-  figs_out_dir: NULL
   input_data: !r c(
     functions = "Notebooks/TCGA/TCGA_functions.R",
     opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds",
@@ -34,7 +33,7 @@ params:
     tp53_data = "./Input_data/TCGA/cbioportal_hnsc_tcga_gdc_TP53_data.tsv",
     genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
     HNSC_tpm = "./Reports/TCGA/build_TCGA_datasets/TCGA_HNSC_TPM.RDS",
-    cbp_data = "./Input_data/TCGA/cbioportal_hnsc_tcga_pan_can_atlas_2018_clinical_data.tsv"
+    cbp_data = "./Input_data/TCGA/cbioportal_hnsc_tcga_pan_can_atlas_2018_clinical_data.tsv",
     global_params  = "./Input_data/global_params.R")
 ---
 
@@ -52,6 +51,7 @@ library(kableExtra)
 library(rmarkdown)
 library(readxl)
 source(params$input_data["functions"])
+source(params$input_data["global_params"])
 
 ```
 
@@ -291,27 +291,6 @@ p = TCGAanalyze_survival(
 p[[1]]/p[[2]]
 ```
 
-## remove low smokers
-
-```{r}
-clinical_data_with_scores = clinical_data  %>% filter(hpv_status == "HPV+") %>% filter(pack_years_smoked < 100 | is.na(pack_years_smoked))
-
-gene_status = set_clinical_data(clin_data = clinical_data_with_scores,genes = "MYB",tpm_data_frame = HNSC_tpm,stratify = "M")
-paged_table(gene_status)
-```
-
-```{r fig.height=6, fig.width=8}
-gene_status$patient = rownames(gene_status)
-clinical_data_with_scores = inner_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
-# debugonce(TCGAanalyze_survival)
-
-p = TCGAanalyze_survival(
-    data = clinical_data_with_scores,
-    clusterCol = "gene_status",
-    filename = NULL,pval.method = T
-)
-p[[1]]/p[[2]]
-```
 
 ## HPV- tumors
 
