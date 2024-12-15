@@ -5,6 +5,7 @@ output: html_document
 
 
 ```{r}
+knitr::opts_knit$set(progress = TRUE, verbose = TRUE)
 get_report_target_path <- function(notebook_path) {
     filename = gsub(x = notebook_path,pattern = "\\.Rmd",replacement = ".html")
     dir_name = str_remove(string = notebook_path, pattern = "./Notebooks/") %>% str_remove(pattern = ".Rmd")
@@ -217,6 +218,17 @@ make_with_recipe(
     targets = c(targets_and_depens$targets),
     dependencies = c(targets_and_depens$dependencies,notebook_path),
   label = "TCGA built datasets")
+
+#TCGA HNSC
+notebook_path = "./Notebooks/TCGA/OPSCC_TCGA.Rmd"
+targets_and_depens = get_targets_and_depens(notebook_path)
+
+make_with_recipe(
+  recipe = my_render("./Notebooks/TCGA/OPSCC_TCGA.Rmd"),
+    targets = c(targets_and_depens$targets),
+    dependencies = c(targets_and_depens$dependencies,notebook_path),
+  label = "TCGA HNSC analysis")
+
 
 # pipe$build() 
 
