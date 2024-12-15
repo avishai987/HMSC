@@ -43,10 +43,10 @@ source(params$input_data["global_params"])
 opscc_deg = read.table(file =  params$input_data["opscc_deg"],row.names = 1,sep = ",",header = T)
 hmsc_deg = read.table(file =  params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
 
-hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2(volcano_fc) &
-                                 fdr < volcano_fdr) %>% rownames()
-opscc_top = opscc_deg %>% filter(avg_log2FC > log2(volcano_fc) &
-                                   fdr < volcano_fdr) %>% rownames()
+hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2(signature_fc) &
+                                 fdr < signature_fdr) %>% rownames()
+opscc_top = opscc_deg %>% filter(avg_log2FC > log2(signature_fc) &
+                                   fdr < signature_fdr) %>% rownames()
 
 print ("intersect genes:")
 intersected_genes = intersect(hmsc_top,opscc_top)
@@ -60,7 +60,7 @@ intersected_genes
 ```{r fig.height=7, fig.width=7}
 plt = volcano_plot(
   de_genes = opscc_deg,
-  fc_cutoff = 1.1,
+  fc_cutoff = volcano_fc,
   fdr_cutoff = volcano_fdr,
   ident1 = "HPV33 positive",
   ident2 = "HPV33 negative",
