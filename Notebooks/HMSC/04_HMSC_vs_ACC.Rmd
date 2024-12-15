@@ -27,6 +27,7 @@ params:
     hmsc_acc_pri_cancer = "./Reports/HMSC/01_preprocess/04_build_datasets/hmsc_acc_pri_cancer_processed.RDS",
     all_cells = "./Reports/HMSC/01_preprocess/01_create_data/acc_tpm_nCount_mito_no146_15k_with_ACC1.RDS",
     genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
+   ensembl =  "./Input_data/hsapiens_gene_ensembl_version_113",
         global_params  = "./Input_data/global_params.R")
 ---
 
@@ -61,6 +62,7 @@ DefaultAssay(acc_pri) = "RNA"
 
 all_cells =readRDS(params$input_data["all_cells"])
 genesets_h  = getGmt(params$input_data["genesets_h"])
+ensembl = readRDS(params$input_data["ensembl"])
 
 # luminal_pathways = c("CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_UP","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_UP","HUPER_BREAST_BASAL_VS_LUMINAL_DN","LIM_MAMMARY_LUMINAL_PROGENITOR_UP","SMID_BREAST_CANCER_LUMINAL_B_UP" )
 # 
@@ -132,7 +134,6 @@ acc_deg <-
 
 ```{r}
 library(biomaRt)
-ensembl = useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl",host = "https://useast.ensembl.org/")
 IDs <- rownames(acc_deg)
 genedesc <- getBM(attributes=c('external_gene_name','description'), filters = 'external_gene_name', values = IDs, mart =ensembl)
 acc_deg_desc = left_join(x = rownames_to_column(acc_deg),y = genedesc,by = c("rowname"= "external_gene_name"))
