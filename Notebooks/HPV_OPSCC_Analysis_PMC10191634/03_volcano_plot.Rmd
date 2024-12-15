@@ -23,8 +23,8 @@ output:
 params: 
   data_out_dir: "./temp_data/" 
   input_data: !r c(
-    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
-    opscc_deg = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds",
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df_noG2M_cells.csv",
+    opscc_deg = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/OPSCC_HPV_DEG.csv",
     global_params  = "./Input_data/global_params.R")
 ---
 
@@ -40,7 +40,7 @@ source(params$input_data["global_params"])
 # Data
 
 ```{r}
-opscc_deg = readRDS(file = params$input_data["opscc_deg"])
+opscc_deg = read.table(file =  params$input_data["opscc_deg"],row.names = 1,sep = ",",header = T)
 hmsc_deg = read.table(file =  params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
 
 hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2(volcano_fc) &
@@ -64,7 +64,7 @@ plt = volcano_plot(
   fdr_cutoff = volcano_fdr,
   ident1 = "HPV33 positive",
   ident2 = "HPV33 negative",
-  top_genes_text = 0,
+  top_genes_text = 5,
   show_gene_names = intersected_genes
   ) +
   ggtitle("Differential Gene Expression by HPV Status")  + 
