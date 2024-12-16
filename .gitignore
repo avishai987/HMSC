@@ -9,9 +9,9 @@ HMSC.Rproj
 test/
 Data_out/
 .Renviron
-Input_data/
 *.RDS
 *.rds
 temp_data
 old
 .Renviron
+*.mtx.gz
