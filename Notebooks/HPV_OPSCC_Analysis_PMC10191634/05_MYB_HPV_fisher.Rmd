@@ -1,21 +1,36 @@
 ---
-title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+title: "05_MYB_HPV_fisher"
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
-output: 
-  html_notebook: 
+output:
+  # html_notebook: 
+  #   code_folding: hide
+  #   toc: true
+  #   toc_collapse: true
+  #   toc_float:
+  #     collapsed: false
+  #   number_sections: true
+  #   toc_depth: 1
+  html_document: 
     code_folding: hide
     toc: yes
     toc_collapse: yes
     toc_float: 
-      collapsed: FALSE
+      collapsed: TRUE
     number_sections: true
-    toc_depth: 1
+    toc_depth: 2
+    df_print: paged
 params: 
-  data_out_dir: "./Data_out/HPV_analysis/" 
+  data_out_dir: "./temp_data/" 
+  input_data: !r c(
+    opscc =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS")
 ---
 
 
+```{r}
+# print params
+paged_table(as.data.frame(unlist(params)))
+```
 
 # Functions
 
@@ -25,14 +40,11 @@ params:
 # Data
 
 ```{r}
-opscc = readRDS("./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS")
-library(readxl)
-metadata = read_excel(path = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx",
-          sheet = "S4 - Cell Table",progress = T,skip = 1,col_names = T)
+opscc = readRDS(params$input_data["opscc"])
 
 # remove HPV- patients
 hpv_neg<-c("OP10","OP12","OP16","OP19","OP8")
-hpv_pos = unique(metadata$Patient)[! unique(metadata$Patient) %in% hpv_neg]
+hpv_pos = unique(opscc$patient )[! unique(opscc$patient) %in% hpv_neg]
 opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
 ```
 
@@ -64,6 +76,7 @@ opscc_hpvPos$hpv = FetchData(object = opscc_hpvPos,vars = "hpv") %>%
 
 ```{r fig.height=7, fig.width=10}
 library(stats)
+library(rstatix)
 total_cells_df  = FetchData(object = opscc_hpvPos, vars = c("patient","hpv")) %>%
   group_by(patient,hpv) %>%
   dplyr::count(patient, name = "total_cells")
@@ -141,8 +154,8 @@ df  = FetchData(object = opscc_hpvPos,
   dplyr::count(hpv) %>%
   left_join(total_cells_df, by = "patient") %>% 
   mutate(relative_n = round((n/total_cells)*1000,digits = 0)) %>% 
-  group_by(MYB_status,hpv) %>% 
-  summarise(total_relative_n = sum(relative_n)) %>% 
+  group_by(MYB_status,hpv) %>%
+  dplyr::summarise(total_relative_n = sum(relative_n)) %>%
   droplevels()
 
 
@@ -152,15 +165,15 @@ df_wide =
   pivot_wider(names_from = hpv, values_from = total_relative_n) %>%
   column_to_rownames("MYB_status") 
     
-  test = fisher_test(df_wide)
-  p = ggbarstats(
-    df,
-    MYB_status,
-    hpv,
-    counts = total_relative_n,
-    results.subtitle = FALSE,
-    # subtitle = paste0("Fisher's exact test", ", p-value = ", test$p) # depends in the normalized amount of cells
-  ,title = "OPSCC")
+test = fisher_test(df_wide)
+p = ggbarstats(
+  df,
+  MYB_status,
+  hpv,
+  counts = total_relative_n,
+  results.subtitle = FALSE,
+  # subtitle = paste0("Fisher's exact test", ", p-value = ", test$p) # depends in the normalized amount of cells
+,title = "OPSCC")
 p
 
 ```
@@ -209,3 +222,13 @@ plt = ggplot(genes_by_tp, aes(x = hpv, y = myb_tergets_score)) +
   ggtitle("MYB targets")
 plt
 ```
+
+# session info
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName"> Show/Hide </button>  
+<div id="BlockName" class="collapse">  
+```{r}
+library(devtools)
+session_info()
+```
+
+</div>

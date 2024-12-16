@@ -707,3 +707,14 @@ p = TCGAanalyze_survival(
 )
 (p[[1]]+ggtitle("OPSCC mutated tp53 samples"))/p[[2]]
 ```
+
+
+# session info
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName"> Show/Hide </button>  
+<div id="BlockName" class="collapse">  
+```{r}
+library(devtools)
+session_info()
+```
+
+</div>

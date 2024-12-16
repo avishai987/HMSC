@@ -1,17 +1,16 @@
 ---
-title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+title: "HMSC_HPV_signature"
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
-output: 
-  html_notebook: 
-    code_folding: hide
-    toc: yes
-    toc_collapse: yes
-    toc_float: 
-      collapsed: FALSE
-    number_sections: true
-    toc_depth: 1
-    
+output:
+  # html_notebook: 
+  #   code_folding: hide
+  #   toc: true
+  #   toc_collapse: true
+  #   toc_float:
+  #     collapsed: false
+  #   number_sections: true
+  #   toc_depth: 1
   html_document: 
     code_folding: hide
     toc: yes
@@ -20,36 +19,48 @@ output:
       collapsed: TRUE
     number_sections: true
     toc_depth: 2
-    df-print: paged
-    
-params:
-  data_out_dir: NULL
-  figs_out_dir: NULL
+    df_print: paged
+params: 
+  data_out_dir: "./temp_data/" 
+  input_data: !r c(
+    opscc =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS",
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df_noG2M_cells.csv",
+        global_params  = "./Input_data/global_params.R")
+
 ---
 
+
+```{r}
+# print params
+paged_table(as.data.frame(unlist(params)))
+```
 
 
 # Functions
 
 ```{r warning=FALSE}
 library(rstatix)
+source(params$input_data["global_params"])
+
 ```
 
 # Data
 
 ```{r}
-opscc = readRDS("./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS")
+opscc = readRDS(params$input_data["opscc"])
 library(readxl)
-metadata = read_excel(path = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx",
-          sheet = "S4 - Cell Table",progress = T,skip = 1,col_names = T)
+avg_log2FC_cutoff = log2(signature_fc)
+fdr_cutoff = signature_fdr
 
 # remove HPV- patients
 hpv_neg<-c("OP10","OP12","OP16","OP19","OP8")
-hpv_pos = unique(metadata$Patient)[! unique(metadata$Patient) %in% hpv_neg]
+hpv_pos = unique(opscc$patient )[! unique(opscc$patient) %in% hpv_neg]
 opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
 
-hmsc_deg = read.table(file = "./Rendered_notebooks/HMSC/HPV_analysis/HPV_analysis_2024_11_13/hpv_deg_df.csv",row.names = 1)
-hmsc_signatue = rownames(hmsc_deg[hmsc_deg$fdr<0.05 & hmsc_deg$avg_log2FC>log2(1.3),])
+hmsc_deg = read.table(file = params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
+
+hmsc_signatue = rownames(hmsc_deg[hmsc_deg$fdr<fdr_cutoff & hmsc_deg$avg_log2FC>avg_log2FC_cutoff,])
+
 hmsc_signatue
 ```
 
@@ -135,3 +146,12 @@ plt = ggplot(genes_by_tp, aes(x = hpv, y = hpv_signature_score)) +
   ggtitle("HMSC HPV signature")
 plt
 ```
+# session info
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName"> Show/Hide </button>  
+<div id="BlockName" class="collapse">  
+```{r}
+library(devtools)
+session_info()
+```
+
+</div>
