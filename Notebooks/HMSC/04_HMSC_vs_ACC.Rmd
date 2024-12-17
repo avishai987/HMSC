@@ -29,6 +29,8 @@ params:
     genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
    ensembl =  "./Input_data/hsapiens_gene_ensembl_version_113",
         global_params  = "./Input_data/global_params.R")
+  output_data: !r c(deg = "HMSC_vs_ACC_DEG.csv")
+   
 ---
 
 
@@ -118,7 +120,7 @@ dev.off()
 
 ```{r fig.width=8, echo=TRUE,results='hide',fig.keep='all'}
 hmsc_acc_pri_cancer = SetIdent(hmsc_acc_pri_cancer, value ="patient.ident")
-acc_deg <-
+deg <-
   FindMarkers(
     hmsc_acc_pri_cancer,
     ident.1 = "HMSC",
@@ -134,9 +136,9 @@ acc_deg <-
 
 ```{r}
 library(biomaRt)
-IDs <- rownames(acc_deg)
+IDs <- rownames(deg)
 genedesc <- getBM(attributes=c('external_gene_name','description'), filters = 'external_gene_name', values = IDs, mart =ensembl)
-acc_deg_desc = left_join(x = rownames_to_column(acc_deg),y = genedesc,by = c("rowname"= "external_gene_name"))
+acc_deg_desc = left_join(x = rownames_to_column(deg),y = genedesc,by = c("rowname"= "external_gene_name"))
 names(acc_deg_desc)[1] = "gene"
 hmsc_up_genes = acc_deg_desc [acc_deg_desc$avg_log2FC>0,]
 acc_up_genes = acc_deg_desc [acc_deg_desc$avg_log2FC<0,]
@@ -146,7 +148,7 @@ fwrite(acc_up_genes,file = "./Data/acc_up_genes.csv",row.names = F)
 ```
 
 ```{r fig.height=6, fig.width=6, results='asis'}
-ranked_vec = acc_deg[,"avg_log2FC"]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
+ranked_vec = deg[,"avg_log2FC"]%>% setNames(rownames(deg)) %>% na.omit() # make named vector
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = T,fdr = 0.2)
@@ -259,30 +261,38 @@ max_threshold = max(hmsc_acc_pri_cancer$GO_MITOTIC_CELL_CYCLE)
 
 ```{r, results='asis'}
 library(viridis)
+p_before = FeaturePlot(object = hmsc_acc_pri_cancer,features = hallmark_name) +
+  ggtitle("Before cc filtering") &
+            scale_color_gradientn(colours = plasma(n = 10, direction = -1),
+                                  limits = c(min_threshold, max_threshold))
 
-print_tab(plt = FeaturePlot(object = hmsc_acc_pri_cancer,features = hallmark_name) + ggtitle("Before cc filtering") &
-            scale_color_gradientn(colours = plasma(n = 10, direction = -1), limits = c(min_threshold, max_threshold))
-          ,title = "Before CC filtering",subtitle_num = 3)
+print_tab(plt = p_before ,title = "Before CC filtering",subtitle_num = 3)
 
-
-print_tab(plt = 
-            FeaturePlot(object = all_acc_cancer_cells_ccFiltered,features = hallmark_name) + 
+p_after =  FeaturePlot(object = all_acc_cancer_cells_ccFiltered,features = hallmark_name) + 
             ggtitle("After cc filtering") &
             scale_color_gradientn(colours = plasma(n = 10, direction = -1), limits = c(min_threshold, max_threshold))
-          ,title = "After CC filtering" ,subtitle_num = 3)
+print_tab(plt = p_after, title = "After CC filtering" ,subtitle_num = 3)
 
 ```
 
+```{r}
+pdf(paste0(params$data_out_dir,"/ACC_vs_HMSC_cc_score_before.pdf"),width = 8,height = 5)
+p_before
+dev.off()
 
+pdf(paste0(params$data_out_dir,"/ACC_vs_HMSC_cc_score_after.pdf"),width = 8,height = 5)
+p_after
+dev.off()
 
-# end
+```
+
 
 ## DEG
 
 ```{r fig.width=8, echo=TRUE, results='asis',fig.keep='all'}
 all_acc_cancer_cells_ccFiltered = SetIdent(all_acc_cancer_cells_ccFiltered, value ="patient.ident")
 all_acc_cancer_cells_ccFiltered = FindVariableFeatures(all_acc_cancer_cells_ccFiltered,nfeatures = 15000,assay = "integrated")
-acc_deg <-
+deg <-
   FindMarkers(
     all_acc_cancer_cells_ccFiltered,
     ident.1 = "HMSC",
@@ -300,7 +310,7 @@ acc_deg <-
 
 
 ```{r fig.height=4, fig.width=12, results='asis'}
-ranked_vec = acc_deg[,"avg_log2FC" ]%>% setNames(rownames(acc_deg)) %>% na.omit() # make named vector
+ranked_vec = deg[,"avg_log2FC" ]%>% setNames(rownames(deg)) %>% na.omit() # make named vector
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
 plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)
 
@@ -371,7 +381,7 @@ dev.off()
 
 ```{r}
 
-volcano_plt = volcano_plot(de_genes = acc_deg,fdr_cutoff = volcano_fdr,fc_cutoff = volcano_fc, ident1 = "HMSC",ident2 = "ACC",top_genes_text = 0)
+volcano_plt = volcano_plot(de_genes = deg,fdr_cutoff = volcano_fdr,fc_cutoff = volcano_fc, ident1 = "HMSC",ident2 = "ACC",top_genes_text = 0)
 volcano_plt
 ```
 
@@ -388,5 +398,6 @@ dev.off()
 ```
 
 ```{r}
-write.csv2(x = acc_deg,file = paste0(params$data_out_dir,"HMSC_vs_ACC_DEG.csv"))
+params$output_data["deg"]
+write.csv2(x = deg,file = paste0(params$data_out_dir,params$output_data["deg"]))
 ```
