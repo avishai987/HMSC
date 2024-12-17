@@ -28,7 +28,7 @@ params:
   input_data: !r c(
     functions = "Notebooks/TCGA/TCGA_functions.R",
     opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/OPSCC_HPV_DEG.csv",
-    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df_noG2M_cells.csv",
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
     myb_tergets = "./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",
     tp53_data = "./Input_data/TCGA/cbioportal_hnsc_tcga_gdc_TP53_data.tsv",
     genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
