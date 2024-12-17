@@ -28,8 +28,8 @@ params:
     opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds",
     myb_targets = "./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",
     global_params  = "./Input_data/global_params.R")
-  output_data: !r c(hmsc_deg_no_cc = "HMSC_hpv_deg_df.csv",
-    hmsc_deg = "HMSC_hpv_deg_df_noG2M_cells.csv")
+  output_data: !r c(hmsc_deg_no_cc = "HMSC_hpv_deg_df_noG2M_cells.csv",
+    hmsc_deg = "HMSC_hpv_deg_df.csv")
 ---
 
 
