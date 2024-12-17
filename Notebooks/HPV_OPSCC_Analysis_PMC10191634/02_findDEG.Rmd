@@ -23,7 +23,7 @@ output:
 params: 
   data_out_dir: "./temp_data/" 
   input_data: !r c(opscc =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS", metadata = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx")
-  output_data: !r c("OPSCC_HPV_DEG.csv")
+  output_data: !r c(deg = "OPSCC_HPV_DEG.csv")
 ---
 
 
@@ -44,7 +44,7 @@ opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
 
 ```{r}
 opscc_hpvPos = SetIdent(object = opscc_hpvPos,value = "hpv")
-opscc_hpvPos = FindVariableFeatures(object = opscc_hpvPos,nfeatures = 20000)
+opscc_hpvPos = FindVariableFeatures(object = opscc_hpvPos,nfeatures = 15000)
 # find DEG
 features = VariableFeatures(object = opscc_hpvPos)
 deg = FindMarkers(object = opscc_hpvPos,ident.1 = "HPV+",ident.2 = "HPV-",
@@ -59,7 +59,7 @@ paged_table(deg)
 
 ```{r}
 # save
-write.csv(x = deg,file =  paste0(params$data_out_dir,"OPSCC_HPV_DEG.csv"))
+write.csv(x = deg,file =  paste0(params$data_out_dir,params$output_data["deg"]))
 ```
 
 
