@@ -2839,7 +2839,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">makepipe</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2024-12-16 16:38:33.100676</h4>
+<h4 class="date">2024-12-17 15:23:36.681375</h4>
 
 </div>
 
@@ -2970,8 +2970,8 @@ score &lt;- apply(acc_pri@assays$RNA@scale.data[geneIds,],2,mean)
 acc_pri=AddMetaData(acc_pri,score,hallmark_name)
 
 hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 15000)</code></pre>
-<pre><code>## Warning in FindVariableFeatures.Assay(object = assay.data, selection.method = selection.method, : selection.method set to &#39;vst&#39; but
-## count slot is empty; will use data slot instead</code></pre>
+<pre><code>## Warning in FindVariableFeatures.Assay(object = assay.data, selection.method = selection.method, : selection.method set to &#39;vst&#39; but count
+## slot is empty; will use data slot instead</code></pre>
 <pre><code>## Warning in eval(predvars, data, env): NaNs produced</code></pre>
 <pre><code>## Warning in hvf.info$variance.expected[not.const] &lt;- 10^fit$fitted: number of items to replace is not a multiple of replacement length</code></pre>
 <pre class="r"><code>hmsc_cancer_cells = ScaleData(object = hmsc_cancer_cells,features = VariableFeatures(hmsc_cancer_cells))</code></pre>
