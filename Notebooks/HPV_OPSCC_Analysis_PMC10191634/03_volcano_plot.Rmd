@@ -23,7 +23,7 @@ output:
 params: 
   data_out_dir: "./temp_data/" 
   input_data: !r c(
-    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df_noG2M_cells.csv",
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
     opscc_deg = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/OPSCC_HPV_DEG.csv",
     global_params  = "./Input_data/global_params.R")
 ---

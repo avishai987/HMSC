@@ -24,7 +24,7 @@ params:
   data_out_dir: "./temp_data/" 
   input_data: !r c(
     opscc =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS",
-    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df_noG2M_cells.csv",
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
         global_params  = "./Input_data/global_params.R")
 
 ---
