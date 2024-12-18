@@ -45,11 +45,15 @@ opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
 ```{r}
 opscc_hpvPos = SetIdent(object = opscc_hpvPos,value = "hpv")
 opscc_hpvPos = FindVariableFeatures(object = opscc_hpvPos,nfeatures = 15000)
+var_features = VariableFeatures(object = opscc_hpvPos)
+
+top_expressed_features = opscc_hpvPos@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(5000) %>% names()
+features = intersect(var_features, top_expressed_features)
+
 # find DEG
-features = VariableFeatures(object = opscc_hpvPos)
 deg = FindMarkers(object = opscc_hpvPos,ident.1 = "HPV+",ident.2 = "HPV-",
             features = features,test.use = "LR",latent.vars = "patient",
-            logfc.threshold = 0,min.pct = 0.1,
+            logfc.threshold = 0,min.pct = 0.1,densify = T,
             mean.fxn = function(x) {
             return(log(rowMeans(x) + 1, base = 2)) # change func to calculate logFC in log space data (default to exponent data)
             })
