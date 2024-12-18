@@ -62,9 +62,9 @@ plt = volcano_plot(
   de_genes = opscc_deg,
   fc_cutoff = volcano_fc,
   fdr_cutoff = volcano_fdr,
-  ident1 = "HPV33 positive",
-  ident2 = "HPV33 negative",
-  top_genes_text = 5,
+  ident1 = "HPV positive",
+  ident2 = "HPV negative",
+  top_genes_text = 0,
   show_gene_names = intersected_genes
   ) +
   ggtitle("Differential Gene Expression by HPV Status")  + 
@@ -73,6 +73,7 @@ plt = volcano_plot(
 
 plt
 ```
+
 ```{r}
 pdf(paste0(params$data_out_dir,"OPSCC_HPVon_HPVoff_volcano.pdf"))
 plt

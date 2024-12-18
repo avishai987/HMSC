@@ -146,6 +146,14 @@ plt = ggplot(genes_by_tp, aes(x = hpv, y = hpv_signature_score)) +
   ggtitle("HMSC HPV signature")
 plt
 ```
+
+
+```{r fig.height=6, fig.width=8}
+pdf(paste0(params$data_out_dir,"OPSCC_violin_plots_HMSC_HPV_signature.pdf"))
+plt
+dev.off()
+```
+
 # session info
 <button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName"> Show/Hide </button>  
 <div id="BlockName" class="collapse">  
