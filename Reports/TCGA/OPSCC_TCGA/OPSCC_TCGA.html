@@ -12,7 +12,7 @@
 <meta name="author" content="Avishai Wizel" />
 
 
-<title>global_params.R</title>
+<title>makepipe</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -2837,9 +2837,9 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">global_params.R</h1>
+<h1 class="title toc-ignore">makepipe</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2024-12-18 11:31:31.486278</h4>
+<h4 class="date">2025-01-05 16:19:00.050513</h4>
 
 </div>
 
@@ -2881,46 +2881,51 @@ message(&quot;opscc_signature:&quot;)</code></pre>
 <pre class="r"><code>message(&quot;hmsc_signatue:&quot;)</code></pre>
 <pre><code>## hmsc_signatue:</code></pre>
 <pre class="r"><code>print(hmsc_signatue)</code></pre>
-<pre><code>##   [1] &quot;ANLN&quot;          &quot;TUBB6&quot;         &quot;AXL&quot;           &quot;IFT122&quot;        &quot;GFM1&quot;          &quot;SEPT2&quot;         &quot;PBRM1&quot;         &quot;INSIG1&quot;       
-##   [9] &quot;CAPG&quot;          &quot;POP7&quot;          &quot;BHLHE40&quot;       &quot;MCM5&quot;          &quot;TRAPPC3&quot;       &quot;MRPS6&quot;         &quot;GINS2&quot;         &quot;NARS&quot;         
-##  [17] &quot;LSM5&quot;          &quot;GUSB&quot;          &quot;EZR&quot;           &quot;FZD6&quot;          &quot;STAT2&quot;         &quot;TMPO&quot;          &quot;SLC35F5&quot;       &quot;MVB12A&quot;       
-##  [25] &quot;CDC42EP3&quot;      &quot;COG4&quot;          &quot;MRPL20&quot;        &quot;GSDMD&quot;         &quot;VCL&quot;           &quot;MT1E&quot;          &quot;TUBA1C&quot;        &quot;TXN&quot;          
-##  [33] &quot;ATXN10&quot;        &quot;USP39&quot;         &quot;MSH6&quot;          &quot;SDC2&quot;          &quot;OAT&quot;           &quot;SCAP&quot;          &quot;PRELID3B&quot;      &quot;KNTC1&quot;        
-##  [41] &quot;ARF6&quot;          &quot;SMC5&quot;          &quot;DCTN2&quot;         &quot;AAMP&quot;          &quot;TBCB&quot;          &quot;KLF10&quot;         &quot;TPP1&quot;          &quot;IFT52&quot;        
-##  [49] &quot;ETS2&quot;          &quot;EWSR1&quot;         &quot;NOP10&quot;         &quot;KRCC1&quot;         &quot;ASL&quot;           &quot;IGSF9&quot;         &quot;PHF5A&quot;         &quot;XRCC5&quot;        
-##  [57] &quot;UBE2T&quot;         &quot;IK&quot;            &quot;AC007250.3&quot;    &quot;YES1&quot;          &quot;SNRPD1&quot;        &quot;C9orf3&quot;        &quot;FDFT1&quot;         &quot;TPM3&quot;         
-##  [65] &quot;LASP1&quot;         &quot;SNRPC&quot;         &quot;PACSIN2&quot;       &quot;MTHFD2&quot;        &quot;PMVK&quot;          &quot;OBP2B&quot;         &quot;AKR1B1&quot;        &quot;SYPL1&quot;        
-##  [73] &quot;LPAR2&quot;         &quot;PHB&quot;           &quot;THOC6&quot;         &quot;TMX1&quot;          &quot;SDHA&quot;          &quot;NUBP2&quot;         &quot;NDUFS7&quot;        &quot;TAOK3&quot;        
-##  [81] &quot;MRPS9&quot;         &quot;PTRF&quot;          &quot;PSME2&quot;         &quot;MED15&quot;         &quot;PES1&quot;          &quot;RP11-19E11.1&quot;  &quot;RP5-1102E8.2&quot;  &quot;SEH1L&quot;        
-##  [89] &quot;MCM3&quot;          &quot;POLR2L&quot;        &quot;DNAJC8&quot;        &quot;COPS6&quot;         &quot;PRKCDBP&quot;       &quot;KRT16&quot;         &quot;RNASEH2A&quot;      &quot;PDIA6&quot;        
-##  [97] &quot;RAB11FIP1&quot;     &quot;RFC3&quot;          &quot;POLD2&quot;         &quot;AC079337.1&quot;    &quot;NF2&quot;           &quot;BABAM1&quot;        &quot;TPGS2&quot;         &quot;LOX&quot;          
-## [105] &quot;SERINC3&quot;       &quot;NDUFB8&quot;        &quot;CLIC4&quot;         &quot;SELT&quot;          &quot;GRB2&quot;          &quot;HELLS&quot;         &quot;CXCR4&quot;         &quot;PRDX5&quot;        
-## [113] &quot;FLII&quot;          &quot;EDIL3&quot;         &quot;SF3A3&quot;         &quot;PSMB1&quot;         &quot;FARSA&quot;         &quot;PREB&quot;          &quot;POMP&quot;          &quot;MPPED2&quot;       
-## [121] &quot;CKB&quot;           &quot;MCOLN1&quot;        &quot;MCM4&quot;          &quot;PCNT&quot;          &quot;BTF3L4&quot;        &quot;DDX1&quot;          &quot;BRE&quot;           &quot;GPN1&quot;         
-## [129] &quot;H2AFZ&quot;         &quot;KIF22&quot;         &quot;PSMB4&quot;         &quot;TMEM165&quot;       &quot;RP11-45P22.1&quot;  &quot;ECH1&quot;          &quot;NUCB2&quot;         &quot;NUDCD3&quot;       
-## [137] &quot;C19orf10&quot;      &quot;VPS4B&quot;         &quot;MGME1&quot;         &quot;TCF19&quot;         &quot;KRT5&quot;          &quot;ATP6V0B&quot;       &quot;GTF2I&quot;         &quot;TSC2&quot;         
-## [145] &quot;CNOT7&quot;         &quot;UFD1L&quot;         &quot;SMARCA5&quot;       &quot;TCERG1&quot;        &quot;PLAUR&quot;         &quot;SSRP1&quot;         &quot;SMC3&quot;          &quot;RASSF1&quot;       
-## [153] &quot;TYMS&quot;          &quot;GPC4&quot;          &quot;CNPPD1&quot;        &quot;PLXDC2&quot;        &quot;UBXN11&quot;        &quot;RAD23A&quot;        &quot;USP4&quot;          &quot;C16orf13&quot;     
-## [161] &quot;CTNNAL1&quot;       &quot;LRRCC1&quot;        &quot;ADNP&quot;          &quot;SDHB&quot;          &quot;UQCRQ&quot;         &quot;MTHFD1&quot;        &quot;MRPL21&quot;        &quot;RANGAP1&quot;      
-## [169] &quot;PSMA5&quot;         &quot;BRIX1&quot;         &quot;RP11-665C16.9&quot; &quot;FDPS&quot;          &quot;FHL2&quot;          &quot;MYC&quot;           &quot;KLHDC3&quot;        &quot;DNAJB6&quot;       
-## [177] &quot;RP5-1085F17.3&quot; &quot;DCTPP1&quot;        &quot;RBM8A&quot;         &quot;UBE2L3&quot;        &quot;MRE11A&quot;        &quot;MTX2&quot;          &quot;HADHA&quot;         &quot;NRP2&quot;         
-## [185] &quot;LYPLA2&quot;        &quot;SHKBP1&quot;        &quot;GLOD4&quot;         &quot;ATP6V1H&quot;       &quot;EIF4E2&quot;        &quot;NME1&quot;          &quot;HDAC2&quot;         &quot;JUP&quot;          
-## [193] &quot;PHLDB1&quot;        &quot;NUTF2&quot;         &quot;CCT7&quot;          &quot;STRAP&quot;         &quot;TES&quot;           &quot;BUB3&quot;          &quot;DLX5&quot;          &quot;SYF2&quot;         
-## [201] &quot;GPBP1L1&quot;       &quot;DDB1&quot;          &quot;EZH2&quot;          &quot;SNRPA1&quot;        &quot;PDCD6&quot;         &quot;EMC2&quot;          &quot;RP4-702J19.1&quot;  &quot;CAV1&quot;         
-## [209] &quot;CDK4&quot;          &quot;CCT5&quot;          &quot;RAB1A&quot;         &quot;CDKN1A&quot;        &quot;ELAVL1&quot;        &quot;MBD4&quot;          &quot;PLEKHJ1&quot;       &quot;CCT3&quot;         
-## [217] &quot;ATPIF1&quot;        &quot;CDCA7&quot;         &quot;C22orf29&quot;      &quot;SEC23B&quot;        &quot;SPIDR&quot;         &quot;HSPB8&quot;         &quot;UBE2I&quot;         &quot;CPNE3&quot;        
-## [225] &quot;NEFH&quot;          &quot;LMAN1&quot;         &quot;RAB18&quot;         &quot;ILK&quot;           &quot;EIF2A&quot;         &quot;SLBP&quot;          &quot;ELOVL1&quot;        &quot;MYB&quot;          
-## [233] &quot;RP4-753D5.4&quot;   &quot;KRT18&quot;         &quot;CRTAP&quot;         &quot;MUM1&quot;          &quot;TPI1&quot;          &quot;KIAA1715&quot;      &quot;RP11-259K5.3&quot;  &quot;DTYMK&quot;        
-## [241] &quot;MAEA&quot;          &quot;PNRC2&quot;         &quot;GLT25D1&quot;       &quot;MCM6&quot;          &quot;RBM17&quot;         &quot;TTC39A&quot;        &quot;FEN1&quot;          &quot;SHARPIN&quot;      
-## [249] &quot;IFITM1&quot;        &quot;PSMD4&quot;         &quot;SNORD99&quot;       &quot;BZW2&quot;          &quot;TIMMDC1&quot;       &quot;STAG3&quot;         &quot;TPD52&quot;         &quot;SNRPG&quot;        
-## [257] &quot;TIMM13&quot;        &quot;JAG1&quot;          &quot;BTG2&quot;          &quot;LAMTOR1&quot;       &quot;AC019188.1&quot;    &quot;VAMP3&quot;         &quot;CAD&quot;           &quot;ATAD2&quot;</code></pre>
+<pre><code>##   [1] &quot;ANLN&quot;          &quot;TUBB6&quot;         &quot;AXL&quot;           &quot;IFT122&quot;        &quot;GFM1&quot;          &quot;SEPT2&quot;         &quot;PBRM1&quot;        
+##   [8] &quot;INSIG1&quot;        &quot;CAPG&quot;          &quot;POP7&quot;          &quot;BHLHE40&quot;       &quot;MCM5&quot;          &quot;TRAPPC3&quot;       &quot;MRPS6&quot;        
+##  [15] &quot;GINS2&quot;         &quot;NARS&quot;          &quot;LSM5&quot;          &quot;GUSB&quot;          &quot;EZR&quot;           &quot;FZD6&quot;          &quot;STAT2&quot;        
+##  [22] &quot;TMPO&quot;          &quot;SLC35F5&quot;       &quot;MVB12A&quot;        &quot;CDC42EP3&quot;      &quot;COG4&quot;          &quot;MRPL20&quot;        &quot;GSDMD&quot;        
+##  [29] &quot;VCL&quot;           &quot;MT1E&quot;          &quot;TUBA1C&quot;        &quot;TXN&quot;           &quot;ATXN10&quot;        &quot;USP39&quot;         &quot;MSH6&quot;         
+##  [36] &quot;SDC2&quot;          &quot;OAT&quot;           &quot;SCAP&quot;          &quot;PRELID3B&quot;      &quot;KNTC1&quot;         &quot;ARF6&quot;          &quot;SMC5&quot;         
+##  [43] &quot;DCTN2&quot;         &quot;AAMP&quot;          &quot;TBCB&quot;          &quot;KLF10&quot;         &quot;TPP1&quot;          &quot;IFT52&quot;         &quot;ETS2&quot;         
+##  [50] &quot;EWSR1&quot;         &quot;NOP10&quot;         &quot;KRCC1&quot;         &quot;ASL&quot;           &quot;IGSF9&quot;         &quot;PHF5A&quot;         &quot;XRCC5&quot;        
+##  [57] &quot;UBE2T&quot;         &quot;IK&quot;            &quot;AC007250.3&quot;    &quot;YES1&quot;          &quot;SNRPD1&quot;        &quot;C9orf3&quot;        &quot;FDFT1&quot;        
+##  [64] &quot;TPM3&quot;          &quot;LASP1&quot;         &quot;SNRPC&quot;         &quot;PACSIN2&quot;       &quot;MTHFD2&quot;        &quot;PMVK&quot;          &quot;OBP2B&quot;        
+##  [71] &quot;AKR1B1&quot;        &quot;SYPL1&quot;         &quot;LPAR2&quot;         &quot;PHB&quot;           &quot;THOC6&quot;         &quot;TMX1&quot;          &quot;SDHA&quot;         
+##  [78] &quot;NUBP2&quot;         &quot;NDUFS7&quot;        &quot;TAOK3&quot;         &quot;MRPS9&quot;         &quot;PTRF&quot;          &quot;PSME2&quot;         &quot;MED15&quot;        
+##  [85] &quot;PES1&quot;          &quot;RP11-19E11.1&quot;  &quot;RP5-1102E8.2&quot;  &quot;SEH1L&quot;         &quot;MCM3&quot;          &quot;POLR2L&quot;        &quot;DNAJC8&quot;       
+##  [92] &quot;COPS6&quot;         &quot;PRKCDBP&quot;       &quot;KRT16&quot;         &quot;RNASEH2A&quot;      &quot;PDIA6&quot;         &quot;RAB11FIP1&quot;     &quot;RFC3&quot;         
+##  [99] &quot;POLD2&quot;         &quot;AC079337.1&quot;    &quot;NF2&quot;           &quot;BABAM1&quot;        &quot;TPGS2&quot;         &quot;LOX&quot;           &quot;SERINC3&quot;      
+## [106] &quot;NDUFB8&quot;        &quot;CLIC4&quot;         &quot;SELT&quot;          &quot;GRB2&quot;          &quot;HELLS&quot;         &quot;CXCR4&quot;         &quot;PRDX5&quot;        
+## [113] &quot;FLII&quot;          &quot;EDIL3&quot;         &quot;SF3A3&quot;         &quot;PSMB1&quot;         &quot;FARSA&quot;         &quot;PREB&quot;          &quot;POMP&quot;         
+## [120] &quot;MPPED2&quot;        &quot;CKB&quot;           &quot;MCOLN1&quot;        &quot;MCM4&quot;          &quot;PCNT&quot;          &quot;BTF3L4&quot;        &quot;DDX1&quot;         
+## [127] &quot;BRE&quot;           &quot;GPN1&quot;          &quot;H2AFZ&quot;         &quot;KIF22&quot;         &quot;PSMB4&quot;         &quot;TMEM165&quot;       &quot;RP11-45P22.1&quot; 
+## [134] &quot;ECH1&quot;          &quot;NUCB2&quot;         &quot;NUDCD3&quot;        &quot;C19orf10&quot;      &quot;VPS4B&quot;         &quot;MGME1&quot;         &quot;TCF19&quot;        
+## [141] &quot;KRT5&quot;          &quot;ATP6V0B&quot;       &quot;GTF2I&quot;         &quot;TSC2&quot;          &quot;CNOT7&quot;         &quot;UFD1L&quot;         &quot;SMARCA5&quot;      
+## [148] &quot;TCERG1&quot;        &quot;PLAUR&quot;         &quot;SSRP1&quot;         &quot;SMC3&quot;          &quot;RASSF1&quot;        &quot;TYMS&quot;          &quot;GPC4&quot;         
+## [155] &quot;CNPPD1&quot;        &quot;PLXDC2&quot;        &quot;UBXN11&quot;        &quot;RAD23A&quot;        &quot;USP4&quot;          &quot;C16orf13&quot;      &quot;CTNNAL1&quot;      
+## [162] &quot;LRRCC1&quot;        &quot;ADNP&quot;          &quot;SDHB&quot;          &quot;UQCRQ&quot;         &quot;MTHFD1&quot;        &quot;MRPL21&quot;        &quot;RANGAP1&quot;      
+## [169] &quot;PSMA5&quot;         &quot;BRIX1&quot;         &quot;RP11-665C16.9&quot; &quot;FDPS&quot;          &quot;FHL2&quot;          &quot;MYC&quot;           &quot;KLHDC3&quot;       
+## [176] &quot;DNAJB6&quot;        &quot;RP5-1085F17.3&quot; &quot;DCTPP1&quot;        &quot;RBM8A&quot;         &quot;UBE2L3&quot;        &quot;MRE11A&quot;        &quot;MTX2&quot;         
+## [183] &quot;HADHA&quot;         &quot;NRP2&quot;          &quot;LYPLA2&quot;        &quot;SHKBP1&quot;        &quot;GLOD4&quot;         &quot;ATP6V1H&quot;       &quot;EIF4E2&quot;       
+## [190] &quot;NME1&quot;          &quot;HDAC2&quot;         &quot;JUP&quot;           &quot;PHLDB1&quot;        &quot;NUTF2&quot;         &quot;CCT7&quot;          &quot;STRAP&quot;        
+## [197] &quot;TES&quot;           &quot;BUB3&quot;          &quot;DLX5&quot;          &quot;SYF2&quot;          &quot;GPBP1L1&quot;       &quot;DDB1&quot;          &quot;EZH2&quot;         
+## [204] &quot;SNRPA1&quot;        &quot;PDCD6&quot;         &quot;EMC2&quot;          &quot;RP4-702J19.1&quot;  &quot;CAV1&quot;          &quot;CDK4&quot;          &quot;CCT5&quot;         
+## [211] &quot;RAB1A&quot;         &quot;CDKN1A&quot;        &quot;ELAVL1&quot;        &quot;MBD4&quot;          &quot;PLEKHJ1&quot;       &quot;CCT3&quot;          &quot;ATPIF1&quot;       
+## [218] &quot;CDCA7&quot;         &quot;C22orf29&quot;      &quot;SEC23B&quot;        &quot;SPIDR&quot;         &quot;HSPB8&quot;         &quot;UBE2I&quot;         &quot;CPNE3&quot;        
+## [225] &quot;NEFH&quot;          &quot;LMAN1&quot;         &quot;RAB18&quot;         &quot;ILK&quot;           &quot;EIF2A&quot;         &quot;SLBP&quot;          &quot;ELOVL1&quot;       
+## [232] &quot;MYB&quot;           &quot;RP4-753D5.4&quot;   &quot;KRT18&quot;         &quot;CRTAP&quot;         &quot;MUM1&quot;          &quot;TPI1&quot;          &quot;KIAA1715&quot;     
+## [239] &quot;RP11-259K5.3&quot;  &quot;DTYMK&quot;         &quot;MAEA&quot;          &quot;PNRC2&quot;         &quot;GLT25D1&quot;       &quot;MCM6&quot;          &quot;RBM17&quot;        
+## [246] &quot;TTC39A&quot;        &quot;FEN1&quot;          &quot;SHARPIN&quot;       &quot;IFITM1&quot;        &quot;PSMD4&quot;         &quot;SNORD99&quot;       &quot;BZW2&quot;         
+## [253] &quot;TIMMDC1&quot;       &quot;STAG3&quot;         &quot;TPD52&quot;         &quot;SNRPG&quot;         &quot;TIMM13&quot;        &quot;JAG1&quot;          &quot;BTG2&quot;         
+## [260] &quot;LAMTOR1&quot;       &quot;AC019188.1&quot;    &quot;VAMP3&quot;         &quot;CAD&quot;           &quot;ATAD2&quot;</code></pre>
 <pre class="r"><code>myb_tergets &lt;- read_excel(params$input_data[&quot;myb_tergets&quot;],col_names = T) %&gt;%  pull(Gene)
 
 tp53_data = read_tsv(file = params$input_data[&quot;tp53_data&quot;],col_names = T)</code></pre>
 <pre><code>##                                        Rows: 530 Columns: 8
 ## [36mℹ[39m Targets are out of date. Updating...</code></pre>
 <pre><code>##                                        
-## [36mℹ[39m Targets are out of date. Updating...                                       ── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+## [36mℹ[39m Targets are out of date. Updating...                                       ── Column specification ─────────────────────────────────────────────────────────────────────────────────────────────
 ## [36mℹ[39m Targets are out of date. Updating...                                       Delimiter: &quot;\t&quot;
 ## chr (7): Study ID, Sample ID, Patient ID, TP53, TP53: MUT, TP53: AMP, TP53: HOMDEL
 ## dbl (1): Altered
@@ -2951,10 +2956,10 @@ cbp_data = read_tsv(file = params$input_data[&quot;cbp_data&quot;])</code></pre>
 <pre><code>##                                        Rows: 523 Columns: 62
 ## [36mℹ[39m Targets are out of date. Updating...
 ##                                        
-## [36mℹ[39m Targets are out of date. Updating...                                       ── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+## [36mℹ[39m Targets are out of date. Updating...                                       ── Column specification ─────────────────────────────────────────────────────────────────────────────────────────────
 ## [36mℹ[39m Targets are out of date. Updating...                                       Delimiter: &quot;\t&quot;
-## chr (43): Study ID, Patient ID, Sample ID, Neoplasm Disease Stage American Joint Committee on Cancer Code, American Joint Committee on Can...
-## dbl (18): Diagnosis Age, Aneuploidy Score, Buffa Hypoxia Score, Last Communication Contact from Initial Pathologic Diagnosis Date, Birth f...
+## chr (43): Study ID, Patient ID, Sample ID, Neoplasm Disease Stage American Joint Committee on Cancer Code, Americ...
+## dbl (18): Diagnosis Age, Aneuploidy Score, Buffa Hypoxia Score, Last Communication Contact from Initial Pathologi...
 ## lgl  (1): Patient Weight
 ## 
 ## [36mℹ[39m Targets are out of date. Updating...
@@ -3242,42 +3247,6 @@ bxp +
 <div id="hmsc-signature" class="section level1 tabset" number="10">
 <h1 class="tabset"><span class="header-section-number">10</span> HMSC
 signature</h1>
-<pre class="r"><code>message(&quot;hmsc_signatue = &quot;)</code></pre>
-<pre><code>## hmsc_signatue =</code></pre>
-<pre class="r"><code>print(hmsc_signatue)</code></pre>
-<pre><code>##   [1] &quot;ANLN&quot;          &quot;TUBB6&quot;         &quot;AXL&quot;           &quot;IFT122&quot;        &quot;GFM1&quot;          &quot;SEPT2&quot;         &quot;PBRM1&quot;         &quot;INSIG1&quot;       
-##   [9] &quot;CAPG&quot;          &quot;POP7&quot;          &quot;BHLHE40&quot;       &quot;MCM5&quot;          &quot;TRAPPC3&quot;       &quot;MRPS6&quot;         &quot;GINS2&quot;         &quot;NARS&quot;         
-##  [17] &quot;LSM5&quot;          &quot;GUSB&quot;          &quot;EZR&quot;           &quot;FZD6&quot;          &quot;STAT2&quot;         &quot;TMPO&quot;          &quot;SLC35F5&quot;       &quot;MVB12A&quot;       
-##  [25] &quot;CDC42EP3&quot;      &quot;COG4&quot;          &quot;MRPL20&quot;        &quot;GSDMD&quot;         &quot;VCL&quot;           &quot;MT1E&quot;          &quot;TUBA1C&quot;        &quot;TXN&quot;          
-##  [33] &quot;ATXN10&quot;        &quot;USP39&quot;         &quot;MSH6&quot;          &quot;SDC2&quot;          &quot;OAT&quot;           &quot;SCAP&quot;          &quot;PRELID3B&quot;      &quot;KNTC1&quot;        
-##  [41] &quot;ARF6&quot;          &quot;SMC5&quot;          &quot;DCTN2&quot;         &quot;AAMP&quot;          &quot;TBCB&quot;          &quot;KLF10&quot;         &quot;TPP1&quot;          &quot;IFT52&quot;        
-##  [49] &quot;ETS2&quot;          &quot;EWSR1&quot;         &quot;NOP10&quot;         &quot;KRCC1&quot;         &quot;ASL&quot;           &quot;IGSF9&quot;         &quot;PHF5A&quot;         &quot;XRCC5&quot;        
-##  [57] &quot;UBE2T&quot;         &quot;IK&quot;            &quot;AC007250.3&quot;    &quot;YES1&quot;          &quot;SNRPD1&quot;        &quot;C9orf3&quot;        &quot;FDFT1&quot;         &quot;TPM3&quot;         
-##  [65] &quot;LASP1&quot;         &quot;SNRPC&quot;         &quot;PACSIN2&quot;       &quot;MTHFD2&quot;        &quot;PMVK&quot;          &quot;OBP2B&quot;         &quot;AKR1B1&quot;        &quot;SYPL1&quot;        
-##  [73] &quot;LPAR2&quot;         &quot;PHB&quot;           &quot;THOC6&quot;         &quot;TMX1&quot;          &quot;SDHA&quot;          &quot;NUBP2&quot;         &quot;NDUFS7&quot;        &quot;TAOK3&quot;        
-##  [81] &quot;MRPS9&quot;         &quot;PTRF&quot;          &quot;PSME2&quot;         &quot;MED15&quot;         &quot;PES1&quot;          &quot;RP11-19E11.1&quot;  &quot;RP5-1102E8.2&quot;  &quot;SEH1L&quot;        
-##  [89] &quot;MCM3&quot;          &quot;POLR2L&quot;        &quot;DNAJC8&quot;        &quot;COPS6&quot;         &quot;PRKCDBP&quot;       &quot;KRT16&quot;         &quot;RNASEH2A&quot;      &quot;PDIA6&quot;        
-##  [97] &quot;RAB11FIP1&quot;     &quot;RFC3&quot;          &quot;POLD2&quot;         &quot;AC079337.1&quot;    &quot;NF2&quot;           &quot;BABAM1&quot;        &quot;TPGS2&quot;         &quot;LOX&quot;          
-## [105] &quot;SERINC3&quot;       &quot;NDUFB8&quot;        &quot;CLIC4&quot;         &quot;SELT&quot;          &quot;GRB2&quot;          &quot;HELLS&quot;         &quot;CXCR4&quot;         &quot;PRDX5&quot;        
-## [113] &quot;FLII&quot;          &quot;EDIL3&quot;         &quot;SF3A3&quot;         &quot;PSMB1&quot;         &quot;FARSA&quot;         &quot;PREB&quot;          &quot;POMP&quot;          &quot;MPPED2&quot;       
-## [121] &quot;CKB&quot;           &quot;MCOLN1&quot;        &quot;MCM4&quot;          &quot;PCNT&quot;          &quot;BTF3L4&quot;        &quot;DDX1&quot;          &quot;BRE&quot;           &quot;GPN1&quot;         
-## [129] &quot;H2AFZ&quot;         &quot;KIF22&quot;         &quot;PSMB4&quot;         &quot;TMEM165&quot;       &quot;RP11-45P22.1&quot;  &quot;ECH1&quot;          &quot;NUCB2&quot;         &quot;NUDCD3&quot;       
-## [137] &quot;C19orf10&quot;      &quot;VPS4B&quot;         &quot;MGME1&quot;         &quot;TCF19&quot;         &quot;KRT5&quot;          &quot;ATP6V0B&quot;       &quot;GTF2I&quot;         &quot;TSC2&quot;         
-## [145] &quot;CNOT7&quot;         &quot;UFD1L&quot;         &quot;SMARCA5&quot;       &quot;TCERG1&quot;        &quot;PLAUR&quot;         &quot;SSRP1&quot;         &quot;SMC3&quot;          &quot;RASSF1&quot;       
-## [153] &quot;TYMS&quot;          &quot;GPC4&quot;          &quot;CNPPD1&quot;        &quot;PLXDC2&quot;        &quot;UBXN11&quot;        &quot;RAD23A&quot;        &quot;USP4&quot;          &quot;C16orf13&quot;     
-## [161] &quot;CTNNAL1&quot;       &quot;LRRCC1&quot;        &quot;ADNP&quot;          &quot;SDHB&quot;          &quot;UQCRQ&quot;         &quot;MTHFD1&quot;        &quot;MRPL21&quot;        &quot;RANGAP1&quot;      
-## [169] &quot;PSMA5&quot;         &quot;BRIX1&quot;         &quot;RP11-665C16.9&quot; &quot;FDPS&quot;          &quot;FHL2&quot;          &quot;MYC&quot;           &quot;KLHDC3&quot;        &quot;DNAJB6&quot;       
-## [177] &quot;RP5-1085F17.3&quot; &quot;DCTPP1&quot;        &quot;RBM8A&quot;         &quot;UBE2L3&quot;        &quot;MRE11A&quot;        &quot;MTX2&quot;          &quot;HADHA&quot;         &quot;NRP2&quot;         
-## [185] &quot;LYPLA2&quot;        &quot;SHKBP1&quot;        &quot;GLOD4&quot;         &quot;ATP6V1H&quot;       &quot;EIF4E2&quot;        &quot;NME1&quot;          &quot;HDAC2&quot;         &quot;JUP&quot;          
-## [193] &quot;PHLDB1&quot;        &quot;NUTF2&quot;         &quot;CCT7&quot;          &quot;STRAP&quot;         &quot;TES&quot;           &quot;BUB3&quot;          &quot;DLX5&quot;          &quot;SYF2&quot;         
-## [201] &quot;GPBP1L1&quot;       &quot;DDB1&quot;          &quot;EZH2&quot;          &quot;SNRPA1&quot;        &quot;PDCD6&quot;         &quot;EMC2&quot;          &quot;RP4-702J19.1&quot;  &quot;CAV1&quot;         
-## [209] &quot;CDK4&quot;          &quot;CCT5&quot;          &quot;RAB1A&quot;         &quot;CDKN1A&quot;        &quot;ELAVL1&quot;        &quot;MBD4&quot;          &quot;PLEKHJ1&quot;       &quot;CCT3&quot;         
-## [217] &quot;ATPIF1&quot;        &quot;CDCA7&quot;         &quot;C22orf29&quot;      &quot;SEC23B&quot;        &quot;SPIDR&quot;         &quot;HSPB8&quot;         &quot;UBE2I&quot;         &quot;CPNE3&quot;        
-## [225] &quot;NEFH&quot;          &quot;LMAN1&quot;         &quot;RAB18&quot;         &quot;ILK&quot;           &quot;EIF2A&quot;         &quot;SLBP&quot;          &quot;ELOVL1&quot;        &quot;MYB&quot;          
-## [233] &quot;RP4-753D5.4&quot;   &quot;KRT18&quot;         &quot;CRTAP&quot;         &quot;MUM1&quot;          &quot;TPI1&quot;          &quot;KIAA1715&quot;      &quot;RP11-259K5.3&quot;  &quot;DTYMK&quot;        
-## [241] &quot;MAEA&quot;          &quot;PNRC2&quot;         &quot;GLT25D1&quot;       &quot;MCM6&quot;          &quot;RBM17&quot;         &quot;TTC39A&quot;        &quot;FEN1&quot;          &quot;SHARPIN&quot;      
-## [249] &quot;IFITM1&quot;        &quot;PSMD4&quot;         &quot;SNORD99&quot;       &quot;BZW2&quot;          &quot;TIMMDC1&quot;       &quot;STAG3&quot;         &quot;TPD52&quot;         &quot;SNRPG&quot;        
-## [257] &quot;TIMM13&quot;        &quot;JAG1&quot;          &quot;BTG2&quot;          &quot;LAMTOR1&quot;       &quot;AC019188.1&quot;    &quot;VAMP3&quot;         &quot;CAD&quot;           &quot;ATAD2&quot;</code></pre>
 <pre class="r"><code># all samples:
 gene_status = set_clinical_data(clin_data = clinical_data,genes = hmsc_signatue,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = &quot;HPV+ signature&quot;)
 
@@ -3358,10 +3327,10 @@ message(&quot;cc genes in signature:&quot;)</code></pre>
 <pre><code>## cc genes in signature:</code></pre>
 <pre class="r"><code>print(hmsc_signatue[hmsc_signatue %in% genesets_h$HALLMARK_E2F_TARGETS])</code></pre>
 <p>[1] “POP7” “MCM5” “TMPO” “PHF5A” “UBE2T” “MTHFD2” “MCM3” “RNASEH2A”
-“RFC3” “POLD2” “HELLS” “MCM4”<br />
-[13] “H2AFZ” “KIF22” “TCF19” “SSRP1” “SMC3” “MYC” “DCTPP1” “NME1” “EZH2”
-“CDK4” “CDKN1A” “SLBP”<br />
-[25] “MCM6” “ATAD2”</p>
+“RFC3” “POLD2”<br />
+[11] “HELLS” “MCM4” “H2AFZ” “KIF22” “TCF19” “SSRP1” “SMC3” “MYC”
+“DCTPP1” “NME1”<br />
+[21] “EZH2” “CDK4” “CDKN1A” “SLBP” “MCM6” “ATAD2”</p>
 <pre class="r"><code>hmsc_signatue_no_cc = hmsc_signatue[!hmsc_signatue %in% genesets_h$HALLMARK_E2F_TARGETS]
 
 #all samples:
@@ -3646,7 +3615,7 @@ Show/Hide
 <div id="BlockName" class="collapse">
 <pre class="r"><code>library(devtools)
 session_info()</code></pre>
-<pre><code>## ─ Session info ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+<pre><code>## ─ Session info ────────────────────────────────────────────────────────────────────────────────────────────────────
 ##  setting  value
 ##  version  R version 4.4.1 (2024-06-14)
 ##  os       Ubuntu 22.04.5 LTS
@@ -3656,11 +3625,11 @@ session_info()</code></pre>
 ##  collate  en_US.UTF-8
 ##  ctype    en_US.UTF-8
 ##  tz       Etc/UTC
-##  date     2024-12-18
+##  date     2025-01-05
 ##  rstudio  2024.09.0+375 Cranberry Hibiscus (server)
 ##  pandoc   3.4 @ /usr/bin/ (via rmarkdown)
 ## 
-## ─ Packages ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+## ─ Packages ────────────────────────────────────────────────────────────────────────────────────────────────────────
 ##  !  package              * version    date (UTC) lib  source
 ##     abind                  1.4-5      2016-07-21 [1]  RSPM (R 4.1.0)
 ##     annotate             * 1.84.0     2024-10-29 [1]  Bioconductor 3.20 (R 4.4.1)
@@ -3779,7 +3748,6 @@ session_info()</code></pre>
 ##     gtable                 0.3.0      2019-03-25 [1]  RSPM
 ##     gtools                 3.9.2      2021-06-06 [1]  RSPM (R 4.1.0)
 ##     haven                  2.5.4      2023-11-30 [1]  RSPM (R 4.4.0)
-##     here                   1.0.1      2020-12-13 [1]  RSPM (R 4.1.0)
 ##     hms                    1.1.3      2023-03-21 [1]  RSPM (R 4.4.0)
 ##     htmltools              0.5.2      2021-08-25 [1]  RSPM
 ##     htmlwidgets            1.5.4      2021-09-08 [1]  RSPM (R 4.1.0)
@@ -3871,7 +3839,7 @@ session_info()</code></pre>
 ##     reprex                 2.1.1      2024-07-06 [1]  RSPM (R 4.4.0)
 ##     reshape                0.8.9      2022-04-12 [1]  RSPM (R 4.4.0)
 ##     reshape2               1.4.4      2020-04-09 [1]  RSPM (R 4.1.0)
-##     reticulate           * 1.24       2022-01-26 [1]  CRAN (R 4.1.3)
+##     reticulate             1.24       2022-01-26 [1]  CRAN (R 4.1.3)
 ##     rjson                  0.2.23     2024-09-16 [1]  RSPM (R 4.4.0)
 ##     rlang                * 1.1.4      2024-06-04 [1]  RSPM (R 4.4.0)
 ##     rmarkdown            * 2.29       2024-11-04 [1]  RSPM (R 4.4.0)
@@ -3935,8 +3903,8 @@ session_info()</code></pre>
 ##     utf8                   1.2.2      2021-07-24 [1]  RSPM
 ##     uwot                   0.1.11     2021-12-02 [1]  RSPM (R 4.1.0)
 ##     vctrs                  0.6.5      2023-12-01 [1]  RSPM (R 4.4.0)
-##     viridis              * 0.6.2      2021-10-13 [1]  RSPM
-##     viridisLite          * 0.4.0      2021-04-13 [1]  RSPM
+##     viridis                0.6.2      2021-10-13 [1]  RSPM
+##     viridisLite            0.4.0      2021-04-13 [1]  RSPM
 ##     visNetwork             2.1.0      2021-09-29 [1]  RSPM (R 4.1.0)
 ##     vroom                  1.6.5      2023-12-05 [1]  RSPM (R 4.4.0)
 ##     webshot                0.5.3      2022-04-14 [1]  RSPM (R 4.1.0)
@@ -3981,15 +3949,7 @@ session_info()</code></pre>
 ##  V ── Loaded and on-disk version mismatch.
 ##  P ── Loaded and on-disk path mismatch.
 ## 
-## ─ Python configuration ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-##  python:         /sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate/bin/python
-##  libpython:      /sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate/lib/libpython3.8.so
-##  pythonhome:     /sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate:/sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate
-##  version:        3.8.15 | packaged by conda-forge | (default, Nov 22 2022, 08:49:35)  [GCC 10.4.0]
-##  numpy:          /sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate/lib/python3.8/site-packages/numpy
-##  numpy_version:  1.23.5
-## 
-## ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+## ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
 </div>
 </div>
 

@@ -379,10 +379,7 @@ bxp +
 
 # HMSC signature {.tabset}
 
-```{r}
-message("hmsc_signatue = ")
-print(hmsc_signatue)
-```
+
 
 ```{r fig.height=6, fig.width=8,results='asis'}
 
