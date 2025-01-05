@@ -197,7 +197,10 @@ plt = ggplot(genes_by_tp, aes(x = hpv33_positive, y = myb_tergets_score)) +
   stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   geom_jitter()+
-  ggtitle("MYB targets")
+  labs(title = "Downstream MYB targets within HMSC", y = "MYB target score", fill = "HPV Status")+
+  scale_fill_manual(values = c("positive" = "#1B9E77FF", "negative" = "#D95F02FF"),
+                    labels = c("positive" = "HPV+","negative" ="HPV-"))+
+  theme(plot.title = element_text(hjust = 0.5),axis.title.x = element_blank())
 plt
 ```
 
@@ -473,7 +476,9 @@ plt = ggplot(genes_by_tp, aes(x = hpv33_positive, y = opscc_hpv_score )) +
   stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   geom_jitter()+
-  ggtitle("opscc_hpv_score ")
+  ggtitle("opscc_hpv_score ")+
+  scale_fill_manual(values = c("positive" = "#1B9E77FF", "negative" = "#D95F02FF"),
+                    labels = c("positive" = "HPV+","negative" ="HPV-"))
 plt
 ```
 
