@@ -216,11 +216,10 @@ hmsc_cancer_cells = SetIdent(hmsc_cancer_cells,value = "hpv33_positive")
 
 ```{r echo = T, results = 'hide'}
 
-# hmsc_cancer_cells = FindVariableFeatures(hmsc_cancer_cells,nfeatures = 15000)
-# features = VariableFeatures(hmsc_cancer_cells)
+hmsc_cancer_cells = FindVariableFeatures(hmsc_cancer_cells,nfeatures = 15000)
+var_features = VariableFeatures(hmsc_cancer_cells)
 top_expressed_features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
-features = top_expressed_features
-# features = intersect(var_features, top_expressed_features)
+features = intersect(var_features, top_expressed_features)
 
 
 hmsc_deg <-
@@ -349,6 +348,9 @@ hmsc_cancer_cells_ccFiltered = SetIdent(hmsc_cancer_cells_ccFiltered,value = "hp
 ```{r echo = T, results = 'hide'}
 hmsc_cancer_cells_ccFiltered = FindVariableFeatures(hmsc_cancer_cells_ccFiltered,nfeatures = 15000)
 var_features = VariableFeatures(hmsc_cancer_cells_ccFiltered)
+top_expressed_features = hmsc_cancer_cells_ccFiltered@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
+features = intersect(var_features, top_expressed_features)
+
 
 
 hmsc_deg <-
