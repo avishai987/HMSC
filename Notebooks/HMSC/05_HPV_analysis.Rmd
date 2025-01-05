@@ -216,10 +216,11 @@ hmsc_cancer_cells = SetIdent(hmsc_cancer_cells,value = "hpv33_positive")
 
 ```{r echo = T, results = 'hide'}
 
-hmsc_cancer_cells = FindVariableFeatures(hmsc_cancer_cells,nfeatures = 15000)
-var_features = VariableFeatures(hmsc_cancer_cells)
+# hmsc_cancer_cells = FindVariableFeatures(hmsc_cancer_cells,nfeatures = 15000)
+# features = VariableFeatures(hmsc_cancer_cells)
 top_expressed_features = hmsc_cancer_cells@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
-features = intersect(var_features, top_expressed_features)
+features = top_expressed_features
+# features = intersect(var_features, top_expressed_features)
 
 
 hmsc_deg <-
@@ -431,10 +432,6 @@ fdr_cutoff = signature_fdr
 
 
 opscc_deg = readRDS(file = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
-hmsc_deg = read.table(file = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",row.names = 1,sep = ",",header = T)
-
-hmsc_signatue = rownames(hmsc_deg[hmsc_deg$fdr<fdr_cutoff & hmsc_deg$avg_log2FC>avg_log2FC_cutoff,])
-
 
 opscc_signature = opscc_deg %>% filter(avg_log2FC > avg_log2FC_cutoff &
                                   fdr < fdr_cutoff) %>% rownames()
