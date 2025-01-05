@@ -46,6 +46,12 @@ opscc = readRDS(params$input_data["opscc"])
 hpv_neg<-c("OP10","OP12","OP16","OP19","OP8")
 hpv_pos = unique(opscc$patient )[! unique(opscc$patient) %in% hpv_neg]
 opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
+
+# sort patients alphanumeric based on the numeric part
+opscc_hpvPos$patient <- factor(opscc_hpvPos$patient, levels = c("OP4", "OP5", "OP6", "OP9", "OP13", "OP14", "OP17", "OP20",
+"OP33", "OP34", "OP35"))
+
+
 ```
 
 ```{r}
@@ -99,7 +105,7 @@ df2  = FetchData(object = opscc_hpvPos, vars = c("hpv", "MYB_status","hpv_score"
 all_stat.test= data.frame()
 for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) { #OP13 has no MYB+ cells
   stat.test = df2 %>% filter(patient == patient_name) %>% select(-patient) %>% table() %>%
-  fisher_test() %>% as.data.frame() %>% mutate(patient = patient_name, group1 = "HPV+", group2 = "HPV+")
+  fisher_test() %>% as.data.frame() %>% mutate(patient = patient_name, group1 = "HPV+", group2 = "HPV-")
   all_stat.test = rbind(all_stat.test,stat.test)
 }
 all_stat.test$p.adj = p.adjust(all_stat.test$p,method = "fdr") %>% signif(digits = 3)
@@ -133,6 +139,21 @@ p = ggplot(df, aes(fill=MYB_status, y=total_cells_perc, x=hpv)) +
 
 
 p
+```
+
+```{r fig.width=8}
+
+df3 = df %>% filter(MYB_status == "MYB+")
+
+df3$hpv = as.factor(df3$hpv)
+bp <- ggbarplot(df3, x = "patient", y = "total_cells_perc",
+                fill = "hpv", palette = "jco", position = position_dodge(0.8))+
+  stat_pvalue_manual(all_stat.test, x = "patient", y.position = 0.7,label = "{p.adj}") +
+  ylab("Fraction of MYB positive cells")+
+  scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
+  labs( fill = "HPV Status")
+
+bp
 ```
 
 
@@ -194,7 +215,9 @@ opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = myb_tergets_df)
 ```
 
 
-```{r fig.height=6, fig.width=10}
+```{r fig.height=4, fig.width=12}
+
+
 genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "myb_tergets_score","hpv_score","patient"),slot = "data")  %>% 
   mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) 
 
@@ -216,10 +239,14 @@ stat.test
 plt = ggplot(genes_by_tp, aes(x = hpv, y = myb_tergets_score)) +
   geom_violin(scale = "width",aes(fill = hpv)) +
   geom_boxplot(width = 0.2, outlier.shape = NA) +
-  facet_wrap( ~ patient, scales = "free") +
+  facet_wrap( ~ patient, scales = "free",nrow = 2) +
   stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
-  ggtitle("MYB targets")
+  ggtitle("MYB targets by HPV Status")+
+  labs(y = "Myb Target Score", fill = "HPV Status")+
+  scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5),axis.title.x = element_blank())
 plt
 ```
 
