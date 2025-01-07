@@ -217,6 +217,14 @@ plt = ggplot(genes_by_tp, aes(x = hpv, y = myb_tergets_score)) +
 plt
 ```
 
+```{r}
+pdf(height=4, width=12,file = paste0(params$data_out_dir,"OPSCC_MYB_targets_per_patient.pdf"))
+plt
+dev.off()
+```
+
+
+
 # session info
 <button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName"> Show/Hide </button>  
 <div id="BlockName" class="collapse">  
