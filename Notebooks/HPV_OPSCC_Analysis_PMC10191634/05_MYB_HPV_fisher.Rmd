@@ -142,16 +142,15 @@ p
 ```
 
 ```{r fig.width=8}
-
 df3 = df %>% filter(MYB_status == "MYB+")
 
 df3$hpv = as.factor(df3$hpv)
 bp <- ggbarplot(df3, x = "patient", y = "total_cells_perc",
-                fill = "hpv", palette = "jco", position = position_dodge(0.8))+
+                fill = "hpv", palette = "jco", position = position_dodge(0.8),bracket.size =10,bracket.shorten = 1,remove.bracket = F)+
   stat_pvalue_manual(all_stat.test, x = "patient", y.position = 0.7,label = "{p.adj}") +
   ylab("Fraction of MYB positive cells")+
   scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
-  labs( fill = "HPV Status")
+  labs(fill = "HPV Status", x = "Patient")
 
 bp
 ```
@@ -164,40 +163,7 @@ dev.off()
 ```
 
  
-## Samples average
 
-```{r}
-total_cells_df  = FetchData(object = opscc_hpvPos, vars = c("patient")) %>% dplyr::count(patient, name = "total_cells")
-df  = FetchData(object = opscc_hpvPos,
-                vars = c("hpv", "MYB_status", "hpv_score", "patient")) %>%
-  select(-hpv_score) %>%
-  group_by(patient,MYB_status) %>%
-  dplyr::count(hpv) %>%
-  left_join(total_cells_df, by = "patient") %>% 
-  mutate(relative_n = round((n/total_cells)*1000,digits = 0)) %>% 
-  group_by(MYB_status,hpv) %>%
-  dplyr::summarise(total_relative_n = sum(relative_n)) %>%
-  droplevels()
-
-
-
-df_wide = 
-  df %>%
-  pivot_wider(names_from = hpv, values_from = total_relative_n) %>%
-  column_to_rownames("MYB_status") 
-    
-test = fisher_test(df_wide)
-p = ggbarstats(
-  df,
-  MYB_status,
-  hpv,
-  counts = total_relative_n,
-  results.subtitle = FALSE,
-  # subtitle = paste0("Fisher's exact test", ", p-value = ", test$p) # depends in the normalized amount of cells
-,title = "OPSCC")
-p
-
-```
 
 # MYB targets
 
@@ -219,7 +185,8 @@ opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = myb_tergets_df)
 
 
 genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "myb_tergets_score","hpv_score","patient"),slot = "data")  %>% 
-  mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) 
+  mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-"))  %>%
+    filter(patient != "OP13") 
 
 
 # all cells by patient boxplot
