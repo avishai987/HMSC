@@ -56,6 +56,9 @@ fdr_cutoff = signature_fdr
 hpv_neg<-c("OP10","OP12","OP16","OP19","OP8")
 hpv_pos = unique(opscc$patient )[! unique(opscc$patient) %in% hpv_neg]
 opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
+opscc_hpvPos$patient <- factor(opscc_hpvPos$patient, levels = c("OP4", "OP5", "OP6", "OP9", "OP13", "OP14", "OP17", "OP20",
+"OP33", "OP34", "OP35"))# sort patients alphanumeric based on the numeric part
+
 
 hmsc_deg = read.table(file = params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
 
@@ -128,7 +131,7 @@ genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "hpv_signature_sco
 #plot and split by patient:
 stat.test <- genes_by_tp %>%
   group_by(patient) %>% 
-  # filter (patient != "OP13") %>% 
+  filter (patient != "OP13") %>%
   t_test(hpv_signature_score ~ hpv) %>%
   adjust_pvalue(method = "fdr") %>%
   add_significance() %>%
@@ -141,11 +144,14 @@ plt = ggplot(genes_by_tp, aes(x = hpv, y = hpv_signature_score)) +
   geom_violin(scale = "width",aes(fill = hpv)) +
   geom_boxplot(width = 0.2, outlier.shape = NA) +
   stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
-  facet_wrap("patient")+
+  facet_wrap("patient",scales='free',ncol = 5)+
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
-  ggtitle("HMSC HPV signature")
+  ggtitle("HMSC HPV signature")+
+  scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
+  theme_minimal()
 plt
 ```
+
 
 
 ```{r fig.height=6, fig.width=8}
