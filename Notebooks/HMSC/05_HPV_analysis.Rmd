@@ -28,7 +28,7 @@ params:
     opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds",
     myb_targets = "./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",
     global_params  = "./Input_data/global_params.R")
-  output_data: !r c(hmsc_deg_no_cc = "HMSC_hpv_deg_df_noG2M_cells.csv",
+  output_data: !r c(
     hmsc_deg = "HMSC_hpv_deg_df.csv")
 ---
 
@@ -204,6 +204,12 @@ plt = ggplot(genes_by_tp, aes(x = hpv33_positive, y = myb_tergets_score)) +
 plt
 ```
 
+```{r}
+pdf(paste0(params$data_out_dir,"HMSC_HPVon_HPVoff_myb_targets.pdf"))
+plt
+dev.off()
+```
+
 # DEG LR latent vars plate
 
 
@@ -252,21 +258,38 @@ write.csv(x  = hmsc_deg,file = paste0(params$data_out_dir,params$output_data["hm
 
 
 ```{r}
+# create 6 breaks between plot limits in log scale and then exponent, otherwise breaks not good
+breaks_fun = function(limits){ 
+  breaks = exp(-seq(-log(limits[1]), -log(limits[2]), length.out = 6))
+  breaks[1] = breaks[1] * 0.95 #adjust extreme ticks to prevent truncation
+  breaks[7] = breaks[7] * 1.05
+  return(signif(breaks, digits = 2))
+}
+
 hmsc_deg$score = hmsc_deg$avg_log2FC*-log10(hmsc_deg$fdr)
 ranked_vec = hmsc_deg[,"avg_log2FC"]%>% setNames(rownames(hmsc_deg)) %>% na.omit() # make named vector
 
 genesets =geneIds(genesets_h)
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = genesets,up_only = F)
-p = hyp_dots(hyp_obj,merge = F)
-p[[1]]
-p[[2]]
+p = hyp_dots(hyp_obj,merge = F) 
+
+
+p1 = p[[1]]+
+  scale_y_continuous(trans = hypeR:::.reverselog_trans(10), 
+        breaks =breaks_fun)
+
+p2 = p[[2]]+
+  scale_y_continuous(trans = hypeR:::.reverselog_trans(10), 
+        breaks =breaks_fun)
+p1
+p2
 ```
+
+
 ```{r}
 pdf(paste0(params$data_out_dir,"HMSC_HPVon_HPVoff_GSEA.pdf"))
-p[[1]]
+p1
 dev.off()
-
-
 ```
 
 
@@ -346,22 +369,22 @@ hmsc_cancer_cells_ccFiltered = SetIdent(hmsc_cancer_cells_ccFiltered,value = "hp
 
 
 ```{r echo = T, results = 'hide'}
-# hmsc_cancer_cells_ccFiltered = FindVariableFeatures(hmsc_cancer_cells_ccFiltered,nfeatures = 15000)
-# var_features = VariableFeatures(hmsc_cancer_cells_ccFiltered)
-# top_expressed_features = hmsc_cancer_cells_ccFiltered@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
-# features = intersect(var_features, top_expressed_features)
+hmsc_cancer_cells_ccFiltered = FindVariableFeatures(hmsc_cancer_cells_ccFiltered,nfeatures = 15000)
+var_features = VariableFeatures(hmsc_cancer_cells_ccFiltered)
+top_expressed_features = hmsc_cancer_cells_ccFiltered@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
+features = intersect(var_features, top_expressed_features)
 
 #3K genes
 
-top_expressed_features = hmsc_cancer_cells_ccFiltered@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
-features = top_expressed_features
+# top_expressed_features = hmsc_cancer_cells_ccFiltered@assays$RNA@data %>% rowMeans() %>% sort(decreasing = T) %>% head(3000) %>% names()
+# features = top_expressed_features
 
 hmsc_deg <-
   FindMarkers(
     hmsc_cancer_cells_ccFiltered,
     ident.1 = "positive",
     ident.2 = "negative",
-    features = var_features,
+    features = features,
     densify = T,
     assay = "RNA",
     test.use = "LR",
@@ -378,9 +401,7 @@ hmsc_deg$fdr<-p.adjust(p = as.vector(hmsc_deg$p_val) ,method = "fdr")
 
 ```
 
-```{r}
-write.csv(x  = hmsc_deg,file = paste0(params$data_out_dir,params$output_data["hmsc_deg_no_cc"]),row.names = T)
-```
+
 
 ```{r}
 hmsc_deg$score = hmsc_deg$avg_log2FC*-log10(hmsc_deg$fdr)
@@ -389,13 +410,19 @@ ranked_vec = hmsc_deg[,"avg_log2FC"]%>% setNames(rownames(hmsc_deg)) %>% na.omit
 genesets =geneIds(genesets_h)
 hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = genesets,up_only = F)
 p = hyp_dots(hyp_obj,merge = F)
-p[[1]]
-p[[2]]
+p1 = p[[1]]+
+  scale_y_continuous(trans = hypeR:::.reverselog_trans(10), 
+        breaks =breaks_fun)
+p2 = p[[2]]+
+  scale_y_continuous(trans = hypeR:::.reverselog_trans(10), 
+        breaks =breaks_fun)
+p1
+p2
 ```
 
 ```{r}
 pdf(paste0(params$data_out_dir,"HMSC_HPVon_HPVoff_GSEA_noG2M_cells.pdf"))
-p[[1]]
+p1
 dev.off()
 
 
