@@ -28,7 +28,7 @@ params:
   input_data: !r c(
     functions = "Notebooks/TCGA/TCGA_functions.R",
     opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/OPSCC_HPV_DEG.csv",
-    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df_noG2M_cells.csv",
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
     myb_tergets = "./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",
     tp53_data = "./Input_data/TCGA/cbioportal_hnsc_tcga_gdc_TP53_data.tsv",
     genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
@@ -401,6 +401,9 @@ p = TCGAanalyze_survival(
 p1 = (p[[1]]+ggtitle("OPSCC samples"))/p[[2]]
 print_tab(p1,title = "all samples")
 
+pdf(paste0(params$data_out_dir,"all_samples_hmsc_signature.pdf"),width = 8,height = 6)
+p1
+dev.off()
 
 
 # HPV+ samples:
@@ -423,6 +426,11 @@ p = TCGAanalyze_survival(
 p1 = (p[[1]]+ggtitle("OPSCC HPV+ samples"))/p[[2]]
 print_tab(p1,title = "HPV+")
 
+pdf(paste0(params$data_out_dir,"HPVpos_samples_hmsc_signature.pdf"),width = 8,height = 6)
+p1
+dev.off()
+
+
 # HPV neg samples:
 clinical_data_hpv_pos = clinical_data  %>% filter(hpv_status == "HPV-")
 gene_status = set_clinical_data(clin_data = clinical_data_hpv_pos,genes = hmsc_signatue,tpm_data_frame = HNSC_tpm,stratify = params$stratify,signature_name = "HMSC HPV \nsignature")
@@ -439,6 +447,10 @@ p = TCGAanalyze_survival(
 
 p1 = (p[[1]]+ggtitle("OPSCC HPV- samples"))/p[[2]]
 print_tab(p1,title = "HPV-")
+
+pdf(paste0(params$data_out_dir,"HPVneg_samples_hmsc_signature.pdf"),width = 8,height = 6)
+p1
+dev.off()
 ```
 
 
@@ -451,7 +463,7 @@ print_tab(p1,title = "HPV-")
 
 
 
-## No cell cycle genes HPV - {.tabset}
+## No cell cycle genes  {.tabset}
 
 ```{r fig.height=6, fig.width=8, results='asis'}
 
@@ -479,6 +491,10 @@ p = TCGAanalyze_survival(
 p1 = (p[[1]]+ggtitle("OPSCC samples"))/p[[2]]
 print_tab(p1,title = "OPSCC samples",subtitle_num = 3)
 
+pdf(paste0(params$data_out_dir,"all_samples_hmsc_signature_noCC_genes.pdf"),width = 8,height = 6)
+p1
+dev.off()
+
 #hpv +:
 clinical_data_hpv_pos = clinical_data  %>% filter(hpv_status == "HPV+")
 
@@ -496,6 +512,10 @@ p = TCGAanalyze_survival(
 )
 p1 = (p[[1]]+ggtitle("OPSCC HPV+ samples"))/p[[2]]
 print_tab(p1,title = "HPV+",subtitle_num = 3)
+
+pdf(paste0(params$data_out_dir,"HPVpos_samples_hmsc_signature_noCC_genes.pdf"),width = 8,height = 6)
+p1
+dev.off()
 
 #hpv- :
 clinical_data_hpv_pos = clinical_data  %>% filter(hpv_status == "HPV-")
@@ -515,6 +535,9 @@ p = TCGAanalyze_survival(
 p1 = (p[[1]]+ggtitle("OPSCC HPV- samples"))/p[[2]]
 print_tab(p1,title = "HPV-",subtitle_num = 3)
 
+pdf(paste0(params$data_out_dir,"HPVneg_samples_hmsc_signature_noCC_genes.pdf"),width = 8,height = 6)
+p1
+dev.off()
 ```
 
 
