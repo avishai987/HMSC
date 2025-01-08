@@ -122,16 +122,15 @@ opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = hpv_signature)
 ```
 
 
-```{r fig.height=6, fig.width=8}
+```{r fig.height=4, fig.width=10}
 
-genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "hpv_signature_score","patient"),slot = "data") 
+genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "hpv_signature_score","patient"),slot = "data") %>% filter (patient != "OP13")
 
 
 
 #plot and split by patient:
 stat.test <- genes_by_tp %>%
   group_by(patient) %>% 
-  filter (patient != "OP13") %>%
   t_test(hpv_signature_score ~ hpv) %>%
   adjust_pvalue(method = "fdr") %>%
   add_significance() %>%
@@ -148,14 +147,48 @@ plt = ggplot(genes_by_tp, aes(x = hpv, y = hpv_signature_score)) +
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   ggtitle("HMSC HPV signature")+
   scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
-  theme_minimal()
+  theme_minimal()+
+  ylab("Signature Score")
 plt
 ```
 
 
 
-```{r fig.height=6, fig.width=8}
+```{r fig.height=4, fig.width=10}
 pdf(paste0(params$data_out_dir,"OPSCC_violin_plots_HMSC_HPV_signature.pdf"))
+plt
+dev.off()
+```
+
+```{r}
+#just op13
+genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "hpv_signature_score","patient"),slot = "data") %>% filter (patient == "OP13")
+
+
+
+#plot and split by patient:
+stat.test <- genes_by_tp %>%
+  t_test(hpv_signature_score ~ hpv) %>%
+  adjust_pvalue(method = "fdr") %>%
+  add_significance() %>%
+  add_xy_position(x = "hpv") %>%
+  mutate(p.adj = signif(p.adj, digits = 2))
+stat.test
+
+
+plt = ggplot(genes_by_tp, aes(x = hpv, y = hpv_signature_score)) +
+  geom_violin(scale = "width",aes(fill = hpv)) +
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
+  stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
+  ggtitle("HMSC HPV signature")+
+  scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
+  theme_minimal()+
+  ylab("Signature Score")
+plt
+```
+```{r fig.height=6, fig.width=8}
+pdf(paste0(params$data_out_dir,"OPSCC_violin_plots_HMSC_HPV_signature_OP13.pdf"))
 plt
 dev.off()
 ```
