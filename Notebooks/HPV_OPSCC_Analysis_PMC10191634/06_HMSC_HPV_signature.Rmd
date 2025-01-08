@@ -154,8 +154,8 @@ plt
 
 
 
-```{r fig.height=4, fig.width=10}
-pdf(paste0(params$data_out_dir,"OPSCC_violin_plots_HMSC_HPV_signature.pdf"))
+```{r}
+pdf(paste0(params$data_out_dir,"OPSCC_violin_plots_HMSC_HPV_signature.pdf"),height = 4,width = 10)
 plt
 dev.off()
 ```
