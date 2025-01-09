@@ -2,28 +2,32 @@
 title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
-output: 
-  html_notebook: 
+output:
+  # html_notebook:
+  #   code_folding: hide
+  #   toc: true
+  #   toc_collapse: true
+  #   toc_float:
+  #     collapsed: false
+  #   number_sections: true
+  #   toc_depth: 1
+  html_document:
     code_folding: hide
     toc: yes
     toc_collapse: yes
-    toc_float: 
-      collapsed: FALSE
-    number_sections: true
-    toc_depth: 1
-
-  html_document: 
-    code_folding: hide
-    toc: yes
-    toc_collapse: yes
-    toc_float: 
+    toc_float:
       collapsed: TRUE
     number_sections: true
     toc_depth: 2
-    df-print: paged
+    df_print: paged
+
 params:
-  data_out_dir: "./Data_out/HPV_signature_compare/"
-  figs_out_dir: "./Data_out/HPV_signature_compare/"
+  data_out_dir: "./temp_data/" 
+  input_data: !r c(
+    opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/OPSCC_HPV_DEG.csv",
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
+    genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
+    global_params  = "./Input_data/global_params.R")
 ---
 
 
@@ -31,33 +35,26 @@ params:
 # Functions
 
 ```{r warning=FALSE}
-library(xlsx)
 source_from_github(repositoy = "DEG_functions",version = "0.2.54")
-genesets_h  = getGmt("./Input_data/h.all.v7.0.symbols.pluscc.gmt")
+genesets_h  = geneIds(getGmt(params$input_data["genesets_h"]))
+source(params$input_data["global_params"])
+
 ```
 
 # signature
 ```{r}
-# find hpv signature genes
-hmsc_deg = read.table(file = "./Rendered_notebooks/HPV_analysis/HPV_analysis_2024_11_13/hpv_deg_df.csv",row.names = 1)
-opscc_deg = readRDS(file = "./Rendered_notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/02_findDEG_2024_11_14/opscc_deg_5Kvargenes.rds")
-scc_deg = readRDS(file = "./Data_out/scc_deg_5Kvargenes.rds")
 
+opscc_deg = read.table(file =  params$input_data["opscc_deg"],row.names = 1,sep = ",",header = T)
+hmsc_deg = read.table(file =  params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
 
-DT::datatable(hmsc_deg, caption = "hmsc_deg")
-DT::datatable(opscc_deg, caption = "opscc_deg")
-DT::datatable(scc_deg, caption = "scc_deg")
-
-log2FC_cutoff = log2(1.1)
-fdr_cutoff = 0.1
-
-hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2FC_cutoff &
-                                 fdr < fdr_cutoff) %>% rownames()
-opscc_top = opscc_deg %>% filter(avg_log2FC > log2FC_cutoff &
-                                   fdr < fdr_cutoff) %>% rownames()
+hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2(signature_fc) &
+                                 fdr < signature_fdr) %>% rownames()
+opscc_top = opscc_deg %>% filter(avg_log2FC > log2(signature_fc) &
+                                   fdr < signature_fdr) %>% rownames()
 
 print ("intersect genes:")
-intersect(hmsc_top,opscc_top)
+intersected_genes = intersect(hmsc_top,opscc_top)
+intersected_genes
 
 
 ```
@@ -81,42 +78,69 @@ dev.off()
 # HMSC GSEA
 
 ```{r}
+set.seed(NULL)
+# create 6 breaks between plot limits in log scale and then exponent, otherwise breaks not good
+breaks_fun = function(limits){ 
+  print(limits)
+  breaks = exp(-seq(-log(limits[1]), -log(limits[2]), length.out = 6))
+  breaks[1] = breaks[1] * 0.95 #adjust extreme ticks to prevent truncation
+  breaks[6] = breaks[6] * 1.05
+  return(signif(breaks, digits = 2))
+}
+
 ranked_vec = hmsc_deg[,"avg_log2FC"]%>% setNames(rownames(hmsc_deg)) %>% na.omit() # make named vector
-hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
+hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = genesets_h,up_only = F)
 
-plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)
-plt[[1]] + aes(size=nes)+ 
-  guides(
-    size = guide_legend(title="NES",reverse=T))
+plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2,val = "fdr")
+p = plt[[1]] + aes(size=nes)+ 
+  guides(size = guide_legend(title="NES",reverse=T))+
+  scale_y_continuous(trans = hypeR:::.reverselog_trans(10), 
+        breaks =breaks_fun)
 
-
+p
 ```
 ```{r}
-# save
-write.xlsx(hyp_obj$data$up$data, paste0(params$data_out_dir,"HMSC_GSEA.xlsx"))
+pdf(paste0(params$data_out_dir,"HMSC_HPV_signature_GSEA.pdf"))
+p
+dev.off()
 ```
+
+
 
 # OPSCC GSEA
 
-```{r}
+```{r fig.width=8}
 ranked_vec = opscc_deg[,"avg_log2FC"]%>% setNames(rownames(opscc_deg)) %>% na.omit() # make named vector
-hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = geneIds(genesets_h),up_only = F)
+hyp_obj <-hypeR_fgsea(signature = ranked_vec,genesets = genesets_h,up_only = F)
 
 plt = hyp_dots(hyp_obj,merge = F,fdr = 0.2)
-plt[[1]] + aes(size=nes)+ 
+p1 = plt[[1]] + aes(size=nes)+ 
   guides(
-    size = guide_legend(title="NES",reverse=T))
+    size = guide_legend(title="NES",reverse=T))+
+  scale_y_continuous(trans = hypeR:::.reverselog_trans(10), 
+        breaks =breaks_fun)
 
-plt[[2]] + aes(size=nes) +scale_size(trans = 'reverse')+
+p2 = plt[[2]] + aes(size=nes) +scale_size(trans = 'reverse')+
   guides(
-    size = guide_legend(title="NES",reverse=F))
+    size = guide_legend(title="NES",reverse=F))+
+  scale_y_continuous(trans = hypeR:::.reverselog_trans(10), 
+        breaks =breaks_fun)
 
-
+p1
+p2
 ```
 ```{r}
-# save
-write.xlsx(hyp_obj$data$up$data,  paste0(params$data_out_dir,"OPSCC_GSEA.xlsx"))
+pdf(paste0(params$data_out_dir,"OPSCC_HPV_signature_GSEA_up.pdf"),width = 8,height = 5)
+p1
+dev.off()
+
+pdf(paste0(params$data_out_dir,"OPSCC_HPV_signature_GSEA_down.pdf"),width = 8,height = 5)
+p2
+dev.off()
+
 ```
+
+
 # SCC GSEA
 ```{r}
 # ranked_vec = scc_deg[,"avg_diff"]%>% setNames(rownames(scc_deg)) %>% na.omit() # make named vector
