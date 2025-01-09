@@ -145,6 +145,11 @@ p = TCGAanalyze_survival(
 
 p[[1]]/p[[2]]
 ```
+```{r}
+pdf(paste0(params$data_out_dir,"KM_MYB_OPSCC.pdf"),width = 8,height = 6)
+p[[1]]/p[[2]]
+dev.off()
+```
 
 # HPV
 
@@ -263,15 +268,18 @@ stat.test <- gene_status %>%
   add_significance()
 stat.test
 
+stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
 
 bxp <- ggboxplot(gene_status, x = "hpv_status", y = "MYB", fill = "#00AFBB")+
-  geom_jitter()
-stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
-bxp + 
-  stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") +ylim(0,7)
-
+  geom_jitter() + 
+  stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") +ylim(0,7)+scale_x_discrete(limits = c("HPV-","HPV+"))
+bxp
 ```
-
+```{r}
+pdf(paste0(params$data_out_dir,"boxplot_MYB_HPV_OPSCC_TCGA.pdf"),width = 7,height = 5)
+bxp
+dev.off()
+```
 # MYB and HPV survival plot
 
 ## HPV + tumors
@@ -279,7 +287,7 @@ bxp +
 ```{r}
 clinical_data_with_scores = clinical_data  %>% filter(hpv_status == "HPV+")
 
-gene_status = set_clinical_data(clin_data = clinical_data_with_scores,genes = "NOTCH1",tpm_data_frame = HNSC_tpm,stratify = "T")
+gene_status = set_clinical_data(clin_data = clinical_data_with_scores,genes = "MYB",tpm_data_frame = HNSC_tpm,stratify = "T")
 paged_table(gene_status)
 ```
 
