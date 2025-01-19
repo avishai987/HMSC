@@ -263,6 +263,7 @@ paged_table(gene_status)
 # plot
 library(ggpubr)
 library(rstatix)
+gene_status$hpv_status = factor(gene_status$hpv_status,levels = c("HPV-","HPV+"))
 stat.test <- gene_status %>%
   t_test(MYB ~ hpv_status) %>%
   add_significance()
@@ -270,7 +271,7 @@ stat.test
 
 stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
 
-bxp <- ggboxplot(gene_status, x = "hpv_status", y = "MYB", fill = "#00AFBB")+
+bxp <- ggboxplot(gene_status, x = "hpv_status", y = "MYB", fill = "hpv_status")+
   geom_jitter() + 
   stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") +ylim(0,7)+scale_x_discrete(limits = c("HPV-","HPV+"))
 bxp
