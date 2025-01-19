@@ -41,16 +41,13 @@ source(params$input_data["global_params"])
 
 ```{r}
 opscc_deg = read.table(file =  params$input_data["opscc_deg"],row.names = 1,sep = ",",header = T)
-hmsc_deg = read.table(file =  params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
 
-hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2(signature_fc) &
-                                 fdr < signature_fdr) %>% rownames()
-opscc_top = opscc_deg %>% filter(avg_log2FC > log2(signature_fc) &
+opscc_top_up = opscc_deg %>% filter(avg_log2FC > log2(signature_fc) &
                                    fdr < signature_fdr) %>% rownames()
 
-print ("intersect genes:")
-intersected_genes = intersect(hmsc_top,opscc_top)
-intersected_genes
+opscc_top_down = opscc_deg %>% filter(avg_log2FC < -log2(signature_fc) &
+                                   fdr < signature_fdr) %>% rownames()
+
 
 ```
 
@@ -65,13 +62,14 @@ plt = volcano_plot(
   ident1 = "HPV positive",
   ident2 = "HPV negative",
   top_genes_text = 0,
-  show_gene_names = intersected_genes
+  show_gene_names = c(opscc_top_up,opscc_top_down)
   ) +
   ggtitle("Differential Gene Expression by HPV Status")  + 
   expand_limits(y = c(0, 4))+
   coord_cartesian(clip = "off")
 
 plt
+
 ```
 
 ```{r}
