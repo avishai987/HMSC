@@ -1,5 +1,5 @@
 ---
-title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+title: 'OPSCC_TCGA' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
 output:
@@ -25,21 +25,15 @@ params:
   stratify: "M"
   log_tpm: TRUE
   data_out_dir: "./temp_data/" 
-  input_data: !r c(
-    functions = "Notebooks/TCGA/TCGA_functions.R",
-    opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/OPSCC_HPV_DEG.csv",
-    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
-    myb_tergets = "./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",
-    tp53_data = "./Input_data/TCGA/cbioportal_hnsc_tcga_gdc_TP53_data.tsv",
-    genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
-    HNSC_tpm = "./Reports/TCGA/build_TCGA_datasets/TCGA_HNSC_TPM.RDS",
-    cbp_data = "./Input_data/TCGA/cbioportal_hnsc_tcga_pan_can_atlas_2018_clinical_data.tsv",
-    global_params  = "./Input_data/global_params.R")
+
 ---
 
 ```{r}
-# print params
-paged_table(as.data.frame(unlist(params)))
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
 ```
 
 # Data
@@ -50,9 +44,15 @@ library(biomaRt)
 library(kableExtra)
 library(rmarkdown)
 library(readxl)
-source(params$input_data["functions"])
-source(params$input_data["global_params"])
-
+source(input$functions)
+source(input$fc_params)
+library(GSEABase)
+library(grid)
+library(ComplexHeatmap)
+library(ggpubr)
+library(stringr)
+library(data.table)
+library(ggstatsplot)
 ```
 
 ```{r}
@@ -61,8 +61,8 @@ avg_log2FC_cutoff = log2(signature_fc)
 fdr_cutoff = signature_fdr
 
 
-opscc_deg = read.table(file =  params$input_data["opscc_deg"],row.names = 1,sep = ",",header = T)
-hmsc_deg = read.table(file = params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
+opscc_deg = read.table(file =  input$opscc_deg,row.names = 1,sep = ",",header = T)
+hmsc_deg = read.table(file = input$hmsc_deg,row.names = 1,sep = ",",header = T)
 
 hmsc_signatue = rownames(hmsc_deg[hmsc_deg$fdr<fdr_cutoff & hmsc_deg$avg_log2FC>avg_log2FC_cutoff,])
 
@@ -76,15 +76,15 @@ print(opscc_signature)
 message("hmsc_signatue:")
 print(hmsc_signatue)
 
-myb_tergets <- read_excel(params$input_data["myb_tergets"],col_names = T) %>%  pull(Gene)
+myb_targets <- read_excel(input$myb_targets,col_names = T) %>%  pull(Gene)
 
-tp53_data = read_tsv(file = params$input_data["tp53_data"],col_names = T)
+tp53_data = read_tsv(file = input$tp53_data,col_names = T)
   
 ```
 
 ```{r}
 # load TPM data
-HNSC_tpm = readRDS(params$input_data["HNSC_tpm"])
+HNSC_tpm = readRDS(input$HNSC_tpm)
 
 if (params$log_tpm) {
   HNSC_tpm = log2(HNSC_tpm+1)
@@ -104,8 +104,19 @@ clinical_data = clinical_data[clinical_data$tissue_or_organ_of_origin %in% OPSCC
 ```
 
 ```{r}
+#add follow_up data
+clinical_follow_up = read_tsv(input$clinical_follow_up) %>% as.data.frame()
+#get only "Last Contact"
+clinical_follow_up <- clinical_follow_up[clinical_follow_up$timepoint_category...135 == "Last Contact", ]
+
+#add to clinical and rename days_to_last_follow_up> days_to_follow_up
+clinical_data = inner_join(clinical_data,clinical_follow_up[,c("case_submitter_id","days_to_follow_up"),drop=F],by = c("submitter_id"="case_submitter_id")) %>% select(-days_to_last_follow_up) %>% dplyr::rename(days_to_last_follow_up = days_to_follow_up)
+
+```
+
+```{r}
 # add HPV statusfrom cbioportal to clinical_data
-cbp_data = read_tsv(file = params$input_data["cbp_data"])
+cbp_data = read_tsv(file = input$cbp_data)
 cbp_data = cbp_data[,c("Patient ID", "Subtype")] %>% dplyr::rename(hpv_status = Subtype) %>% 
   mutate(hpv_status = gsub(,x = hpv_status,pattern = "HNSC_HPV",replacement = "HPV"))
 clinical_data = inner_join(x = clinical_data,y = cbp_data,by = c("submitter_id"="Patient ID"))
@@ -258,6 +269,7 @@ paged_table(gene_status)
 
 
 ```
+
 
 ```{r fig.height=5, fig.width=7}
 # plot
@@ -477,7 +489,7 @@ dev.off()
 ```{r fig.height=6, fig.width=8, results='asis'}
 
 # remove genes:
-genesets_h  = geneIds(getGmt(params$input_data["genesets_h"]))
+genesets_h  = geneIds(getGmt(input$genesets_h))
 message("cc genes in signature:")
 print(hmsc_signatue[hmsc_signatue %in% genesets_h$HALLMARK_E2F_TARGETS])
 
