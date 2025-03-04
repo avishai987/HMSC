@@ -22,23 +22,16 @@ output:
     df_print: paged
 params: 
   data_out_dir: "./temp_data/" 
-  input_data: !r c(
-    hmsc_cancer_cells = "./Reports/HMSC/01_preprocess/03_HMSC_cells_preprocess/acc1_cancer_cells_2500features_integrated_V5.RDS",
-    hmsc_acc_pri_cancer = "./Reports/HMSC/01_preprocess/04_build_datasets/hmsc_acc_pri_cancer_processed.RDS",
-    all_cells = "./Reports/HMSC/01_preprocess/01_create_data/acc_tpm_nCount_mito_no146_15k_with_ACC1.RDS",
-    genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
-   ensembl =  "./Input_data/hsapiens_gene_ensembl_version_113",
-        global_params  = "./Input_data/global_params.R")
-  output_data: !r c(deg = "HMSC_vs_ACC_DEG.csv")
    
 ---
 
-
 ```{r}
-paged_table(as.data.frame(unlist(params)))
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
 ```
-
-
 
 # Functions
 
@@ -50,21 +43,26 @@ source_from_github(repositoy = "HMSC_functions",version = "0.1.14",script_name =
 source_from_github(repositoy = "cNMF_functions",version = "0.4.04",script_name = "cnmf_functions_V3.R")
 source_from_github(repositoy = "sc_general_functions",version = "0.1.34",script_name = "functions.R")
 library(hypeR)
-source(params$input_data["global_params"])
-
+source(input$fc_params)
+library(hypeR)
+library(GSEABase)
+library(grid)
+library(ComplexHeatmap)
+library(ggpubr)
+library(stringr)
+library(data.table)
 ```
 
 # Data
 
 ```{r}
-hmsc_cancer_cells = readRDS(params$input_data["hmsc_cancer_cells"])
-hmsc_acc_pri_cancer = readRDS(params$input_data["hmsc_acc_pri_cancer"])
+hmsc_cancer_cells = readRDS(input$hmsc_cancer_cells)
+hmsc_acc_pri_cancer = readRDS(input$hmsc_acc_pri_cancer)
 acc_pri = subset(hmsc_acc_pri_cancer,subset = patient.ident != "HMSC")
 DefaultAssay(acc_pri) = "RNA"
 
-all_cells =readRDS(params$input_data["all_cells"])
-genesets_h  = getGmt(params$input_data["genesets_h"])
-ensembl = readRDS(params$input_data["ensembl"])
+genesets_h  = getGmt(input$genesets_h)
+ensembl = readRDS(input$ensembl)
 
 # luminal_pathways = c("CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_BASAL_UP","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_DN","CHARAFE_BREAST_CANCER_LUMINAL_VS_MESENCHYMAL_UP","HUPER_BREAST_BASAL_VS_LUMINAL_DN","LIM_MAMMARY_LUMINAL_PROGENITOR_UP","SMID_BREAST_CANCER_LUMINAL_B_UP" )
 # 
@@ -142,8 +140,8 @@ acc_deg_desc = left_join(x = rownames_to_column(deg),y = genedesc,by = c("rownam
 names(acc_deg_desc)[1] = "gene"
 hmsc_up_genes = acc_deg_desc [acc_deg_desc$avg_log2FC>0,]
 acc_up_genes = acc_deg_desc [acc_deg_desc$avg_log2FC<0,]
-fwrite(hmsc_up_genes,file = "./Data/hmsc_up_genes.csv",row.names = F)
-fwrite(acc_up_genes,file = "./Data/acc_up_genes.csv",row.names = F)
+fwrite(hmsc_up_genes,file = params$data_out_dir %s+% "hmsc_up_genes.csv",row.names = F)
+fwrite(acc_up_genes,file = params$data_out_dir %s+% "cc_up_genes.csv",row.names = F)
 
 ```
 
@@ -173,7 +171,47 @@ p
 ```
 
 
+```{r fig.width=10}
+# plot GSEA
+args = list(
+  name = c("up","dn"),
+  color = c("dodgerblue","indianred2"),
+  title  = c("Up in HMSC","Up in ACC")
+)
+p_list = list()
 
+for (i in 1:2) {
+  name = args$name[i]
+  color = args$color[i]
+  title = args$title[i]
+  
+  final_result = hyp_obj$data[[name]]$data
+  final_result = final_result %>% filter(fdr<0.2) 
+  final_result$fdr = -log10(final_result$fdr)
+  p <- ggplot(data = final_result, aes(x = reorder(label,fdr),y = fdr)) +
+    geom_bar(stat = "identity", fill = color)  +
+    coord_flip() + 
+    geom_hline(yintercept = -log10(0.05), colour = "black", linetype = "longdash", size = 0.8,alpha = 0.5)+
+    xlab("Pathway") + 
+      scale_fill_manual(drop = FALSE) + ylab("FDR") + 
+      geom_text(aes_string(label = "label", y = 0), 
+                size = 4, color = "black", position = position_dodge(1), 
+                hjust = 0) +
+    scale_y_continuous(labels = function(x) {parse(text = paste0("10^-",x))}, # set fdr format 10^-X
+                       expand = expansion(mult = c(0, 0.1)))+ #expand to avoid cut off
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),axis.text.x = element_text(size = 10)) +  
+    ggtitle(title)
+  p_list[[name]] = p
+  
+}
+p = p_list[[1]]+p_list[[2]]
+p
+```
+```{r}
+pdf(paste0(params$data_out_dir,"ACC_vs_HMSC_GSEA_no_filtering_barplot.pdf"),width = 10)
+p
+dev.off()
+```
 
 ## Cell cycle score  {.tabset}
 
@@ -373,7 +411,7 @@ p
 
 
 ```{r}
-pdf(paste0(params$data_out_dir,"/ACC_vs_HMSC_GSEA_barplot.pdf"),width = 10)
+pdf(paste0(params$data_out_dir,"ACC_vs_HMSC_GSEA_cc_filtered_barplot.pdf"),width = 10)
 p
 dev.off()
 ```
@@ -399,6 +437,52 @@ dev.off()
 ```
 
 ```{r}
-params$output_data["deg"]
-write.csv2(x = deg,file = paste0(params$data_out_dir,params$output_data["deg"]))
+write.csv2(x = deg,file = paste0(params$data_out_dir,"HMSC_ACC_DEG.csv"))
+```
+
+```{r}
+deg$fdr = p.adjust(p = deg$p_val ,method = "fdr")
+
+print("up in ACC:")
+deg %>% filter(avg_log2FC< (-volcano_fc) & fdr < volcano_fdr) %>% nrow()
+
+print("up in HMSC:")
+deg %>% filter(avg_log2FC > (volcano_fc) & fdr < volcano_fdr) %>% nrow()
+
+```
+
+
+# correlation
+```{r}
+acc_pri = FindVariableFeatures(object = acc_pri,nfeatures = 5000,assay = "RNA")
+hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 5000,assay = "RNA")
+
+common_genes = intersect(VariableFeatures(hmsc_cancer_cells,assay = "RNA"),VariableFeatures(acc_pri,assay = "RNA"))
+
+
+all_cells_matrix = cbind(hmsc_cancer_cells@assays$integrated@data[common_genes,],acc_pri@assays$RNA@data[common_genes,]) %>% as.data.frame()
+all_cells_pearson = cor(all_cells_matrix)
+annotation = data.frame(dataset = c(rep("HMSC", ncol(hmsc_cancer_cells)), rep("ACC", ncol(acc_pri))),
+                        row.names  = c(colnames(hmsc_cancer_cells),colnames(acc_pri)))
+row_ha = rowAnnotation(df = annotation, col = list(dataset  = c(HMSC = "red",ACC = "green")))
+
+
+ComplexHeatmap::Heatmap(matrix = all_cells_pearson ,name = "pearson", col = circlize::colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")),show_column_names = F,show_row_names = F,right_annotation = row_ha,clustering_distance_columns = "euclidean",clustering_distance_rows = "euclidean",clustering_method_columns = "ward.D2",clustering_method_rows = "ward.D2")
+```
+
+```{r}
+acc_pri = FindVariableFeatures(object = acc_pri,nfeatures = 5000,assay = "RNA")
+hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 5000,assay = "RNA")
+
+common_genes = intersect(VariableFeatures(hmsc_cancer_cells,assay = "RNA"),VariableFeatures(acc_pri,assay = "RNA"))
+
+
+all_cells_matrix = cbind(hmsc_cancer_cells@assays$integrated@data[common_genes,],acc_pri@assays$RNA@data[common_genes,]) %>% as.data.frame()
+all_cells_pearson = cor(all_cells_matrix)
+annotation = data.frame(dataset = c(rep("HMSC", ncol(hmsc_cancer_cells)), rep("ACC", ncol(acc_pri))),
+                        row.names  = c(colnames(hmsc_cancer_cells),colnames(acc_pri)))
+row_ha = rowAnnotation(df = annotation, col = list(dataset  = c(HMSC = "red",ACC = "green")))
+
+
+ComplexHeatmap::Heatmap(matrix = all_cells_pearson ,name = "pearson", col = circlize::colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")),show_column_names = F,show_row_names = F,right_annotation = row_ha,clustering_distance_columns = "pearson",clustering_distance_rows = "pearson",clustering_method_columns = "average",clustering_method_rows = "average")
 ```
