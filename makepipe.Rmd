@@ -5,75 +5,31 @@ output: html_document
 
 
 ```{r}
-knitr::opts_knit$set(progress = TRUE, verbose = TRUE)
-get_report_target_path <- function(notebook_path) {
-    filename = gsub(x = notebook_path,pattern = "\\.Rmd",replacement = ".html")
-    dir_name = str_remove(string = notebook_path, pattern = "./Notebooks/") %>% str_remove(pattern = ".Rmd")
-    new_dir_path = paste0("./Reports/", dir_name, "/")
-    report_path =  paste0(new_dir_path,basename(filename))
-    return(report_path)
-}
-
-get_data_target_path <- function(notebook_path,data_name) {
-    filename = gsub(x = notebook_path,pattern = "\\.Rmd",replacement = "")
-    dir_name = str_remove(string = filename, pattern = "./Notebooks/") 
-    new_dir_path = paste0("./Reports/", dir_name, "/")
-    data_path =  paste0(new_dir_path,data_name)
-    return(data_path)
-}
-
-
-get_targets_and_depens <- function(notebook_path) {
-  yml_metadata <- rmarkdown::yaml_front_matter(notebook_path)
-  dependencies = yml_metadata$params$input_data
-  if (!is.null(dependencies)) {
-    dependencies = dependencies  %>% lazyeval::lazy_eval() %>% base::unname()
-  }
-  
-  targets = yml_metadata$params$output_data
-  if (!is.null(targets)) {
-    targets = targets %>% lazyeval::lazy_eval() %>%
-      get_data_target_path(notebook_path = notebook_path)
-  }
-  
-  report_path = get_report_target_path(notebook_path)
-  targets = c(targets,report_path)
-  if (!out_of_date(targets, dependencies)) {
-    cli::cli_alert_success("Targets are up to date")
-    
-
-  } else{
-    cli::cat_line(cli::col_red("Targets are out of date"))
-    # Ask the user a question and get a response
-    answer <- readline(prompt = "Do you want to proceed? (y/n): ")
-    # Check the response and perform an action if the response is "yes"
-    if (tolower(answer) == "y") {
-      # The action you want to perform
-      cat("Rendering...\n")
-      # Add your code to perform the action here
-    } else{ stop("Abort") }
-  }
-  return(list(targets = targets, dependencies = dependencies))
-}
-
-my_render <- function(notebook_path , params = list()) 
+library(stringr)
+my_render <- function(notebook_path , set_params = list()) 
   {
-  filename = gsub(x = notebook_path,pattern = "\\.Rmd",replacement = ".html")
-  dir_name = str_remove(string = notebook_path, pattern =  "./Notebooks/") %>% str_remove(pattern = ".Rmd")
-  new_dir_path = paste0("./Reports/", dir_name, "/")
-  dir.create(path = new_dir_path, recursive = T)
-  
-  params[["data_out_dir"]] = new_dir_path
+
+  report = get_output(script = notebook_path)$report
+  input = get_input(notebook_path)
+  output = get_output(notebook_path)
+
+  set_params[["data_out_dir"]] = dirname(report) %s+% "/"
   message("Rendering to:")
-  message(new_dir_path)
-  rmarkdown::render(
-    input = notebook_path,
-    output_format = "html_document",
-    output_file = filename,
-    knit_root_dir = getwd(),
-    output_dir = new_dir_path,
-    params = params,envir = new.env() 
-  )
+  message(dirname(report))
+  
+  job::job({
+    knitr::opts_knit$set(progress = TRUE, verbose = TRUE)
+    source("./.Rprofile")
+    rmarkdown::render(
+      input = notebook_path,
+      output_format = "html_document",
+      output_file = report,
+      knit_root_dir = getwd(),
+      output_dir = dirname(report),
+      params = set_params
+    )
+    job::export("none")
+  }, import = c(notebook_path,report,set_params,input,output), packages = NULL,title = notebook_path)
 }
 ```
 
@@ -84,55 +40,44 @@ my_render <- function(notebook_path , params = list())
 library(makepipe)
 makepipe::reset_pipeline()
 pipe <- get_pipeline()
+source("./pipe.R")
 
 
-# 01_create_data.Rmd
-targets = c("./Reports/HMSC/01_preprocess/01_create_data/01_create_data.html",
-                "./Reports/HMSC/01_preprocess/01_create_data/acc_tpm_nCount_mito_no146_15k_with_ACC1.RDS")
-depen =  c("./Notebooks/HMSC/01_preprocess/01_create_data.Rmd",
-                     "/sci/labs/yotamd/lab_share/ACC/ACC_sc/fc/all.txt")
 make_with_recipe(
   recipe = my_render(notebook_path = "./Notebooks/HMSC/01_preprocess/01_create_data.Rmd"),
-    targets = targets,
-    dependencies = depen,label = "create_data"
+    targets = unlist(get_output("./Notebooks/HMSC/01_preprocess/01_create_data.Rmd")),
+    dependencies = unlist(get_input("./Notebooks/HMSC/01_preprocess/01_create_data.Rmd")),
+    label = "create_data",build = F
 )
 
+
 # 02_Cancer_filtering.Rmd
-targets = c("./Reports/HMSC/01_preprocess/02_Cancer_filtering/02_Cancer_filtering.html",
-                "./Reports/HMSC/01_preprocess/02_Cancer_filtering/cell_types.RDS",
-                "./Reports/HMSC/01_preprocess/02_Cancer_filtering/acc_cancer_cells.RDS")
-
-depen = c("./Notebooks/HMSC/01_preprocess/02_Cancer_filtering.Rmd",
-                     "./Reports/HMSC/01_preprocess/01_create_data/acc_tpm_nCount_mito_no146_15k_with_ACC1.RDS")
-
+script = "./Notebooks/HMSC/01_preprocess/02_Cancer_filtering.Rmd"
 make_with_recipe(
   recipe = my_render(notebook_path ="./Notebooks/HMSC/01_preprocess/02_Cancer_filtering.Rmd"),
-    targets = targets,
-    dependencies = depen,
-  label = "Cancer_filtering"
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "Cancer_filtering",build = F
 )
 
 
 #03_HMSC_cells_preprocess.Rmd
+script = "./Notebooks/HMSC/01_preprocess/03_HMSC_cells_preprocess.Rmd"
 make_with_recipe(
   recipe = my_render(notebook_path = "./Notebooks/HMSC/01_preprocess/03_HMSC_cells_preprocess.Rmd"),
-    targets = c("./Reports/HMSC/01_preprocess/03_HMSC_cells_preprocess/03_HMSC_cells_preprocess.html",
-                "./Reports/HMSC/01_preprocess/03_HMSC_cells_preprocess/acc1_cancer_cells_2500features_integrated_V5.RDS"),
-    dependencies = c("./Notebooks/HMSC/01_preprocess/03_HMSC_cells_preprocess.Rmd",
-                     "./Reports/HMSC/01_preprocess/02_Cancer_filtering/acc_cancer_cells.RDS"),
-  label = "HMSC_cells_preprocess"
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "HMSC_cells_preprocess",build = F
 )
 
 #04_build_datasets.Rmd
-notebook_path = "./Notebooks/HMSC/01_preprocess/04_build_datasets.Rmd"
-targets_and_depens = get_targets_and_depens(notebook_path)
-
+script = "./Notebooks/HMSC/01_preprocess/04_build_datasets.Rmd"
 make_with_recipe(
   recipe = my_render("./Notebooks/HMSC/01_preprocess/04_build_datasets.Rmd"),
-    targets = c(targets_and_depens$targets),
-    dependencies = c(targets_and_depens$dependencies,notebook_path),
-  label = "build_datasets")
-
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "build_datasets",build = F
+)
 
 
 # #02_CNV.Rmd
@@ -147,90 +92,129 @@ make_with_recipe(
 
 
 #03_Lum-Myo_HMSC.Rmd
-notebook_path = "./Notebooks/HMSC/03_Lum-Myo_HMSC.Rmd"
-targets_and_depens = get_targets_and_depens(notebook_path)
-
+script = "./Notebooks/HMSC/03_Lum-Myo_HMSC.Rmd"
 make_with_recipe(
   recipe = my_render("./Notebooks/HMSC/03_Lum-Myo_HMSC.Rmd"),
-    targets = c(targets_and_depens$targets),
-    dependencies = c(targets_and_depens$dependencies,notebook_path),
-  label = "Lum-Myo_HMSC")
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "Lum-Myo_HMSC",build = F
+)
 
 
 #04_HMSC_vs_ACC.Rmd
-notebook_path = "./Notebooks/HMSC/04_HMSC_vs_ACC.Rmd"
-targets_and_depens = get_targets_and_depens(notebook_path)
+script = "./Notebooks/HMSC/04_HMSC_vs_ACC.Rmd"
 
 make_with_recipe(
   recipe = my_render( "./Notebooks/HMSC/04_HMSC_vs_ACC.Rmd"),
-    targets = c(targets_and_depens$targets),
-    dependencies = c(targets_and_depens$dependencies,notebook_path),
-  label = "HMSC_vs_ACC")
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "HMSC_vs_ACC",build = F
+)
 
 #05_HPV_analysis.Rmd
-notebook_path = "./Notebooks/HMSC/05_HPV_analysis.Rmd"
-targets_and_depens = get_targets_and_depens(notebook_path)
-
+script = "./Notebooks/HMSC/05_HPV_analysis.Rmd"
 make_with_recipe(
   recipe = my_render( "./Notebooks/HMSC/05_HPV_analysis.Rmd"),
-    targets = c(targets_and_depens$targets),
-    dependencies = c(targets_and_depens$dependencies,notebook_path),
-  label = "HPV_analysis")
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "HPV_analysis",build = F
+)
 
 #OPSCC preprocess
-notebook_path = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess.Rmd"
-targets_and_depens = get_targets_and_depens(notebook_path)
-
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess.Rmd"
 make_with_recipe(
   recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess.Rmd"),
-    targets = c(targets_and_depens$targets),
-    dependencies = c(targets_and_depens$dependencies,notebook_path),
-  label = "OPSCC preprocess")
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "OPSCC_preprocess",build = F
+)
 
 
 #OPSCC DEG
-notebook_path = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG.Rmd"
-targets_and_depens = get_targets_and_depens(notebook_path)
-
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG.Rmd"
 make_with_recipe(
   recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG.Rmd"),
-    targets = c(targets_and_depens$targets),
-    dependencies = c(targets_and_depens$dependencies,notebook_path),
-  label = "OPSCC DEG")
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "OPSCC_DEG",build = F
+)
 
+#OPSCC volcano
 
-notebook_path = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/03_volcano_plot.Rmd"
-targets_and_depens = get_targets_and_depens(notebook_path)
-
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/03_volcano_plot.Rmd"
 make_with_recipe(
   recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/03_volcano_plot.Rmd"),
-    targets = c(targets_and_depens$targets),
-    dependencies = c(targets_and_depens$dependencies,notebook_path),
-  label = "OPSCC volcano")
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "OPSCC_volcano",build = F
+)
 
 
-#TCGA built datasets
-notebook_path = "./Notebooks/TCGA/build_TCGA_datasets.Rmd"
+#OPSCC MYB fisher
+
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/05_MYB_HPV_fisher.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/05_MYB_HPV_fisher.Rmd"),
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "OPSCC_MYB_fisher",build = F
+)
+
+#OPSCC HMSC_HPV_signature
+
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/06_HMSC_HPV_signature.Rmd"
+
+make_with_recipe(
+  recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/06_HMSC_HPV_signature.Rmd"),
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "OPSCC_MYB_fisher",build = F
+)
+
+
+# #TCGA built datasets
+# notebook_path = "./Notebooks/TCGA/build_TCGA_datasets.Rmd"
+# targets_and_depens = get_targets_and_depens(notebook_path)
+# 
+# make_with_recipe(
+#   recipe = my_render("./Notebooks/TCGA/build_TCGA_datasets.Rmd"),
+#     targets = c(targets_and_depens$targets),
+#     dependencies = c(targets_and_depens$dependencies,notebook_path),
+#   label = "TCGA built datasets")
+
+#HPV signature compare
+notebook_path = "./Notebooks/integrative_analysis/HPV_signature_compare.Rmd"
 targets_and_depens = get_targets_and_depens(notebook_path)
 
 make_with_recipe(
-  recipe = my_render("./Notebooks/TCGA/build_TCGA_datasets.Rmd"),
+  recipe = my_render("./Notebooks/integrative_analysis/HPV_signature_compare.Rmd"),
     targets = c(targets_and_depens$targets),
     dependencies = c(targets_and_depens$dependencies,notebook_path),
-  label = "TCGA built datasets")
+  label = "HPV signature compare")
+
 
 #TCGA HNSC
-notebook_path = "./Notebooks/TCGA/OPSCC_TCGA.Rmd"
-targets_and_depens = get_targets_and_depens(notebook_path)
-
+script = "./Notebooks/TCGA/OPSCC_TCGA.Rmd"
 make_with_recipe(
   recipe = my_render("./Notebooks/TCGA/OPSCC_TCGA.Rmd"),
-    targets = c(targets_and_depens$targets),
-    dependencies = c(targets_and_depens$dependencies,notebook_path),
-  label = "TCGA HNSC analysis")
+    targets = unlist(get_output(script)),
+    dependencies = unlist(get_input(script)),
+  label = "TCGA_HNSC_analysis",build = F
+)
 
 
-# pipe$build() 
+
+```
+
+
+```{r}
+pipe$build()
+```
+
+
+```{r}
+show_pipeline(as = "visnetwork")
+show_pipeline(as = "text")
 
 ```
 
