@@ -22,25 +22,28 @@ output:
     df_print: paged
 params: 
   data_out_dir: "./temp_data/" 
-  input_data: !r c(
-    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
-    opscc_deg = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/OPSCC_HPV_DEG.csv",
-    global_params  = "./Input_data/global_params.R")
 ---
 
 
+```{r}
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
+```
 
 # Functions
 
 ```{r warning=FALSE}
 source_from_github(repositoy = "DEG_functions",version = "0.2.54")
-source(params$input_data["global_params"])
+source(input$fc_params)
 ```
 
 # Data
 
 ```{r}
-opscc_deg = read.table(file =  params$input_data["opscc_deg"],row.names = 1,sep = ",",header = T)
+opscc_deg = read.table(file =  input$opscc_deg,row.names = 1,sep = ",",header = T)
 
 opscc_top_up = opscc_deg %>% filter(avg_log2FC > log2(signature_fc) &
                                    fdr < signature_fdr) %>% rownames()

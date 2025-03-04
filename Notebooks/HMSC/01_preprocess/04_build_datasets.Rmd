@@ -22,15 +22,17 @@ output:
     df_print: paged
 params: 
   data_out_dir: "./temp_data/" 
-  input_data: !r c(
-          acc1_cancer_cells = "./Reports/HMSC/01_preprocess/03_HMSC_cells_preprocess/acc1_cancer_cells_2500features_integrated_V5.RDS",
-          cancer_cells = "./Reports/HMSC/01_preprocess/02_Cancer_filtering/acc_cancer_cells.RDS")
-  output_data: c("hmsc_acc_pri_cancer_processed.RDS")
 ---         
 
 Create all cancer cells with integrated HMSC and ACC
 
-
+```{r}
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
+```
 # Functions
 
 ```{r}
@@ -41,8 +43,8 @@ Create all cancer cells with integrated HMSC and ACC
 # Data
 
 ```{r}
-acc1_cancer_cells = readRDS("./Reports/HMSC/01_preprocess/03_HMSC_cells_preprocess/acc1_cancer_cells_2500features_integrated_V5.RDS")
-cancer_cells = read_rds("./Reports/HMSC/01_preprocess/02_Cancer_filtering/acc_cancer_cells.RDS")
+acc1_cancer_cells = readRDS(input$hmsc_integrated)
+cancer_cells = read_rds(input$acc_cancer_cells)
 ```
 
 # ACC primary + HMSC
@@ -99,7 +101,7 @@ DimPlot(hmsc_acc_cancer,pt.size = 1,group.by = "patient.ident")
 
 
 ```{r}
-file_name = paste0(params$data_out_dir,"hmsc_acc_pri_cancer_processed.RDS")
+file_name = paste0(params$data_out_dir,basename(output$acc_hmsc_integrated))
 saveRDS(object = hmsc_acc_cancer,file = file_name)
 ```
 

@@ -2839,16 +2839,21 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">makepipe</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2024-12-18 11:19:44.225317</h4>
+<h4 class="date">2025-03-03 14:16:14.075212</h4>
 
 </div>
 
 
-<pre class="r"><code>opscc = readRDS(params$input_data[&quot;opscc&quot;])
+<pre class="r"><code>if (interactive()) {
+  source(&quot;./pipe.R&quot;)
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}</code></pre>
+<pre class="r"><code>opscc = readRDS(input$opscc)
 library(readxl)
-metadata = read_excel(path = params$input_data[&quot;metadata&quot;],
+metadata = read_excel(path = input$opscc_metadata,
           sheet = &quot;S4 - Cell Table&quot;,progress = T,skip = 1,col_names = T)</code></pre>
-<pre><code>## -/                                                                                                                                            /                                                                                                                                            -                                                                                                                                            </code></pre>
+<pre><code>## -/                                                                                                                                                     /                                                                                                                                                     -                                                                                                                                                     </code></pre>
 <pre class="r"><code># remove HPV- patients
 hpv_neg&lt;-c(&quot;OP10&quot;,&quot;OP12&quot;,&quot;OP16&quot;,&quot;OP19&quot;,&quot;OP8&quot;)
 hpv_pos = unique(metadata$Patient)[! unique(metadata$Patient) %in% hpv_neg]
@@ -2878,7 +2883,7 @@ paged_table(deg)</code></pre>
   </script>
 </div>
 <pre class="r"><code># save
-write.csv(x = deg,file =  paste0(params$data_out_dir,params$output_data[&quot;deg&quot;]))</code></pre>
+write.csv(x = deg,file =  paste0(params$data_out_dir,basename(output$opscc_deg)))</code></pre>
 
 
 

@@ -22,18 +22,23 @@ output:
     df_print: paged
 params: 
   data_out_dir: "./temp_data/" 
-  input_data: !r c(opscc =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS", metadata = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx")
-  output_data: !r c(deg = "OPSCC_HPV_DEG.csv")
+
 ---
 
 
-
+```{r}
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
+```
 
 
 ```{r}
-opscc = readRDS(params$input_data["opscc"])
+opscc = readRDS(input$opscc)
 library(readxl)
-metadata = read_excel(path = params$input_data["metadata"],
+metadata = read_excel(path = input$opscc_metadata,
           sheet = "S4 - Cell Table",progress = T,skip = 1,col_names = T)
 
 # remove HPV- patients
@@ -63,7 +68,7 @@ paged_table(deg)
 
 ```{r}
 # save
-write.csv(x = deg,file =  paste0(params$data_out_dir,params$output_data["deg"]))
+write.csv(x = deg,file =  paste0(params$data_out_dir,basename(output$opscc_deg)))
 ```
 
 

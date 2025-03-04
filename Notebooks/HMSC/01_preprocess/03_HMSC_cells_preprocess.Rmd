@@ -25,17 +25,26 @@ params:
 ---
 
 
-
+```{r}
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
+```
 # Functions
 
 ```{r warning=FALSE}
+library(pheatmap)
+library(RColorBrewer)
+library(ggpubr)
 conflict_prefer("pheatmap", "pheatmap")
 ```
 
 # Data
 
 ```{r}
-acc_cancer_cells = read_rds("./Data_out/02_Cancer_filtering_2024-05-12/acc_cancer_cells.RDS")
+acc_cancer_cells = read_rds(input$acc_cancer_cells)
 acc1_cancer_cells = subset(x = acc_cancer_cells,subset = patient.ident == "HMSC")
 ```
 
@@ -93,6 +102,7 @@ names(myannotation)[1] = "cluster"
   plate = FetchData(object = acc1_cancer_cells,vars = "orig.ident" )
   pheatmap(mat = acc1_cor,annotation_col =  annotation[["myannotation"]], annotation_colors = annotation[["ann_colors"]], clustering_distance_rows = clustering_distance,clustering_distance_cols = clustering_distance,color = my_palette,breaks = colors,show_rownames = F,show_colnames = F)
 ```
+
 ```{r}
 acc1_cancer_cells = AddMetaData(object = acc1_cancer_cells,metadata = myannotation,col.name = "cor_cluster")
 
@@ -176,17 +186,11 @@ acc.combined <- FindClusters(acc.combined, resolution = 0.5,verbose = F)
 acc.combined$plate = acc.combined$orig.ident
 DimPlot(acc.combined, reduction = "umap", group.by = "plate")
 ```
-```{r}
-script_name = rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")
-output_dir_path = paste0("./Data_out/",script_name,"_",Sys.Date())
-dir.create(output_dir_path)
 
-```
+
 
 ```{r}
-
-file_name = paste0(params$data_out_dir,"acc1_cancer_cells_2500features_integrated_V5.RDS")
-
+file_name = paste0(params$data_out_dir,basename(output$hmsc_integrated))
 saveRDS(object = acc.combined,file =file_name)
 ```
 

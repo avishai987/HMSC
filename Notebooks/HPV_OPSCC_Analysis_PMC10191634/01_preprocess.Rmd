@@ -22,16 +22,19 @@ output:
     df_print: paged
 params: 
   data_out_dir: "./temp_data/" 
-  input_data: !r c(
-    matrix = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_OPSCC.mtx.gz",
-    b1 = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_barcodes.txt.gz",
-    g1 = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/GSE182227_genes.txt.gz")
-  output_data: !r c("opscc_suerat.RDS")
 ---
 
 
 Read Data and create seurat object
 Code and data from: https://github.com/micmin3/HPV_OPSCC_Analysis
+
+```{r}
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
+```
 
 # Functions
 
@@ -42,9 +45,9 @@ Code and data from: https://github.com/micmin3/HPV_OPSCC_Analysis
 
 ```{r}
 #| Read data
-matrix<-Matrix::readMM(params$input_data["matrix"])
-b1<-read.table(params$input_data["b1"])
-g1<-read.table(params$input_data["g1"])
+matrix<-Matrix::readMM(input$matrix)
+b1<-read.table(input$barcodes)
+g1<-read.table(input$genes)
 ```
 
 ```{r}
@@ -81,7 +84,7 @@ opscc = AddMetaData(object = opscc,metadata = seurat_metadata)
 
 ```{r}
 #| save
-file_name = paste0(params$data_out_dir,params$output_data)
+file_name = paste0(params$data_out_dir,basename(output$opscc))
 
 saveRDS(object = opscc,file =file_name)
 ```

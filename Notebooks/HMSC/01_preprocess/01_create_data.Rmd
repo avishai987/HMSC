@@ -30,6 +30,15 @@ library("ggplot2")
 library("Seurat")
 ```
 
+```{r}
+
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
+```
+
 
 ## Parameters:
 
@@ -37,7 +46,7 @@ library("Seurat")
 
 read data
 ```{r}
-acc.data <- read.delim("/sci/labs/yotamd/lab_share/ACC/ACC_sc/fc/all.txt",skip=0,header=T, 
+acc.data <- read.delim(input$counts,skip=0,header=T, 
                        sep="\t",stringsAsFactors=F,row.names=1)
 
 ```
@@ -156,9 +165,7 @@ DimPlot(acc, reduction = "umap", label = TRUE, pt.size = 1,group.by = "patient.i
 ```{r}
 
 # save objects
-saveRDS(object = acc,file = paste0(params$data_out_dir,"acc_tpm_nCount_mito_no146_15k_with_ACC1.RDS"))
-
-
+saveRDS(object = acc,file = paste0(params$data_out_dir, basename(output$all_cells_seurat)))
 ```
 # session info
 <button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName"> Show/Hide </button>  

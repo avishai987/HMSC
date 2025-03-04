@@ -2839,20 +2839,25 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">makepipe</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2024-11-28 17:30:24.939046</h4>
+<h4 class="date">2025-03-03 14:05:05.628594</h4>
 
 </div>
 
 
 <p>Read Data and create seurat object Code and data from: <a href="https://github.com/micmin3/HPV_OPSCC_Analysis" class="uri">https://github.com/micmin3/HPV_OPSCC_Analysis</a></p>
+<pre class="r"><code>if (interactive()) {
+  source(&quot;./pipe.R&quot;)
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}</code></pre>
 <div id="functions" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Functions</h1>
 </div>
 <div id="data" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> Data</h1>
-<pre class="r"><code>matrix&lt;-Matrix::readMM(params$input_data[&quot;matrix&quot;])
-b1&lt;-read.table(params$input_data[&quot;b1&quot;])
-g1&lt;-read.table(params$input_data[&quot;g1&quot;])</code></pre>
+<pre class="r"><code>matrix&lt;-Matrix::readMM(input$matrix)
+b1&lt;-read.table(input$barcodes)
+g1&lt;-read.table(input$genes)</code></pre>
 <pre class="r"><code>colnames(matrix)&lt;-b1[,1]
 rownames(matrix)&lt;-g1[,1]
 genespercell = colSums(matrix &gt; 0) #Genes expressed per cell
@@ -2861,7 +2866,7 @@ merged&lt;-matrix[,cellthreshold] #Filter cells by thresholds</code></pre>
 <pre class="r"><code>library(readxl)
 metadata = read_excel(path = &quot;./Input_data/HPV_OPSCC_Analysis_PMC10191634/NIHMS1892753-supplement-Supp_Tables.xlsx&quot;,
           sheet = &quot;S4 - Cell Table&quot;,progress = T,skip = 1,col_names = T)</code></pre>
-<pre><code>## -/                                                                                                                                                /                                                                                                                                                -                                                                                                                                                </code></pre>
+<pre><code>## -/                                                                                                                                                     /                                                                                                                                                     -                                                                                                                                                     </code></pre>
 <pre class="r"><code>cancer_cells = metadata %&gt;% filter(Cancer_assignment == &quot;Cancer&quot;) %&gt;% pull(Cell_barcode)
 merged_cancer = merged[,cancer_cells]</code></pre>
 <pre class="r"><code>opscc = CreateSeuratObject(counts = merged_cancer, min.cells = 3, min.features = 200)</code></pre>
@@ -2872,7 +2877,7 @@ opscc &lt;- NormalizeData(opscc, normalization.method = &quot;LogNormalize&quot;
 opscc &lt;- FindVariableFeatures(opscc, selection.method = &quot;vst&quot;, nfeatures = 5000)
 seurat_metadata = data.frame(row.names = metadata$Cell_barcode,hpv = metadata$HPV, patient=metadata$Patient)
 opscc = AddMetaData(object = opscc,metadata = seurat_metadata)</code></pre>
-<pre class="r"><code>file_name = paste0(params$data_out_dir,params$output_data)
+<pre class="r"><code>file_name = paste0(params$data_out_dir,basename(output$opscc))
 
 saveRDS(object = opscc,file =file_name)</code></pre>
 </div>
