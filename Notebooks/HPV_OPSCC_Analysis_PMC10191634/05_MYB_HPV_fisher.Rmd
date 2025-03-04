@@ -22,25 +22,33 @@ output:
     df_print: paged
 params: 
   data_out_dir: "./temp_data/" 
-  input_data: !r c(
-    opscc =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/01_preprocess/opscc_suerat.RDS")
+
 ---
-
-
 ```{r}
-# print params
-paged_table(as.data.frame(unlist(params)))
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
 ```
+
+
 
 # Functions
 
 ```{r warning=FALSE}
+library(hypeR)
+library(ggpubr)
+library(stringr)
+library(ggstatsplot)
+library(ggpubr)
+
 ```
 
 # Data
 
 ```{r}
-opscc = readRDS(params$input_data["opscc"])
+opscc = readRDS(input$opscc)
 
 # remove HPV- patients
 hpv_neg<-c("OP10","OP12","OP16","OP19","OP8")
@@ -80,86 +88,54 @@ opscc_hpvPos$hpv = FetchData(object = opscc_hpvPos,vars = "hpv") %>%
 
 ```
 
-```{r fig.height=7, fig.width=10}
-library(stats)
+```{r fig.height=10, fig.width=15}
+# plot
 library(rstatix)
-total_cells_df  = FetchData(object = opscc_hpvPos, vars = c("patient","hpv")) %>%
-  group_by(patient,hpv) %>%
-  dplyr::count(patient, name = "total_cells")
+myplots <- list()  # new empty list
 
 
-df  = FetchData(object = opscc_hpvPos, vars = c("hpv", "MYB_status","hpv_score","patient"))  %>%
-    filter(patient != "OP13") %>% 
+for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) {
+  patient_data = subset(x = opscc_hpvPos, subset = patient == patient_name)
+  df  = FetchData(object = patient_data,
+                  vars = c("hpv", "MYB_status","hpv_score"))  %>%
     mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) %>% 
     select(-hpv_score) %>% 
-    droplevels()  %>% 
-    group_by(patient,MYB_status) %>%
-    dplyr::count(hpv) 
+    droplevels()
+  test = fisher_test(table(df))
+  p = ggbarstats(
+    df,
+    MYB_status,
+    hpv,
+    results.subtitle = FALSE,
+    subtitle = paste0( "p-value = ",
+                      test$p)
+  ,title = patient_name)
+  myplots[[patient_name]] <- p  # add each plot into plot list
 
-df2  = FetchData(object = opscc_hpvPos, vars = c("hpv", "MYB_status","hpv_score","patient"))  %>%
-    filter(patient != "OP13") %>% 
-    mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) %>% 
-    select(-hpv_score) %>% 
-    droplevels()   
-
-all_stat.test= data.frame()
-for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) { #OP13 has no MYB+ cells
-  stat.test = df2 %>% filter(patient == patient_name) %>% select(-patient) %>% table() %>%
-  fisher_test() %>% as.data.frame() %>% mutate(patient = patient_name, group1 = "HPV+", group2 = "HPV-")
-  all_stat.test = rbind(all_stat.test,stat.test)
 }
-all_stat.test$p.adj = p.adjust(all_stat.test$p,method = "fdr") %>% signif(digits = 3)
+ggarrange(plotlist = myplots)
 
-
-
-df <- left_join(df, total_cells_df, by=c('patient'='patient', 'hpv'='hpv')) %>% 
-  mutate( total_cells_perc = ((n/total_cells)))
-
-
-  
-p = ggplot(df, aes(fill=MYB_status, y=total_cells_perc, x=hpv)) + 
-    geom_bar(position="stack", stat="identity") +
-    facet_wrap(patient ~ .) +
-    scale_y_continuous(
-      limits = c(-0.1,1.06),
-      labels       = ~ insight::format_percent(., digits = 0L),
-      breaks       = seq(from = 0.0, to = 1.0, by = 0.10),
-      minor_breaks = seq(from = 0.05, to = 0.95, by = 0.10)
-    ) +
-    exec(
-      geom_label,
-      data = df,
-      mapping  = aes(label = paste0(round(total_cells_perc*100),"%"), group = MYB_status),
-      position = position_fill(vjust = 0.5), fill = "white",alpha = 1.0,size = 3.5
-    ) +
-    geom_text(data = filter(df,MYB_status == "MYB+"), aes(label = paste("n=",total_cells),y =-0.1),size = 3.5)+
-    paletteer::scale_fill_paletteer_d("RColorBrewer::Dark2")+
-   stat_pvalue_manual(all_stat.test, label = "p = {p.adj}",y.position = 1, inherit.aes = FALSE,position = position_nudge(x = -0.5, y = 0))+
-    ylab("Cells")+ xlab("HPV_status")
-
-
-p
 ```
 
 ```{r fig.width=8}
-df3 = df %>% filter(MYB_status == "MYB+")
-
-df3$hpv = as.factor(df3$hpv)
-bp <- ggbarplot(df3, x = "patient", y = "total_cells_perc",
-                fill = "hpv", palette = "jco", position = position_dodge(0.8),bracket.size =10,bracket.shorten = 1,remove.bracket = F)+
-  stat_pvalue_manual(all_stat.test, x = "patient", y.position = 0.7,label = "{p.adj}") +
-  ylab("Fraction of MYB positive cells")+
-  scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
-  labs(fill = "HPV Status", x = "Patient")
-
-bp
+# df3 = df %>% filter(MYB_status == "MYB+")
+# 
+# df3$hpv = as.factor(df3$hpv)
+# bp <- ggbarplot(df3, x = "patient", y = "total_cells_perc",
+#                 fill = "hpv", palette = "jco", position = position_dodge(0.8),bracket.size =10,bracket.shorten = 1,remove.bracket = F)+
+#   stat_pvalue_manual(all_stat.test, x = "patient", y.position = 0.7,label = "{p.adj}") +
+#   ylab("Fraction of MYB positive cells")+
+#   scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
+#   labs(fill = "HPV Status", x = "Patient")
+# 
+# bp
 ```
 
 
 ```{r}
-pdf(height=7,width=10,file = paste0(params$data_out_dir,"OPSCC_MYB_fisher_per_patient.pdf"))
-bp
-dev.off()
+# pdf(height=7,width=10,file = paste0(params$data_out_dir,"OPSCC_MYB_fisher_per_patient.pdf"))
+# bp
+# dev.off()
 ```
 
  
@@ -170,7 +146,7 @@ dev.off()
 ```{r}
 # load MYB targets
 library("readxl")
-myb_tergets <- read_excel("./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",col_names = T) %>% pull(Gene)
+myb_tergets <- read_excel(input$myb_targets,col_names = T) %>% pull(Gene)
 ```
 
 ```{r}
@@ -207,15 +183,17 @@ plt = ggplot(genes_by_tp, aes(x = hpv, y = myb_tergets_score)) +
   geom_violin(scale = "width",aes(fill = hpv)) +
   geom_boxplot(width = 0.2, outlier.shape = NA) +
   facet_wrap( ~ patient, scales = "free",nrow = 2) +
-  stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
+  stat_pvalue_manual(stat.test, label = "{p}")  + #add p value
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   ggtitle("MYB targets by HPV Status")+
   labs(y = "Myb Target Score", fill = "HPV Status")+
-  scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
   theme_minimal()+
   theme(plot.title = element_text(hjust = 0.5),axis.title.x = element_blank())
 plt
 ```
+
+
+
 
 ```{r}
 pdf(height=4, width=12,file = paste0(params$data_out_dir,"OPSCC_MYB_targets_per_patient.pdf"))
