@@ -22,17 +22,16 @@ output:
     df_print: paged
 params: 
   data_out_dir: "./temp_data/" 
-  input_data: !r c(
-    hmsc_cancer_cells = "./Reports/HMSC/01_preprocess/03_HMSC_cells_preprocess/acc1_cancer_cells_2500features_integrated_V5.RDS",
-    genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
-    opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds",
-    myb_targets = "./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",
-    global_params  = "./Input_data/global_params.R")
-  output_data: !r c(
-    hmsc_deg = "HMSC_hpv_deg_df.csv")
 ---
 
 
+```{r}
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
+```
 
 # Functions
 
@@ -40,22 +39,29 @@ params:
 source_from_github(repositoy = "DEG_functions",version = "0.2.54")
 source_from_github(repositoy = "HMSC_functions",version = "0.1.14",script_name = "functions.R")
 source_from_github(repositoy = "sc_general_functions",version = "0.1.34",script_name = "functions.R")
+source(input$fc_params)
 library(hypeR)
-source(params$input_data["global_params"])
+library(GSEABase)
+library(grid)
+library(ComplexHeatmap)
+library(ggpubr)
+library(stringr)
+library(data.table)
+library(ggstatsplot)
 ```
 
 # Data
 
 ```{r}
-hmsc_cancer_cells = readRDS(params$input_data["hmsc_cancer_cells"])
-genesets_h  = getGmt(params$input_data["genesets_h"])
-pid_genesets = getGmt("./Input_data/c2.cp.pid.v2024.1.Hs.symbols.gmt")
+hmsc_cancer_cells = readRDS(input$hmsc_cancer_cells)
+genesets_h  = getGmt(input$genesets_h)
+pid_genesets = getGmt(input$genesets_cp_pid)
 ```
 
 # HPV UMAP
 
 ```{r}
-HPV33_P3 = fread("./Data/HPV33_P3.txt",col.names = c("plate","reads")) %>% as.data.frame()
+HPV33_P3 = fread(input$hpv_conuts_data_p3,col.names = c("plate","reads")) %>% as.data.frame()
 HPV33_P3.df = HPV33_P3 %>% mutate(
   plate = gsub(x =HPV33_P3$plate, replacement = "",pattern = "_.*$") 
   %>% gsub(pattern = "-P",replacement = ".P") 
@@ -66,7 +72,7 @@ rownames(HPV33_P3.df)  <- HPV33_P3.df$plate
 HPV33_P3.df$plate = NULL
 
 
-HPV33_P2 = fread("./Data/HPV33_P2.txt",col.names = c("plate","reads")) %>% as.data.frame()
+HPV33_P2 = fread(input$hpv_conuts_data_p2,col.names = c("plate","reads")) %>% as.data.frame()
 HPV33_P2.df = HPV33_P2 %>% mutate(
   plate = gsub(x =HPV33_P2$plate, replacement = "",pattern = "_.*$") 
   %>% gsub(pattern = "plate2-",replacement = "plate2_",)
@@ -160,7 +166,7 @@ p
 ```{r}
 # load MYB targets
 library("readxl")
-myb_tergets <- read_excel(params$input_data["myb_targets"],col_names = T) %>% 
+myb_tergets <- read_excel(input$myb_targets,col_names = T) %>% 
   pull(Gene)
 ```
 
@@ -198,8 +204,6 @@ plt = ggplot(genes_by_tp, aes(x = hpv33_positive, y = myb_tergets_score)) +
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   geom_jitter()+
   labs(title = "Downstream MYB targets within HMSC", y = "MYB target score", fill = "HPV Status")+
-  scale_fill_manual(values = c("positive" = "#1B9E77FF", "negative" = "#D95F02FF"),
-                    labels = c("positive" = "HPV+","negative" ="HPV-"))+
   theme(plot.title = element_text(hjust = 0.5),axis.title.x = element_blank())
 plt
 ```
@@ -253,7 +257,7 @@ paged_table(hmsc_deg[c("MYB","JAG1","MYC"),])
 
 
 ```{r}
-write.csv(x  = hmsc_deg,file = paste0(params$data_out_dir,params$output_data["hmsc_deg"]),row.names = T)
+write.csv(x  = hmsc_deg,file = paste0(params$data_out_dir,basename(output$hmsc_deg)),row.names = T)
 ```
 
 
@@ -463,7 +467,7 @@ avg_log2FC_cutoff = log2(signature_fc)
 fdr_cutoff = signature_fdr
 
 
-opscc_deg = readRDS(file = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/opscc_deg_5Kvargenes.rds")
+opscc_deg = read.table(file =  input$opscc_deg,row.names = 1,sep = ",",header = T)
 
 opscc_signature = opscc_deg %>% filter(avg_log2FC > avg_log2FC_cutoff &
                                   fdr < fdr_cutoff) %>% rownames()
