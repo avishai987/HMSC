@@ -30,9 +30,14 @@ params:
 ---
 
 
+
+
 ```{r}
-# print params
-paged_table(as.data.frame(unlist(params)))
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
 ```
 
 
@@ -40,14 +45,16 @@ paged_table(as.data.frame(unlist(params)))
 
 ```{r warning=FALSE}
 library(rstatix)
-source(params$input_data["global_params"])
+source(input$fc_params)
+library(ComplexHeatmap)
+library(ggpubr)
 
 ```
 
 # Data
 
 ```{r}
-opscc = readRDS(params$input_data["opscc"])
+opscc = readRDS(input$opscc)
 library(readxl)
 avg_log2FC_cutoff = log2(signature_fc)
 fdr_cutoff = signature_fdr
@@ -124,7 +131,8 @@ opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = hpv_signature)
 
 ```{r fig.height=4, fig.width=10}
 
-genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "hpv_signature_score","patient"),slot = "data") %>% filter (patient != "OP13")
+genes_by_tp = FetchData(object = opscc_hpvPos,vars = c("hpv", "hpv_signature_score","patient"),slot = "data") %>%
+    filter(patient != "OP13") 
 
 
 
@@ -146,7 +154,6 @@ plt = ggplot(genes_by_tp, aes(x = hpv, y = hpv_signature_score)) +
   facet_wrap("patient",scales='free',ncol = 5)+
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   ggtitle("HMSC HPV signature")+
-  scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
   theme_minimal()+
   ylab("Signature Score")
 plt
