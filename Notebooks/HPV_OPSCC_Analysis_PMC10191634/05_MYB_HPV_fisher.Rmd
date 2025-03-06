@@ -94,7 +94,7 @@ library(rstatix)
 myplots <- list()  # new empty list
 
 
-for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) {
+for (patient_name in levels(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) {
   patient_data = subset(x = opscc_hpvPos, subset = patient == patient_name)
   df  = FetchData(object = patient_data,
                   vars = c("hpv", "MYB_status","hpv_score"))  %>%
@@ -113,8 +113,14 @@ for (patient_name in unique(opscc_hpvPos$patient) %>%  base::setdiff("OP13")) {
   myplots[[patient_name]] <- p  # add each plot into plot list
 
 }
-ggarrange(plotlist = myplots)
+p = ggarrange(plotlist = myplots)
+p
+```
 
+```{r}
+pdf(height=10,width=15,file = paste0(params$data_out_dir,"OPSCC_MYB_fisher_per_patient.pdf"))
+p
+dev.off()
 ```
 
 ```{r fig.width=8}
@@ -132,11 +138,7 @@ ggarrange(plotlist = myplots)
 ```
 
 
-```{r}
-# pdf(height=7,width=10,file = paste0(params$data_out_dir,"OPSCC_MYB_fisher_per_patient.pdf"))
-# bp
-# dev.off()
-```
+
 
  
 
