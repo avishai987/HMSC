@@ -524,12 +524,20 @@ plt
 ##JAG1
 ```{r}
 data=FetchData(object =hmsc_cancer_cells,vars =  c("JAG1","hpv33_positive")) 
-ggboxplot(data, x = "hpv33_positive", y = "JAG1",add = "jitter",fill = "hpv33_positive") + 
+p = ggboxplot(data, x = "hpv33_positive", y = "JAG1",add = "jitter",fill = "hpv33_positive") + 
   stat_compare_means(method = "wilcox.test",comparisons =  list( c("negative", "positive")))    +
   stat_summary(fun.data = function(x) data.frame(y=10, label = paste("Mean=",round(mean(x),digits = 2))), geom="text") +
   scale_x_discrete(limits = c("negative","positive"))
 
 ```
+
+```{r}
+pdf(paste0(params$data_out_dir,"HMSC_JAG1_boxplot.pdf"))
+p
+dev.off()
+```
+
+
 ## notch_targets
 ```{r}
 notch_targets = c("NRARP", "NOTCH3", "HES4", "HEY1",  "HEY2" )
@@ -537,12 +545,19 @@ notch_targets_score = hmsc_cancer_cells %>% FetchData(vars = notch_targets) %>% 
 
 data = data.frame(notch_targets = notch_targets_score,hpv33_positive = hmsc_cancer_cells$hpv33_positive)
 
-ggboxplot(data, x = "hpv33_positive", y = "notch_targets",add = "jitter",fill = "hpv33_positive") + 
+p = ggboxplot(data, x = "hpv33_positive", y = "notch_targets",add = "jitter",fill = "hpv33_positive") + 
   stat_compare_means(method = "wilcox.test",comparisons =  list( c("negative", "positive")))    +
   stat_summary(fun.data = function(x) data.frame(y=5, label = paste("Mean=",round(mean(x),digits = 2))), geom="text")  +
   scale_x_discrete(limits = c("negative","positive"))
 
 ```
+
+```{r}
+pdf(paste0(params$data_out_dir,"HMSC_notch_targets_boxplot.pdf"))
+p
+dev.off()
+```
+
 # notch ligands
 ```{r}
 notch_ligands = c("JAG1","JAG2","DLL1")
@@ -550,9 +565,15 @@ notch_ligands_score = hmsc_cancer_cells %>% FetchData(vars = notch_ligands) %>% 
 
 data = data.frame(notch_ligands = notch_ligands_score,hpv33_positive = hmsc_cancer_cells$hpv33_positive)
 
-ggboxplot(data, x = "hpv33_positive", y = "notch_ligands",add = "jitter",fill = "hpv33_positive") + 
+p = ggboxplot(data, x = "hpv33_positive", y = "notch_ligands",add = "jitter",fill = "hpv33_positive") + 
   stat_compare_means(method = "wilcox.test",comparisons =  list( c("negative", "positive")))    +
   stat_summary(fun.data = function(x) data.frame(y=5, label = paste("Mean=",round(mean(x),digits = 2))), geom="text")  +
   scale_x_discrete(limits = c("negative","positive"))
 
+```
+
+```{r}
+pdf(paste0(params$data_out_dir,"HMSC_notch_ligands_boxplot.pdf"))
+p
+dev.off()
 ```
