@@ -327,14 +327,19 @@ data = data.frame(notch_score = notch_scores_filtered,myo_score = myoscore)
 sp <- ggscatter(data, x = "notch_score", y = "myo_score",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
-   conf.int = TRUE # Add confidence interval
-   )
-# Add correlation coefficient
-sp + stat_cor(method = "pearson", label.x = 3, label.y = 5)+xlab("Notch Targets Expression")+ylab("Myoepithelial Score")
+   conf.int = TRUE)+ # Add confidence interval
+   stat_cor(method = "pearson", label.x = 3, label.y = 5) + # Add correlation coefficient
+   xlab("Notch Ligands Expression")+ylab("Myoepithelial Score")
+sp 
 
 ```
 
 
+```{r}
+pdf(paste0(params$data_out_dir,"myo_notch_ligands_correlation_no_ourlier.pdf"))
+sp
+dev.off()
+```
 
 ```{r}
 
@@ -355,9 +360,14 @@ data = data.frame(notch_score = notch_targets_score,myo_score = myoscore)
 sp <- ggscatter(data, x = "notch_score", y = "myo_score",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
-   conf.int = TRUE # Add confidence interval
-   )
-# Add correlation coefficient
-sp + stat_cor(method = "pearson", label.x = 3, label.y = 5)+xlab("Notch Targets Expression")+ylab("Myoepithelial Score")
+   conf.int = TRUE)+ # Add confidence interval
+   stat_cor(method = "pearson", label.x = 3, label.y = 5) + # Add correlation coefficient
+   xlab("Notch Targets Expression")+ylab("Myoepithelial Score")
+sp 
+```
 
+```{r}
+pdf(paste0(params$data_out_dir,"myo_notch_targets_correlation_no_ourlier.pdf"))
+sp
+dev.off()
 ```
