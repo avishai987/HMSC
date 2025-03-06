@@ -97,7 +97,7 @@ FeaturePlot(hmsc_cancer_cells,features = original_lum_genes)
 ```
 
 ```{r}
-calculate_score.2 <- function(dataset,myo_genes,lum_genes,lum_threshold =1 , myo_threshold = -1, return_density = F) {
+calculate_score.2 <- function(dataset,myo_genes,lum_genes,lum_threshold =1 , myo_threshold = -1) {
   myoscore=FetchData(object =dataset,vars =  myo_genes,slot = "data") %>% rowMeans()
   lescore=FetchData(object =dataset,vars =  lum_genes,slot = "data") %>% rowMeans()
   correlation = cor(lescore,myoscore) %>% round(digits = 2)
@@ -123,28 +123,34 @@ calculate_score.2 <- function(dataset,myo_genes,lum_genes,lum_threshold =1 , myo
   
     p = data %>% 
     ggplot(aes( x=luminal_over_myo)) + 
-    geom_density() +ylab("Density")+theme(  axis.title=element_text(size=12,face="bold"))+ xlab("Luminal-Myoepithelial spectrum")
-    if (return_density) {
-      return(p)
-    } else{ print(p)}
+    geom_density() +ylab("Density")+theme(  axis.title=element_text(size=12,face="bold"))+ xlab("Luminal-Myoepithelial spectrum")+ggtitle(paste0("r =",correlation))
+    print(p)
   
-lum_cells_num = subset(x = dataset,luminal_over_myo >(lum_threshold)) %>% ncol() /ncol(dataset)
-myo_cells_num = subset(x = dataset,luminal_over_myo <(myo_threshold)) %>% ncol()/ncol(dataset)
-df = data.frame(cell_type = c("myo_cells","lum_cells"),percentage = c(myo_cells_num,lum_cells_num))
-ggplot(data=df, aes(x=cell_type, y=percentage)) +
-  geom_bar(stat="identity") + ggtitle("ACC cell types")
+  lum_cells_num = subset(x = dataset,luminal_over_myo >(lum_threshold)) %>% ncol() /ncol(dataset)
+  myo_cells_num = subset(x = dataset,luminal_over_myo <(myo_threshold)) %>% ncol()/ncol(dataset)
+  df = data.frame(cell_type = c("myo_cells","lum_cells"),percentage = c(myo_cells_num,lum_cells_num))
+  ggplot(data=df, aes(x=cell_type, y=percentage)) +
+    geom_bar(stat="identity") + ggtitle("ACC cell types")
+  
+  return(p)
+
 }
+
 
 ```
 
 
 ```{r}
 acc_pri = SetIdent(acc_pri,value = "patient.ident")
-calculate_score.2(dataset = acc_pri,myo_genes = original_myo_genes,lum_genes = original_lum_genes)
+p = calculate_score.2(dataset = acc_pri,myo_genes = original_myo_genes,lum_genes = original_lum_genes)
 ```
 
 
-
+```{r}
+pdf(paste0(params$data_out_dir,"ACC_lum_myo_spectrum_density.pdf"))
+p
+dev.off()
+```
 
 ## Original score of ACC1
 
@@ -155,10 +161,13 @@ DefaultAssay(hmsc_cancer_cells) = "integrated"
 ```
 
 ```{r}
-calculate_score.2(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes)
-
+p = calculate_score.2(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes)
 ```
-
+```{r}
+pdf(paste0(params$data_out_dir,"HMSC_lum_myo_spectrum_density.pdf"))
+p
+dev.off()
+```
 
 
 
