@@ -1,5 +1,5 @@
 ---
-title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+title: '03_Lum-Myo_HMSC' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
 output:
@@ -155,7 +155,7 @@ DefaultAssay(hmsc_cancer_cells) = "integrated"
 ```
 
 ```{r}
-calculate_score.2(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes,lum_threshold = 0,myo_threshold = 0)
+calculate_score.2(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes)
 
 ```
 
@@ -246,7 +246,7 @@ p
 ```
 
 ```{r}
-pdf(paste0(params$data_out_dir,"Myo_genes_correlation_barplot.pdf"),height = 5,width = 10)
+pdf(paste0(params$data_out_dir,"Luminal_genes_correlation_barplot.pdf"),height = 5,width = 10)
 p
 dev.off()
 
@@ -270,13 +270,13 @@ p
 
 
 ```{r}
-pdf(paste0(params$data_out_dir,"Luminal_genes_correlation_barplot.pdf"),height = 5,width = 10)
+pdf(paste0(params$data_out_dir,"Myo_genes_correlation_barplot.pdf"),height = 5,width = 10)
 p
 dev.off()
 
 ```
 
-notch scatter plot
+# NOTCH ligands correlation
 
 ```{r}
 DefaultAssay(hmsc_cancer_cells) = "integrated"
@@ -290,13 +290,12 @@ myo_genes =  c("COL16A1" ,"RP1-39G22.4","CD200",   "MYLK","TP63","KCNMB1",  "ADA
 
 myoscore=FetchData(object =hmsc_cancer_cells,vars =  myo_genes) %>% rowMeans()
   
-notch_genes = c("JAG1","JAG2","DLL1")
+notch_ligands = c("JAG1","JAG2","DLL1")
 
-notch_scores = hmsc_cancer_cells %>% FetchData(vars = notch_genes) %>% rowMeans()
+notch_ligands_score = hmsc_cancer_cells %>% FetchData(vars = notch_ligands) %>% rowMeans()
 
-data = data.frame(notch_score = notch_scores,myo_score = myoscore)
+data = data.frame(notch_score = notch_ligands_score,myo_score = myoscore)
 ```
-
 
 ```{r}
 sp <- ggscatter(data, x = "notch_score", y = "myo_score",
@@ -305,12 +304,14 @@ sp <- ggscatter(data, x = "notch_score", y = "myo_score",
    conf.int = TRUE # Add confidence interval
    )
 # Add correlation coefficient
-sp + stat_cor(method = "spearman", label.x = 3, label.y = 5)
+sp + stat_cor(method = "pearson", label.x = 3, label.y = 5)+xlab("Notch Ligands Expression")+ylab("Myoepithelial Score")
 
 ```
 
+
+## remove outlier
 ```{r}
-notch_scores_filtered = notch_scores[notch_scores < 6]
+notch_scores_filtered = notch_ligands_score[notch_ligands_score < 6]
 myoscore = myoscore[names(myoscore) %in% names(notch_scores_filtered)]
 
 data = data.frame(notch_score = notch_scores_filtered,myo_score = myoscore)
@@ -320,8 +321,34 @@ sp <- ggscatter(data, x = "notch_score", y = "myo_score",
    conf.int = TRUE # Add confidence interval
    )
 # Add correlation coefficient
-sp + stat_cor(method = "pearson", label.x = 3, label.y = 5)
+sp + stat_cor(method = "pearson", label.x = 3, label.y = 5)+xlab("Notch Targets Expression")+ylab("Myoepithelial Score")
 
 ```
 
 
+
+```{r}
+
+myo_genes =  c("COL16A1" ,"RP1-39G22.4","CD200",   "MYLK","TP63","KCNMB1",  "ADAMTS2", "CLIC3",   "SNCG","ACTA2",   "TAGLN","CNN1" ,"MIR7974",  
+ "MYL9","POM121L9P" )
+
+
+myoscore=FetchData(object =hmsc_cancer_cells,vars =  myo_genes) %>% rowMeans()
+  
+notch_targets = c("NRARP", "NOTCH3", "HES4", "HEY1",  "HEY2" )
+
+notch_targets_score = hmsc_cancer_cells %>% FetchData(vars = notch_targets) %>% rowMeans()
+
+data = data.frame(notch_score = notch_targets_score,myo_score = myoscore)
+```
+
+```{r}
+sp <- ggscatter(data, x = "notch_score", y = "myo_score",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   )
+# Add correlation coefficient
+sp + stat_cor(method = "pearson", label.x = 3, label.y = 5)+xlab("Notch Targets Expression")+ylab("Myoepithelial Score")
+
+```
