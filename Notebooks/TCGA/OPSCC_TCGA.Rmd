@@ -283,14 +283,21 @@ stat.test
 
 stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
 
-bxp <- ggboxplot(gene_status, x = "hpv_status", y = "MYB", fill = "hpv_status")+
-  geom_jitter() + 
-  stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") +ylim(0,7)+scale_x_discrete(limits = c("HPV-","HPV+"))
-bxp
+
+plt = ggplot(gene_status, aes(x = hpv_status, y = MYB)) +
+  geom_violin(scale = "width",aes(fill = hpv_status)) +
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
+  stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
+  geom_jitter()+
+  labs(title = "MYB expression by HPV status", y = "MYB expression: log2(TPM)", fill = "HPV Status")+
+  theme(plot.title = element_text(hjust = 0.5),axis.title.x = element_blank())+scale_x_discrete(limits = c("HPV-","HPV+"))+theme_minimal()
+plt
 ```
+
+
 ```{r}
-pdf(paste0(params$data_out_dir,"boxplot_MYB_HPV_OPSCC_TCGA.pdf"),width = 7,height = 5)
-bxp
+pdf(paste0(params$data_out_dir,"violin_MYB_HPV_OPSCC_TCGA.pdf"),width = 7,height = 5)
+plt
 dev.off()
 ```
 # MYB and HPV survival plot
