@@ -2839,7 +2839,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">OPSCC_TCGA</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2025-03-06 12:14:52.786102</h4>
+<h4 class="date">2025-03-06 14:01:16.97835</h4>
 
 </div>
 
@@ -2853,126 +2853,20 @@ border-radius: 0px;
 <h1><span class="header-section-number">1</span> Data</h1>
 <pre class="r"><code>library(TCGAbiolinks)</code></pre>
 <pre><code>## Warning: multiple methods tables found for &#39;sort&#39;
-## Warning: multiple methods tables found for &#39;sort&#39;
 ## Warning: multiple methods tables found for &#39;sort&#39;</code></pre>
-<pre><code>## Warning: replacing previous import &#39;utils::findMatches&#39; by &#39;S4Vectors::findMatches&#39; when loading &#39;AnnotationDbi&#39;</code></pre>
-<pre><code>## Warning: multiple methods tables found for &#39;sort&#39;</code></pre>
 <pre class="r"><code>library(biomaRt)
 library(kableExtra)
 library(rmarkdown)
 library(readxl)
 source(input$functions)
 source(input$fc_params)
-library(GSEABase)</code></pre>
-<pre><code>## Loading required package: BiocGenerics</code></pre>
-<pre><code>## 
-## Attaching package: &#39;BiocGenerics&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
-## 
-##     combine, intersect, setdiff, union</code></pre>
-<pre><code>## The following objects are masked from &#39;package:igraph&#39;:
-## 
-##     normalize, path, union</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     IQR, mad, sd, var, xtabs</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     anyDuplicated, aperm, append, as.data.frame, basename, cbind, colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
-##     get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget, order, paste, pmax, pmax.int, pmin, pmin.int, Position,
-##     rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff, table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
-<pre><code>## Loading required package: Biobase</code></pre>
-<pre><code>## Welcome to Bioconductor
-## 
-##     Vignettes contain introductory material; view with &#39;browseVignettes()&#39;. To cite Bioconductor, see &#39;citation(&quot;Biobase&quot;)&#39;, and for
-##     packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
-<pre><code>## 
-## Attaching package: &#39;Biobase&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:rlang&#39;:
-## 
-##     exprs</code></pre>
-<pre><code>## Loading required package: annotate</code></pre>
-<pre><code>## Loading required package: AnnotationDbi</code></pre>
-<pre><code>## Loading required package: stats4</code></pre>
-<pre><code>## Loading required package: IRanges</code></pre>
-<pre><code>## Loading required package: S4Vectors</code></pre>
-<pre><code>## 
-## Attaching package: &#39;S4Vectors&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:plyr&#39;:
-## 
-##     rename</code></pre>
-<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
-## 
-##     first, rename</code></pre>
-<pre><code>## The following object is masked from &#39;package:tidyr&#39;:
-## 
-##     expand</code></pre>
-<pre><code>## The following objects are masked from &#39;package:Matrix&#39;:
-## 
-##     expand, unname</code></pre>
-<pre><code>## The following object is masked from &#39;package:utils&#39;:
-## 
-##     findMatches</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     expand.grid, I, unname</code></pre>
-<pre><code>## 
-## Attaching package: &#39;IRanges&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:plyr&#39;:
-## 
-##     desc</code></pre>
-<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
-## 
-##     collapse, desc, slice</code></pre>
-<pre><code>## The following object is masked from &#39;package:purrr&#39;:
-## 
-##     reduce</code></pre>
-<pre><code>## 
-## Attaching package: &#39;AnnotationDbi&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
-## 
-##     select</code></pre>
-<pre><code>## Loading required package: XML</code></pre>
-<pre><code>## Loading required package: graph</code></pre>
-<pre><code>## 
-## Attaching package: &#39;graph&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:XML&#39;:
-## 
-##     addNode</code></pre>
-<pre><code>## The following object is masked from &#39;package:plyr&#39;:
-## 
-##     join</code></pre>
-<pre><code>## The following object is masked from &#39;package:stringr&#39;:
-## 
-##     boundary</code></pre>
-<pre><code>## The following objects are masked from &#39;package:igraph&#39;:
-## 
-##     degree, edges, intersection</code></pre>
-<pre class="r"><code>library(grid)
-library(ComplexHeatmap)</code></pre>
-<pre><code>## ========================================
-## ComplexHeatmap version 2.10.0
-## Bioconductor page: http://bioconductor.org/packages/ComplexHeatmap/
-## Github page: https://github.com/jokergoo/ComplexHeatmap
-## Documentation: http://jokergoo.github.io/ComplexHeatmap-reference
-## 
-## If you use it in published research, please cite:
-## Gu, Z. Complex heatmaps reveal patterns and correlations in multidimensional 
-##   genomic data. Bioinformatics 2016.
-## 
-## The new InteractiveComplexHeatmap package can directly export static 
-## complex heatmaps into an interactive Shiny app with zero effort. Have a try!
-## 
-## This message can be suppressed by:
-##   suppressPackageStartupMessages(library(ComplexHeatmap))
-## ========================================</code></pre>
-<pre class="r"><code>library(ggpubr)
+library(GSEABase)
+library(grid)
+library(ComplexHeatmap)
+library(ggpubr)
 library(stringr)
 library(data.table)
 library(ggstatsplot)</code></pre>
-<pre><code>## You can cite this package as:
-##      Patil, I. (2021). Visualizations with statistical details: The &#39;ggstatsplot&#39; approach.
-##      Journal of Open Source Software, 6(61), 3167, doi:10.21105/joss.03167</code></pre>
 <pre class="r"><code># load hpv signature genes
 avg_log2FC_cutoff = log2(signature_fc)
 fdr_cutoff = signature_fdr
@@ -3779,9 +3673,8 @@ p = TCGAanalyze_survival(
 Show/Hide
 </button>
 <div id="BlockName" class="collapse">
-<pre class="r"><code>library(devtools)</code></pre>
-<pre><code>## Loading required package: usethis</code></pre>
-<pre class="r"><code>session_info()</code></pre>
+<pre class="r"><code>library(devtools)
+session_info()</code></pre>
 <pre><code>## ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ##  setting  value
 ##  version  R version 4.4.1 (2024-06-14)
@@ -3800,11 +3693,15 @@ Show/Hide
 ##     abind                  1.4-5      2016-07-21 [1] RSPM (R 4.1.0)
 ##     annotate             * 1.84.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
 ##     AnnotationDbi        * 1.56.2     2021-11-09 [1] Bioconductor
+##     ape                    5.8        2024-04-11 [1] RSPM (R 4.4.0)
+##     aplot                  0.1.3      2022-04-01 [1] RSPM (R 4.1.0)
+##     babelgene              22.3       2022-03-30 [1] RSPM (R 4.1.0)
 ##     backports              1.5.0      2024-05-23 [1] RSPM (R 4.4.0)
 ##     bayestestR             0.15.0     2024-10-17 [1] RSPM (R 4.4.0)
 ##     Biobase              * 2.54.0     2021-10-26 [1] Bioconductor
 ##     BiocFileCache          2.2.1      2022-01-23 [1] Bioconductor
 ##     BiocGenerics         * 0.52.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
+##     BiocParallel           1.40.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
 ##     biomaRt              * 2.50.3     2022-02-03 [1] Bioconductor
 ##     Biostrings             2.62.0     2021-10-26 [1] Bioconductor
 ##     bit                    4.0.4      2020-08-04 [1] RSPM
@@ -3822,6 +3719,7 @@ Show/Hide
 ##     cli                    3.6.3      2024-06-21 [1] RSPM (R 4.4.0)
 ##     clue                   0.3-66     2024-11-13 [1] RSPM (R 4.4.0)
 ##     cluster                2.1.6      2023-12-01 [3] CRAN (R 4.4.1)
+##     clusterProfiler      * 4.2.2      2022-01-13 [1] Bioconductor
 ##     codetools              0.2-20     2024-03-31 [3] CRAN (R 4.4.1)
 ##     colorspace             2.0-3      2022-02-21 [1] RSPM
 ##     ComplexHeatmap       * 2.10.0     2021-10-26 [1] Bioconductor
@@ -3838,15 +3736,21 @@ Show/Hide
 ##     deldir                 1.0-6      2021-10-23 [1] RSPM (R 4.1.0)
 ##     devtools             * 2.4.3      2021-11-30 [1] RSPM (R 4.1.0)
 ##     digest                 0.6.29     2021-12-01 [1] RSPM
+##     DO.db                  2.9        2022-11-08 [1] Bioconductor
 ##     doParallel             1.0.17     2022-02-07 [1] RSPM
+##     DOSE                   3.20.1     2021-11-18 [1] Bioconductor
 ##     downloader             0.4        2015-07-09 [1] RSPM (R 4.1.0)
 ##     dplyr                * 1.1.4      2023-11-17 [1] RSPM (R 4.4.0)
 ##     effectsize             0.8.9      2024-07-03 [1] RSPM (R 4.4.0)
 ##     ellipsis               0.3.2      2021-04-29 [1] RSPM
+##     enrichplot             1.14.2     2022-02-24 [1] Bioconductor
 ##     evaluate               0.15       2022-02-18 [1] RSPM
 ##     fansi                  1.0.3      2022-03-24 [1] RSPM
 ##     farver                 2.1.0      2021-02-28 [1] RSPM
 ##     fastmap                1.1.1      2023-02-24 [1] RSPM (R 4.4.0)
+##     fastmatch              1.1-4      2023-08-18 [1] RSPM (R 4.4.0)
+##     fdrtool              * 1.2.17     2021-11-13 [1] RSPM (R 4.1.0)
+##     fgsea                  1.20.0     2021-10-26 [1] Bioconductor
 ##     filelock               1.0.3      2023-12-11 [1] CRAN (R 4.2.2)
 ##     fitdistrplus           1.1-8      2022-03-10 [1] RSPM (R 4.1.0)
 ##     forcats              * 1.0.0      2023-01-29 [1] RSPM (R 4.4.0)
@@ -3860,21 +3764,32 @@ Show/Hide
 ##     GenomeInfoDbData       1.2.7      2024-01-17 [1] Bioconductor
 ##     GenomicRanges          1.58.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
 ##     GetoptLong             1.0.5      2020-12-15 [1] RSPM (R 4.4.0)
+##     ggforce                0.3.3      2021-03-05 [1] RSPM
+##     ggfun                  0.0.6      2022-04-01 [1] RSPM (R 4.1.0)
 ##     ggplot2              * 3.5.1      2024-04-23 [1] RSPM (R 4.4.0)
+##     ggplotify              0.1.0      2021-09-02 [1] RSPM (R 4.1.0)
 ##     ggpubr               * 0.4.0      2020-06-27 [1] RSPM (R 4.1.0)
-##     ggrepel                0.9.6      2024-09-07 [1] RSPM (R 4.4.0)
+##     ggraph                 2.0.5      2021-02-23 [1] RSPM (R 4.1.0)
+##     ggrepel              * 0.9.6      2024-09-07 [1] RSPM (R 4.4.0)
 ##     ggridges               0.5.3      2021-01-08 [1] RSPM (R 4.1.0)
+##     ggsci                  2.9        2018-05-14 [1] RSPM (R 4.1.0)
 ##     ggsignif               0.6.4      2022-10-13 [1] RSPM (R 4.4.0)
 ##     ggstatsplot          * 0.12.5     2024-11-01 [1] RSPM (R 4.4.0)
 ##     ggtext                 0.1.1      2020-12-17 [1] RSPM (R 4.1.0)
+##     ggtree                 3.2.1      2021-11-16 [1] Bioconductor
+##     ggvenn               * 0.1.10     2023-05-08 [1] Github (yanlinlin82/ggvenn@25fd3b5)
 ##     GlobalOptions          0.1.2      2020-06-10 [1] RSPM (R 4.4.0)
 ##     globals                0.14.0     2020-11-22 [1] RSPM (R 4.1.0)
 ##     glue                   1.8.0      2024-09-30 [1] RSPM (R 4.4.0)
+##     GO.db                  3.14.0     2022-11-08 [1] Bioconductor
 ##     goftest                1.2-3      2021-10-07 [1] RSPM (R 4.1.0)
 ##     googledrive            2.1.1      2023-06-11 [1] RSPM (R 4.4.0)
 ##     googlesheets4          1.1.1      2023-06-11 [1] RSPM (R 4.4.0)
+##     GOSemSim               2.20.0     2021-10-26 [1] Bioconductor
 ##     graph                * 1.72.0     2021-10-26 [1] Bioconductor
+##     graphlayouts           0.8.0      2022-01-03 [1] RSPM (R 4.1.0)
 ##     gridExtra              2.3        2017-09-09 [1] RSPM
+##     gridGraphics           0.5-1      2020-12-13 [1] RSPM (R 4.1.0)
 ##     gridtext               0.1.4      2020-12-10 [1] RSPM (R 4.1.0)
 ##     GSEABase             * 1.56.0     2021-10-26 [1] Bioconductor
 ##     gtable                 0.3.0      2019-03-25 [1] RSPM
@@ -3884,6 +3799,7 @@ Show/Hide
 ##     htmlwidgets            1.5.4      2021-09-08 [1] RSPM (R 4.1.0)
 ##     httpuv                 1.6.5      2022-01-05 [1] RSPM (R 4.1.0)
 ##     httr                   1.4.7      2023-08-15 [1] RSPM (R 4.4.0)
+##     hypeR                * 2.0.1      2023-08-27 [1] Github (montilab/hypeR@681dda4)
 ##     ica                    1.0-2      2018-05-24 [1] RSPM (R 4.1.0)
 ##  VP igraph               * 1.4.2      2024-10-19 [?] RSPM (R 4.4.0) (on disk 2.1.1)
 ##     insight                0.20.5     2024-10-02 [1] RSPM (R 4.4.0)
@@ -3920,8 +3836,10 @@ Show/Hide
 ##     mime                   0.12       2021-09-28 [1] RSPM
 ##     miniUI                 0.1.1.1    2018-05-18 [1] RSPM (R 4.1.0)
 ##     modelr                 0.1.11     2023-03-22 [1] RSPM (R 4.4.0)
+##     msigdbr              * 7.5.1      2022-03-30 [1] RSPM (R 4.1.0)
 ##     munsell                0.5.0      2018-06-12 [1] RSPM
 ##     nlme                   3.1-164    2023-11-27 [3] CRAN (R 4.4.1)
+##     openxlsx               4.2.5      2021-12-14 [1] RSPM (R 4.1.0)
 ##     paletteer              1.6.0      2024-01-21 [1] RSPM (R 4.4.0)
 ##     parallelly             1.31.0     2022-04-07 [1] RSPM (R 4.1.0)
 ##     parameters             0.23.0     2024-10-18 [1] RSPM (R 4.4.0)
@@ -3943,13 +3861,15 @@ Show/Hide
 ##     promises               1.2.0.1    2021-02-11 [1] RSPM (R 4.1.0)
 ##     ps                     1.9.0      2025-02-18 [1] RSPM (R 4.4.0)
 ##     purrr                * 1.0.2      2023-08-10 [1] RSPM (R 4.4.0)
+##     qvalue                 2.26.0     2021-10-26 [1] Bioconductor
 ##     R6                     2.5.1      2021-08-19 [1] RSPM
 ##     RANN                   2.6.1      2019-01-08 [1] RSPM (R 4.1.0)
 ##     rappdirs               0.3.3      2021-01-31 [1] RSPM
-##     RColorBrewer           1.1-3      2022-04-03 [1] RSPM
+##     RColorBrewer         * 1.1-3      2022-04-03 [1] RSPM
 ##     Rcpp                   1.0.8.3    2022-03-17 [1] RSPM
 ##     RcppAnnoy              0.0.19     2021-07-30 [1] RSPM (R 4.1.0)
-##     RCurl                  1.98-1.6   2022-02-08 [1] RSPM
+##     RCurl                * 1.98-1.6   2022-02-08 [1] RSPM
+##     reactable              0.2.3      2020-10-04 [1] RSPM (R 4.1.0)
 ##     readr                * 2.1.5      2024-01-10 [1] RSPM (R 4.4.0)
 ##     readxl               * 1.4.3      2023-07-06 [1] RSPM (R 4.4.0)
 ##     rematch2               2.1.2      2020-05-01 [1] RSPM (R 4.1.0)
@@ -3972,10 +3892,12 @@ Show/Hide
 ##     sass                   0.4.1      2022-03-23 [1] RSPM
 ##     scales                 1.3.0      2023-11-28 [1] RSPM (R 4.4.0)
 ##     scattermore            0.8        2022-02-14 [1] RSPM (R 4.1.0)
+##     scatterpie             0.1.7      2021-08-20 [1] RSPM (R 4.1.0)
 ##     sctransform            0.3.3      2022-01-13 [1] RSPM (R 4.1.0)
 ##     sessioninfo            1.2.2      2021-12-06 [1] RSPM (R 4.1.0)
 ##     Seurat               * 4.1.0      2022-01-14 [1] RSPM (R 4.1.0)
 ##     SeuratObject         * 4.0.4      2021-11-23 [1] RSPM (R 4.1.0)
+##     shadowtext             0.1.1      2022-01-10 [1] RSPM (R 4.1.0)
 ##     shape                  1.4.6.1    2024-02-23 [1] RSPM (R 4.4.0)
 ##     shiny                  1.9.1      2024-08-01 [1] RSPM (R 4.4.0)
 ##     SourceFromGithub     * 0.1.0      2022-12-07 [1] Github (avishai987/SourceFromGithub@99e0840)
@@ -3998,10 +3920,14 @@ Show/Hide
 ##     TCGAbiolinksGUI.data   1.26.0     2024-10-31 [1] Bioconductor 3.20 (R 4.4.1)
 ##     tensor                 1.5        2012-05-05 [1] RSPM (R 4.1.0)
 ##     tibble               * 3.2.1      2023-03-20 [1] RSPM (R 4.4.0)
+##     tidygraph              1.2.1      2022-04-05 [1] RSPM (R 4.1.0)
 ##     tidyr                * 1.3.1      2024-01-24 [1] RSPM (R 4.4.0)
 ##     tidyselect             1.2.1      2024-03-11 [1] RSPM (R 4.4.0)
+##     tidytree               0.3.9      2022-03-04 [1] RSPM (R 4.1.0)
 ##     tidyverse            * 1.3.2      2022-07-18 [1] RSPM (R 4.4.1)
 ##     timechange             0.3.0      2024-01-18 [1] RSPM (R 4.4.0)
+##     treeio                 1.18.1     2021-11-14 [1] Bioconductor
+##     tweenr                 1.0.2      2021-03-23 [1] RSPM
 ##     tzdb                   0.4.0      2023-05-12 [1] RSPM (R 4.4.0)
 ##     ulimit                 0.0-3      2022-12-11 [1] Github (krlmlr/ulimit@67199f2)
 ##  VP units                * 0.8-1      2023-11-28 [?] RSPM (R 4.4.0) (on disk 0.8.5)
@@ -4009,7 +3935,9 @@ Show/Hide
 ##     utf8                   1.2.2      2021-07-24 [1] RSPM
 ##     uwot                   0.1.11     2021-12-02 [1] RSPM (R 4.1.0)
 ##     vctrs                  0.6.5      2023-12-01 [1] RSPM (R 4.4.0)
+##     viridis                0.6.2      2021-10-13 [1] RSPM
 ##     viridisLite            0.4.0      2021-04-13 [1] RSPM
+##     visNetwork             2.1.0      2021-09-29 [1] RSPM (R 4.1.0)
 ##     vroom                  1.6.5      2023-12-05 [1] RSPM (R 4.4.0)
 ##     webshot                0.5.3      2022-04-14 [1] RSPM (R 4.1.0)
 ##     websocket              1.4.2      2024-07-22 [1] RSPM (R 4.4.0)
@@ -4020,7 +3948,9 @@ Show/Hide
 ##     xtable                 1.8-4      2019-04-21 [1] RSPM (R 4.1.0)
 ##     XVector                0.34.0     2021-10-26 [1] Bioconductor
 ##     yaml                   2.3.5      2022-02-21 [1] RSPM
+##     yulab.utils            0.0.4      2021-10-09 [1] RSPM (R 4.1.0)
 ##     zeallot                0.1.0      2018-01-28 [1] RSPM (R 4.1.0)
+##     zip                    2.2.0      2021-05-31 [1] RSPM (R 4.1.0)
 ##     zlibbioc               1.40.0     2021-10-26 [1] Bioconductor
 ##     zoo                    1.8-10     2022-04-15 [1] RSPM (R 4.1.0)
 ## 

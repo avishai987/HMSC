@@ -208,7 +208,7 @@ plt = ggplot(genes_by_tp, aes(x = hpv33_positive, y = myb_tergets_score)) +
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   geom_jitter()+
   labs(title = "Downstream MYB targets within HMSC", y = "MYB target score", fill = "HPV Status")+
-  theme(plot.title = element_text(hjust = 0.5),axis.title.x = element_blank())
+  theme(plot.title = element_text(hjust = 0.5),axis.title.x = element_blank()) + theme_minimal()
 plt
 ```
 
