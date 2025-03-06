@@ -189,7 +189,6 @@ plt = ggplot(genes_by_tp, aes(x = hpv, y = hpv_signature_score)) +
   stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   ggtitle("HMSC HPV signature")+
-  scale_fill_manual(values = c("HPV+" = "#1B9E77FF", "HPV-" = "#D95F02FF"))+
   theme_minimal()+
   ylab("Signature Score")
 plt
