@@ -1,5 +1,5 @@
 ---
-title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+title: '04_HMSC_vs_ACC' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
 output:
@@ -113,6 +113,16 @@ pdf(paste0(params$data_out_dir,"/kaye_acc_score_AllCancerCells.pdf"))
 p
 dev.off()
 ```
+
+```{r}
+notch_targets = c("NRARP", "NOTCH3", "HES4", "HEY1",  "HEY2" )
+notch_targets_score = hmsc_acc_pri_cancer %>% FetchData(vars = notch_targets) %>% rowMeans()
+hmsc_acc_pri_cancer=AddMetaData(hmsc_acc_pri_cancer,notch_targets_score, "notch_targets_score")
+FeaturePlot(object = hmsc_acc_pri_cancer,features = c("notch_targets_score"),pt.size = 1)
+
+```
+
+
 
 ## enrichment analysis 
 
@@ -486,3 +496,20 @@ row_ha = rowAnnotation(df = annotation, col = list(dataset  = c(HMSC = "red",ACC
 
 ComplexHeatmap::Heatmap(matrix = all_cells_pearson ,name = "pearson", col = circlize::colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")),show_column_names = F,show_row_names = F,right_annotation = row_ha,clustering_distance_columns = "pearson",clustering_distance_rows = "pearson",clustering_method_columns = "average",clustering_method_rows = "average")
 ```
+
+
+```{r}
+hmsc_acc_pri_cancer = FindVariableFeatures(hmsc_acc_pri_cancer,assay = "RNA",nfeatures = 15000)
+cancer_data = FetchData(hmsc_acc_pri_cancer,vars = "orig.ident") %>% mutate(cancer = if_else(
+  condition = orig.ident %in% c("ACC.plate2" ,"ACC1.P3"),
+  true = "HMSC",
+  false = "ACC"  )) %>% select(-orig.ident)
+data = as.data.frame(hmsc_acc_pri_cancer@assays$integrated@data[VariableFeatures(hmsc_acc_pri_cancer,assay = "RNA"),])
+all_cells_pearson = cor(data)
+row_ha = rowAnnotation(df = cancer_data, col = list(cancer  = c(HMSC = "red",ACC = "green")))
+
+
+ComplexHeatmap::Heatmap(matrix = all_cells_pearson ,name = "pearson", col = circlize::colorRamp2(seq(0, 1, length = 3), c("blue", "#EEEEEE", "red")),show_column_names = F,show_row_names = F,right_annotation = row_ha,clustering_distance_columns = "euclidean",clustering_distance_rows = "euclidean",clustering_method_columns = "average",clustering_method_rows = "average")
+
+```
+
