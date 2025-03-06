@@ -23,29 +23,34 @@ output:
 
 params:
   data_out_dir: "./temp_data/" 
-  input_data: !r c(
-    opscc_deg =  "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/OPSCC_HPV_DEG.csv",
-    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv",
-    genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
-    global_params  = "./Input_data/global_params.R")
+
 ---
 
 
 
 # Functions
 
+```{r}
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
+```
+
 ```{r warning=FALSE}
+suppressMessages(library(GSEABase))
 source_from_github(repositoy = "DEG_functions",version = "0.2.54")
-genesets_h  = geneIds(getGmt(params$input_data["genesets_h"]))
-source(params$input_data["global_params"])
+genesets_h  = geneIds(getGmt(input$genesets_h))
+source(input$fc_params)
 
 ```
 
 # signature
 ```{r}
 
-opscc_deg = read.table(file =  params$input_data["opscc_deg"],row.names = 1,sep = ",",header = T)
-hmsc_deg = read.table(file =  params$input_data["hmsc_deg"],row.names = 1,sep = ",",header = T)
+opscc_deg = read.table(file =  input$opscc_deg,row.names = 1,sep = ",",header = T)
+hmsc_deg = read.table(file =  input$hmsc_deg,row.names = 1,sep = ",",header = T)
 
 hmsc_top = hmsc_deg %>% filter(avg_log2FC > log2(signature_fc) &
                                  fdr < signature_fdr) %>% rownames()
