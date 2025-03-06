@@ -18,7 +18,7 @@ pipeline = list()
 #   label = "create_data",build = F
 # )
 
-####################################### HMSC ####################################################
+####################################### HMSC-ACC preprocess ####################################################
 
 
 pipeline[["create_data"]] = list(
@@ -82,6 +82,8 @@ pipeline[["build_datasets"]] = list(
   )
 )
 
+####################################### HMSC analysis ####################################################
+
 pipeline[["Lum-Myo_HMSC"]] = list(
   input = list(
     script = "./Notebooks/HMSC/03_Lum-Myo_HMSC.Rmd",
@@ -108,6 +110,24 @@ pipeline[["HMSC_vs_ACC"]] = list(
 
 
 
+####################################### HMSC cNMF ####################################################
+pipeline[["run_cnmf"]] = list(
+  input = list(
+    script = "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_01_run.Rmd",
+    hmsc_cancer_cells = pipeline$HMSC_cells_preprocess$output$hmsc_integrated
+  ),
+  output = list(report = "./Reports/HMSC/06_cNMF/cNMF_HMSC_01_run.html",
+                cnmf_object = "./Reports/HMSC/06_cNMF/HMSC_BatchCorrected_NMF/cnmf_obj.pkl")
+)
+
+pipeline[["cnmf_get_results"]] = list(
+  input = list(
+    script = "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_02_get_results.Rmd",
+    cnmf_object = pipeline$run_cnmf$output$cnmf_object
+  ),
+  output = list(report = "./Reports/HMSC/06_cNMF/cNMF_HMSC_02_get_results.html",
+                cnmf_object = "./Reports/HMSC/06_cNMF/HMSC_BatchCorrected_NMF/cnmf_obj.pkl")
+)
 
 #############################################OPSCC###############################
 pipeline[["OPSCC_preprocess"]] = list(
@@ -134,7 +154,7 @@ pipeline[["OPSCC_deg"]] = list(
 
 
 
-################## HMSC HPV ########################################
+################## HMSC HPV analysis ########################################
 
 pipeline[["HPV_analysis"]] = list(
   input = list(
@@ -149,13 +169,14 @@ pipeline[["HPV_analysis"]] = list(
     myb_targets = "./Input_data/MYB_tergets_PMC4767593_sup_table_4.xlsx",
     fc_params  = "./Input_data/FC_params.R"
   ),
-  output = list(report = "./Reports/HMSC/05_HPV_analysis/05_HPV_analysis.html",
-  hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv"
+  output = list(
+    report = "./Reports/HMSC/05_HPV_analysis/05_HPV_analysis.html",
+    hmsc_deg = "./Reports/HMSC/05_HPV_analysis/HMSC_hpv_deg_df.csv"
   )
 )
 
 
-##################################### OPSCC continue ###################################
+##################################### OPSCC analysis continue ###################################
 pipeline[["OPSCC_volcano"]] = list(
   input = list(
     script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/03_volcano_plot.Rmd",
@@ -164,7 +185,7 @@ pipeline[["OPSCC_volcano"]] = list(
     fc_params  = "./Input_data/FC_params.R"
   ),
   output = list(
-    report = "./Reports/HPV_OPSCC_Analysis_PMC10191634/02_findDEG/03_volcano_plot.html"  )
+    report = "./Reports/HPV_OPSCC_Analysis_PMC10191634/03_volcano_plot/03_volcano_plot.html"  )
 )
 
 pipeline[["OPSCC_MYB_fisher"]] = list(
@@ -186,6 +207,20 @@ pipeline[["OPSCC_HMSC_HPV_signature"]] = list(
   ),
   output = list(
     report = "./Reports/HPV_OPSCC_Analysis_PMC10191634/06_HMSC_HPV_signature/06_HMSC_HPV_signature.html"  )
+)
+
+############################## HPV signature compare ####################
+
+pipeline[["HPV_signature_compare"]] = list(
+  input = list(
+    script = "./Notebooks/integrative_analysis/HPV_signature_compare.Rmd",
+    opscc_deg = pipeline$OPSCC_deg$output$opscc_deg,
+    hmsc_deg = pipeline$HPV_analysis$output$hmsc_deg,
+    genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
+    fc_params  = "./Input_data/FC_params.R"
+  ),
+  output = list(
+    report = "./Reports/integrative_analysis/HPV_signature_compare.html"  )
 )
 
 ####################################### TCGA #####################################################
@@ -234,5 +269,169 @@ get_output <- function(script) {
   }
 }
 
+######################################## set makepipe ######################################
+
+library(makepipe)
+makepipe::reset_pipeline()
+pipe <- get_pipeline()
+
+
+make_with_recipe(
+  recipe = my_render(notebook_path = "./Notebooks/HMSC/01_preprocess/01_create_data.Rmd"),
+  targets = unlist(get_output("./Notebooks/HMSC/01_preprocess/01_create_data.Rmd")),
+  dependencies = unlist(get_input("./Notebooks/HMSC/01_preprocess/01_create_data.Rmd")),
+  label = "create_data",build = F
+)
+
+
+# 02_Cancer_filtering.Rmd
+script = "./Notebooks/HMSC/01_preprocess/02_Cancer_filtering.Rmd"
+make_with_recipe(
+  recipe = my_render(notebook_path ="./Notebooks/HMSC/01_preprocess/02_Cancer_filtering.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "Cancer_filtering",build = F
+)
+
+
+#03_HMSC_cells_preprocess.Rmd
+script = "./Notebooks/HMSC/01_preprocess/03_HMSC_cells_preprocess.Rmd"
+make_with_recipe(
+  recipe = my_render(notebook_path = "./Notebooks/HMSC/01_preprocess/03_HMSC_cells_preprocess.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "HMSC_cells_preprocess",build = F
+)
+
+#04_build_datasets.Rmd
+script = "./Notebooks/HMSC/01_preprocess/04_build_datasets.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/HMSC/01_preprocess/04_build_datasets.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "build_datasets",build = F
+)
+
+
+# #02_CNV.Rmd
+# notebook_path = "./Notebooks/HMSC/02_CNV.Rmd"
+# targets_and_depens = get_targets_and_depens(notebook_path)
+# 
+# 
+# make_with_recipe(
+#   recipe = my_render("./Notebooks/HMSC/02_CNV.Rmd"),
+#     targets = c(targets_and_depens$targets),
+#     dependencies = c(targets_and_depens$dependencies,notebook_path))
+
+
+#03_Lum-Myo_HMSC.Rmd
+script = "./Notebooks/HMSC/03_Lum-Myo_HMSC.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/HMSC/03_Lum-Myo_HMSC.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "Lum-Myo_HMSC",build = F
+)
+
+
+#04_HMSC_vs_ACC.Rmd
+script = "./Notebooks/HMSC/04_HMSC_vs_ACC.Rmd"
+
+make_with_recipe(
+  recipe = my_render( "./Notebooks/HMSC/04_HMSC_vs_ACC.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "HMSC_vs_ACC",build = F
+)
+
+#05_HPV_analysis.Rmd
+script = "./Notebooks/HMSC/05_HPV_analysis.Rmd"
+make_with_recipe(
+  recipe = my_render( "./Notebooks/HMSC/05_HPV_analysis.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "HPV_analysis",build = F
+)
+
+#OPSCC preprocess
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "OPSCC_preprocess",build = F
+)
+
+
+#OPSCC DEG
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/02_findDEG.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "OPSCC_DEG",build = F
+)
+
+#OPSCC volcano
+
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/03_volcano_plot.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/03_volcano_plot.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "OPSCC_volcano",build = F
+)
+
+
+#OPSCC MYB fisher
+
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/05_MYB_HPV_fisher.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/05_MYB_HPV_fisher.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "OPSCC_MYB_fisher",build = F
+)
+
+#OPSCC HMSC_HPV_signature
+
+script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/06_HMSC_HPV_signature.Rmd"
+
+make_with_recipe(
+  recipe = my_render("./Notebooks/HPV_OPSCC_Analysis_PMC10191634/06_HMSC_HPV_signature.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "OPSCC_MYB_fisher",build = F
+)
+
+
+# #TCGA built datasets
+# notebook_path = "./Notebooks/TCGA/build_TCGA_datasets.Rmd"
+# targets_and_depens = get_targets_and_depens(notebook_path)
+# 
+# make_with_recipe(
+#   recipe = my_render("./Notebooks/TCGA/build_TCGA_datasets.Rmd"),
+#     targets = c(targets_and_depens$targets),
+#     dependencies = c(targets_and_depens$dependencies,notebook_path),
+#   label = "TCGA built datasets")
+
+#HPV signature compare
+script = "./Notebooks/integrative_analysis/HPV_signature_compare.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/integrative_analysis/HPV_signature_compare.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "HPV_signature_compare",build = F
+)
+
+
+#TCGA HNSC
+script = "./Notebooks/TCGA/OPSCC_TCGA.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/TCGA/OPSCC_TCGA.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "TCGA_HNSC_analysis",build = F
+)
 
 
