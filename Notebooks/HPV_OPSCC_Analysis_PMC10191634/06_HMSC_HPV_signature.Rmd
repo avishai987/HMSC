@@ -93,32 +93,7 @@ opscc_hpvPos$hpv = FetchData(object = opscc_hpvPos,vars = "hpv") %>%
 ```
 
 
-```{r}
-opscc_hpvPos = ScaleData(object = opscc_hpvPos,features = hmsc_signatue)
-DoHeatmap(object = opscc_hpvPos,features = hmsc_signatue,group.by = "hpv")
-```
-```{r fig.height=15}
-data = FetchData(object = opscc_hpvPos, vars = c(hmsc_signatue,"patient"))
-data[] <- data %>%  group_by(patient) %>% mutate(across(is.numeric, ~ as.numeric(scale(.)))) %>% ungroup() 
-data = data %>% select(-patient) 
-data = data %>% t() %>% as.data.frame()
 
-annotation_data = FetchData(object = opscc_hpvPos, vars = c("patient","hpv")) %>% dplyr::arrange(patient,hpv)
-column_ha = HeatmapAnnotation(hpv = annotation_data[,2])
-data = data[,rownames(annotation_data)] #order data like annotation
-data = na.omit(data)
-p = ComplexHeatmap::Heatmap(
-  data,
-  show_column_names = F,
-  row_names_gp = grid::gpar(fontsize = 7),
-  cluster_rows = T,
-  top_annotation = column_ha,
-  name = "Z-score expression",use_raster = F,cluster_columns = F,column_split   = annotation_data$patient,
-  column_gap = unit(2, "mm"), border = TRUE,show_parent_dend_line = FALSE, show_column_dend = FALSE,cluster_column_slices = F
-)
-  
-p
-```
 ```{r}
 
 # add score
@@ -143,14 +118,14 @@ stat.test <- genes_by_tp %>%
   adjust_pvalue(method = "fdr") %>%
   add_significance() %>%
   add_xy_position(x = "hpv") %>%
-  mutate(p.adj = signif(p.adj, digits = 2))
+  mutate(p = signif(p, digits = 2))
 stat.test
 
 
 plt = ggplot(genes_by_tp, aes(x = hpv, y = hpv_signature_score)) +
   geom_violin(scale = "width",aes(fill = hpv)) +
   geom_boxplot(width = 0.2, outlier.shape = NA) +
-  stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
+  stat_pvalue_manual(stat.test, label = "{p}")  + #add p value
   facet_wrap("patient",scales='free',ncol = 5)+
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   ggtitle("HMSC HPV signature")+
