@@ -164,7 +164,7 @@ DefaultAssay(hmsc_cancer_cells) = "integrated"
 p = calculate_score.2(dataset = hmsc_cancer_cells,myo_genes = original_myo_genes,lum_genes = original_lum_genes)
 ```
 ```{r}
-pdf(paste0(params$data_out_dir,"HMSC_lum_myo_spectrum_density.pdf"))
+pdf(paste0(params$data_out_dir,"HMSC_lum_myo_spectrum_density.pdf"),width = 12,height = 5)
 p
 dev.off()
 ```
@@ -306,7 +306,7 @@ notch_ligands_score = hmsc_cancer_cells %>% FetchData(vars = notch_ligands) %>% 
 data = data.frame(notch_score = notch_ligands_score,myo_score = myoscore)
 ```
 
-```{r}
+```{r,width = 12,height = 5}
 sp <- ggscatter(data, x = "notch_score", y = "myo_score",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
@@ -336,7 +336,7 @@ sp
 
 
 ```{r}
-pdf(paste0(params$data_out_dir,"myo_notch_ligands_correlation_no_ourlier.pdf"))
+pdf(paste0(params$data_out_dir,"myo_notch_ligands_correlation_no_ourlier.pdf"),width = 12,height = 5)
 sp
 dev.off()
 ```
@@ -367,7 +367,8 @@ sp
 ```
 
 ```{r}
-pdf(paste0(params$data_out_dir,"myo_notch_targets_correlation_no_ourlier.pdf"))
+pdf(paste0(params$data_out_dir,"myo_notch_targets_correlation_no_ourlier.pdf"),width = 8,height = 5)
 sp
 dev.off()
 ```
+
