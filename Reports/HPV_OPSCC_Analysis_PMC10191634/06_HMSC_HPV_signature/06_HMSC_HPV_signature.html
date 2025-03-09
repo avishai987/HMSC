@@ -2839,7 +2839,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">HMSC_HPV_signature</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2025-03-06 14:12:30.26678</h4>
+<h4 class="date">2025-03-09 13:49:07.560799</h4>
 
 </div>
 
@@ -2853,25 +2853,8 @@ border-radius: 0px;
 <h1><span class="header-section-number">1</span> Functions</h1>
 <pre class="r"><code>library(rstatix)
 source(input$fc_params)
-library(ComplexHeatmap)</code></pre>
-<pre><code>## Loading required package: grid</code></pre>
-<pre><code>## ========================================
-## ComplexHeatmap version 2.10.0
-## Bioconductor page: http://bioconductor.org/packages/ComplexHeatmap/
-## Github page: https://github.com/jokergoo/ComplexHeatmap
-## Documentation: http://jokergoo.github.io/ComplexHeatmap-reference
-## 
-## If you use it in published research, please cite:
-## Gu, Z. Complex heatmaps reveal patterns and correlations in multidimensional 
-##   genomic data. Bioinformatics 2016.
-## 
-## The new InteractiveComplexHeatmap package can directly export static 
-## complex heatmaps into an interactive Shiny app with zero effort. Have a try!
-## 
-## This message can be suppressed by:
-##   suppressPackageStartupMessages(library(ComplexHeatmap))
-## ========================================</code></pre>
-<pre class="r"><code>library(ggpubr)</code></pre>
+library(ComplexHeatmap)
+library(ggpubr)</code></pre>
 </div>
 <div id="data" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> Data</h1>
@@ -2893,36 +2876,39 @@ hmsc_deg = read.table(file = params$input_data[&quot;hmsc_deg&quot;],row.names =
 hmsc_signatue = rownames(hmsc_deg[hmsc_deg$fdr&lt;fdr_cutoff &amp; hmsc_deg$avg_log2FC&gt;avg_log2FC_cutoff,])
 
 hmsc_signatue</code></pre>
-<pre><code>##   [1] &quot;ANLN&quot;          &quot;TUBB6&quot;         &quot;AXL&quot;           &quot;IFT122&quot;        &quot;GFM1&quot;          &quot;SEPT2&quot;         &quot;PBRM1&quot;         &quot;INSIG1&quot;        &quot;CAPG&quot;         
-##  [10] &quot;POP7&quot;          &quot;BHLHE40&quot;       &quot;MCM5&quot;          &quot;TRAPPC3&quot;       &quot;MRPS6&quot;         &quot;GINS2&quot;         &quot;NARS&quot;          &quot;LSM5&quot;          &quot;GUSB&quot;         
-##  [19] &quot;EZR&quot;           &quot;FZD6&quot;          &quot;STAT2&quot;         &quot;TMPO&quot;          &quot;SLC35F5&quot;       &quot;MVB12A&quot;        &quot;CDC42EP3&quot;      &quot;COG4&quot;          &quot;MRPL20&quot;       
-##  [28] &quot;GSDMD&quot;         &quot;VCL&quot;           &quot;MT1E&quot;          &quot;TUBA1C&quot;        &quot;TXN&quot;           &quot;ATXN10&quot;        &quot;USP39&quot;         &quot;MSH6&quot;          &quot;SDC2&quot;         
-##  [37] &quot;OAT&quot;           &quot;SCAP&quot;          &quot;PRELID3B&quot;      &quot;KNTC1&quot;         &quot;ARF6&quot;          &quot;SMC5&quot;          &quot;DCTN2&quot;         &quot;AAMP&quot;          &quot;TBCB&quot;         
-##  [46] &quot;KLF10&quot;         &quot;TPP1&quot;          &quot;IFT52&quot;         &quot;ETS2&quot;          &quot;EWSR1&quot;         &quot;NOP10&quot;         &quot;KRCC1&quot;         &quot;ASL&quot;           &quot;IGSF9&quot;        
-##  [55] &quot;PHF5A&quot;         &quot;XRCC5&quot;         &quot;UBE2T&quot;         &quot;IK&quot;            &quot;AC007250.3&quot;    &quot;YES1&quot;          &quot;SNRPD1&quot;        &quot;C9orf3&quot;        &quot;FDFT1&quot;        
-##  [64] &quot;TPM3&quot;          &quot;LASP1&quot;         &quot;SNRPC&quot;         &quot;PACSIN2&quot;       &quot;MTHFD2&quot;        &quot;PMVK&quot;          &quot;OBP2B&quot;         &quot;AKR1B1&quot;        &quot;SYPL1&quot;        
-##  [73] &quot;LPAR2&quot;         &quot;PHB&quot;           &quot;THOC6&quot;         &quot;TMX1&quot;          &quot;SDHA&quot;          &quot;NUBP2&quot;         &quot;NDUFS7&quot;        &quot;TAOK3&quot;         &quot;MRPS9&quot;        
-##  [82] &quot;PTRF&quot;          &quot;PSME2&quot;         &quot;MED15&quot;         &quot;PES1&quot;          &quot;RP11-19E11.1&quot;  &quot;RP5-1102E8.2&quot;  &quot;SEH1L&quot;         &quot;MCM3&quot;          &quot;POLR2L&quot;       
-##  [91] &quot;DNAJC8&quot;        &quot;COPS6&quot;         &quot;PRKCDBP&quot;       &quot;KRT16&quot;         &quot;RNASEH2A&quot;      &quot;PDIA6&quot;         &quot;RAB11FIP1&quot;     &quot;RFC3&quot;          &quot;POLD2&quot;        
-## [100] &quot;AC079337.1&quot;    &quot;NF2&quot;           &quot;BABAM1&quot;        &quot;TPGS2&quot;         &quot;LOX&quot;           &quot;SERINC3&quot;       &quot;NDUFB8&quot;        &quot;CLIC4&quot;         &quot;SELT&quot;         
-## [109] &quot;GRB2&quot;          &quot;HELLS&quot;         &quot;CXCR4&quot;         &quot;PRDX5&quot;         &quot;FLII&quot;          &quot;EDIL3&quot;         &quot;SF3A3&quot;         &quot;PSMB1&quot;         &quot;FARSA&quot;        
-## [118] &quot;PREB&quot;          &quot;POMP&quot;          &quot;MPPED2&quot;        &quot;CKB&quot;           &quot;MCOLN1&quot;        &quot;MCM4&quot;          &quot;PCNT&quot;          &quot;BTF3L4&quot;        &quot;DDX1&quot;         
-## [127] &quot;BRE&quot;           &quot;GPN1&quot;          &quot;H2AFZ&quot;         &quot;KIF22&quot;         &quot;PSMB4&quot;         &quot;TMEM165&quot;       &quot;RP11-45P22.1&quot;  &quot;ECH1&quot;          &quot;NUCB2&quot;        
-## [136] &quot;NUDCD3&quot;        &quot;C19orf10&quot;      &quot;VPS4B&quot;         &quot;MGME1&quot;         &quot;TCF19&quot;         &quot;KRT5&quot;          &quot;ATP6V0B&quot;       &quot;GTF2I&quot;         &quot;TSC2&quot;         
-## [145] &quot;CNOT7&quot;         &quot;UFD1L&quot;         &quot;SMARCA5&quot;       &quot;TCERG1&quot;        &quot;PLAUR&quot;         &quot;SSRP1&quot;         &quot;SMC3&quot;          &quot;RASSF1&quot;        &quot;TYMS&quot;         
-## [154] &quot;GPC4&quot;          &quot;CNPPD1&quot;        &quot;PLXDC2&quot;        &quot;UBXN11&quot;        &quot;RAD23A&quot;        &quot;USP4&quot;          &quot;C16orf13&quot;      &quot;CTNNAL1&quot;       &quot;LRRCC1&quot;       
-## [163] &quot;ADNP&quot;          &quot;SDHB&quot;          &quot;UQCRQ&quot;         &quot;MTHFD1&quot;        &quot;MRPL21&quot;        &quot;RANGAP1&quot;       &quot;PSMA5&quot;         &quot;BRIX1&quot;         &quot;RP11-665C16.9&quot;
-## [172] &quot;FDPS&quot;          &quot;FHL2&quot;          &quot;MYC&quot;           &quot;KLHDC3&quot;        &quot;DNAJB6&quot;        &quot;RP5-1085F17.3&quot; &quot;DCTPP1&quot;        &quot;RBM8A&quot;         &quot;UBE2L3&quot;       
-## [181] &quot;MRE11A&quot;        &quot;MTX2&quot;          &quot;HADHA&quot;         &quot;NRP2&quot;          &quot;LYPLA2&quot;        &quot;SHKBP1&quot;        &quot;GLOD4&quot;         &quot;ATP6V1H&quot;       &quot;EIF4E2&quot;       
-## [190] &quot;NME1&quot;          &quot;HDAC2&quot;         &quot;JUP&quot;           &quot;PHLDB1&quot;        &quot;NUTF2&quot;         &quot;CCT7&quot;          &quot;STRAP&quot;         &quot;TES&quot;           &quot;BUB3&quot;         
-## [199] &quot;DLX5&quot;          &quot;SYF2&quot;          &quot;GPBP1L1&quot;       &quot;DDB1&quot;          &quot;EZH2&quot;          &quot;SNRPA1&quot;        &quot;PDCD6&quot;         &quot;EMC2&quot;          &quot;RP4-702J19.1&quot; 
-## [208] &quot;CAV1&quot;          &quot;CDK4&quot;          &quot;CCT5&quot;          &quot;RAB1A&quot;         &quot;CDKN1A&quot;        &quot;ELAVL1&quot;        &quot;MBD4&quot;          &quot;PLEKHJ1&quot;       &quot;CCT3&quot;         
-## [217] &quot;ATPIF1&quot;        &quot;CDCA7&quot;         &quot;C22orf29&quot;      &quot;SEC23B&quot;        &quot;SPIDR&quot;         &quot;HSPB8&quot;         &quot;UBE2I&quot;         &quot;CPNE3&quot;         &quot;NEFH&quot;         
-## [226] &quot;LMAN1&quot;         &quot;RAB18&quot;         &quot;ILK&quot;           &quot;EIF2A&quot;         &quot;SLBP&quot;          &quot;ELOVL1&quot;        &quot;MYB&quot;           &quot;RP4-753D5.4&quot;   &quot;KRT18&quot;        
-## [235] &quot;CRTAP&quot;         &quot;MUM1&quot;          &quot;TPI1&quot;          &quot;KIAA1715&quot;      &quot;RP11-259K5.3&quot;  &quot;DTYMK&quot;         &quot;MAEA&quot;          &quot;PNRC2&quot;         &quot;GLT25D1&quot;      
-## [244] &quot;MCM6&quot;          &quot;RBM17&quot;         &quot;TTC39A&quot;        &quot;FEN1&quot;          &quot;SHARPIN&quot;       &quot;IFITM1&quot;        &quot;PSMD4&quot;         &quot;SNORD99&quot;       &quot;BZW2&quot;         
-## [253] &quot;TIMMDC1&quot;       &quot;STAG3&quot;         &quot;TPD52&quot;         &quot;SNRPG&quot;         &quot;TIMM13&quot;        &quot;JAG1&quot;          &quot;BTG2&quot;          &quot;LAMTOR1&quot;       &quot;AC019188.1&quot;   
-## [262] &quot;VAMP3&quot;         &quot;CAD&quot;           &quot;ATAD2&quot;</code></pre>
+<pre><code>##   [1] &quot;ANLN&quot;          &quot;TUBB6&quot;         &quot;AXL&quot;           &quot;IFT122&quot;        &quot;GFM1&quot;          &quot;SEPT2&quot;         &quot;PBRM1&quot;         &quot;INSIG1&quot;       
+##   [9] &quot;CAPG&quot;          &quot;POP7&quot;          &quot;BHLHE40&quot;       &quot;MCM5&quot;          &quot;TRAPPC3&quot;       &quot;MRPS6&quot;         &quot;GINS2&quot;         &quot;NARS&quot;         
+##  [17] &quot;LSM5&quot;          &quot;GUSB&quot;          &quot;EZR&quot;           &quot;FZD6&quot;          &quot;STAT2&quot;         &quot;TMPO&quot;          &quot;SLC35F5&quot;       &quot;MVB12A&quot;       
+##  [25] &quot;CDC42EP3&quot;      &quot;COG4&quot;          &quot;MRPL20&quot;        &quot;GSDMD&quot;         &quot;VCL&quot;           &quot;MT1E&quot;          &quot;TUBA1C&quot;        &quot;TXN&quot;          
+##  [33] &quot;ATXN10&quot;        &quot;USP39&quot;         &quot;MSH6&quot;          &quot;SDC2&quot;          &quot;OAT&quot;           &quot;SCAP&quot;          &quot;PRELID3B&quot;      &quot;KNTC1&quot;        
+##  [41] &quot;ARF6&quot;          &quot;SMC5&quot;          &quot;DCTN2&quot;         &quot;AAMP&quot;          &quot;TBCB&quot;          &quot;KLF10&quot;         &quot;TPP1&quot;          &quot;IFT52&quot;        
+##  [49] &quot;ETS2&quot;          &quot;EWSR1&quot;         &quot;NOP10&quot;         &quot;KRCC1&quot;         &quot;ASL&quot;           &quot;IGSF9&quot;         &quot;PHF5A&quot;         &quot;XRCC5&quot;        
+##  [57] &quot;UBE2T&quot;         &quot;IK&quot;            &quot;AC007250.3&quot;    &quot;YES1&quot;          &quot;SNRPD1&quot;        &quot;C9orf3&quot;        &quot;FDFT1&quot;         &quot;TPM3&quot;         
+##  [65] &quot;LASP1&quot;         &quot;SNRPC&quot;         &quot;PACSIN2&quot;       &quot;MTHFD2&quot;        &quot;PMVK&quot;          &quot;OBP2B&quot;         &quot;AKR1B1&quot;        &quot;SYPL1&quot;        
+##  [73] &quot;LPAR2&quot;         &quot;PHB&quot;           &quot;THOC6&quot;         &quot;TMX1&quot;          &quot;SDHA&quot;          &quot;NUBP2&quot;         &quot;NDUFS7&quot;        &quot;TAOK3&quot;        
+##  [81] &quot;MRPS9&quot;         &quot;PTRF&quot;          &quot;PSME2&quot;         &quot;MED15&quot;         &quot;PES1&quot;          &quot;RP11-19E11.1&quot;  &quot;RP5-1102E8.2&quot;  &quot;SEH1L&quot;        
+##  [89] &quot;MCM3&quot;          &quot;POLR2L&quot;        &quot;DNAJC8&quot;        &quot;COPS6&quot;         &quot;PRKCDBP&quot;       &quot;KRT16&quot;         &quot;RNASEH2A&quot;      &quot;PDIA6&quot;        
+##  [97] &quot;RAB11FIP1&quot;     &quot;RFC3&quot;          &quot;POLD2&quot;         &quot;AC079337.1&quot;    &quot;NF2&quot;           &quot;BABAM1&quot;        &quot;TPGS2&quot;         &quot;LOX&quot;          
+## [105] &quot;SERINC3&quot;       &quot;NDUFB8&quot;        &quot;CLIC4&quot;         &quot;SELT&quot;          &quot;GRB2&quot;          &quot;HELLS&quot;         &quot;CXCR4&quot;         &quot;PRDX5&quot;        
+## [113] &quot;FLII&quot;          &quot;EDIL3&quot;         &quot;SF3A3&quot;         &quot;PSMB1&quot;         &quot;FARSA&quot;         &quot;PREB&quot;          &quot;POMP&quot;          &quot;MPPED2&quot;       
+## [121] &quot;CKB&quot;           &quot;MCOLN1&quot;        &quot;MCM4&quot;          &quot;PCNT&quot;          &quot;BTF3L4&quot;        &quot;DDX1&quot;          &quot;BRE&quot;           &quot;GPN1&quot;         
+## [129] &quot;H2AFZ&quot;         &quot;KIF22&quot;         &quot;PSMB4&quot;         &quot;TMEM165&quot;       &quot;RP11-45P22.1&quot;  &quot;ECH1&quot;          &quot;NUCB2&quot;         &quot;NUDCD3&quot;       
+## [137] &quot;C19orf10&quot;      &quot;VPS4B&quot;         &quot;MGME1&quot;         &quot;TCF19&quot;         &quot;KRT5&quot;          &quot;ATP6V0B&quot;       &quot;GTF2I&quot;         &quot;TSC2&quot;         
+## [145] &quot;CNOT7&quot;         &quot;UFD1L&quot;         &quot;SMARCA5&quot;       &quot;TCERG1&quot;        &quot;PLAUR&quot;         &quot;SSRP1&quot;         &quot;SMC3&quot;          &quot;RASSF1&quot;       
+## [153] &quot;TYMS&quot;          &quot;GPC4&quot;          &quot;CNPPD1&quot;        &quot;PLXDC2&quot;        &quot;UBXN11&quot;        &quot;RAD23A&quot;        &quot;USP4&quot;          &quot;C16orf13&quot;     
+## [161] &quot;CTNNAL1&quot;       &quot;LRRCC1&quot;        &quot;ADNP&quot;          &quot;SDHB&quot;          &quot;UQCRQ&quot;         &quot;MTHFD1&quot;        &quot;MRPL21&quot;        &quot;RANGAP1&quot;      
+## [169] &quot;PSMA5&quot;         &quot;BRIX1&quot;         &quot;RP11-665C16.9&quot; &quot;FDPS&quot;          &quot;FHL2&quot;          &quot;MYC&quot;           &quot;KLHDC3&quot;        &quot;DNAJB6&quot;       
+## [177] &quot;RP5-1085F17.3&quot; &quot;DCTPP1&quot;        &quot;RBM8A&quot;         &quot;UBE2L3&quot;        &quot;MRE11A&quot;        &quot;MTX2&quot;          &quot;HADHA&quot;         &quot;NRP2&quot;         
+## [185] &quot;LYPLA2&quot;        &quot;SHKBP1&quot;        &quot;GLOD4&quot;         &quot;ATP6V1H&quot;       &quot;EIF4E2&quot;        &quot;NME1&quot;          &quot;HDAC2&quot;         &quot;JUP&quot;          
+## [193] &quot;PHLDB1&quot;        &quot;NUTF2&quot;         &quot;CCT7&quot;          &quot;STRAP&quot;         &quot;TES&quot;           &quot;BUB3&quot;          &quot;DLX5&quot;          &quot;SYF2&quot;         
+## [201] &quot;GPBP1L1&quot;       &quot;DDB1&quot;          &quot;EZH2&quot;          &quot;SNRPA1&quot;        &quot;PDCD6&quot;         &quot;EMC2&quot;          &quot;RP4-702J19.1&quot;  &quot;CAV1&quot;         
+## [209] &quot;CDK4&quot;          &quot;CCT5&quot;          &quot;RAB1A&quot;         &quot;CDKN1A&quot;        &quot;ELAVL1&quot;        &quot;MBD4&quot;          &quot;PLEKHJ1&quot;       &quot;CCT3&quot;         
+## [217] &quot;ATPIF1&quot;        &quot;CDCA7&quot;         &quot;C22orf29&quot;      &quot;SEC23B&quot;        &quot;SPIDR&quot;         &quot;HSPB8&quot;         &quot;UBE2I&quot;         &quot;CPNE3&quot;        
+## [225] &quot;NEFH&quot;          &quot;LMAN1&quot;         &quot;RAB18&quot;         &quot;ILK&quot;           &quot;EIF2A&quot;         &quot;SLBP&quot;          &quot;ELOVL1&quot;        &quot;MYB&quot;          
+## [233] &quot;RP4-753D5.4&quot;   &quot;KRT18&quot;         &quot;CRTAP&quot;         &quot;MUM1&quot;          &quot;TPI1&quot;          &quot;KIAA1715&quot;      &quot;RP11-259K5.3&quot;  &quot;DTYMK&quot;        
+## [241] &quot;MAEA&quot;          &quot;PNRC2&quot;         &quot;GLT25D1&quot;       &quot;MCM6&quot;          &quot;RBM17&quot;         &quot;TTC39A&quot;        &quot;FEN1&quot;          &quot;SHARPIN&quot;      
+## [249] &quot;IFITM1&quot;        &quot;PSMD4&quot;         &quot;SNORD99&quot;       &quot;BZW2&quot;          &quot;TIMMDC1&quot;       &quot;STAG3&quot;         &quot;TPD52&quot;         &quot;SNRPG&quot;        
+## [257] &quot;TIMM13&quot;        &quot;JAG1&quot;          &quot;BTG2&quot;          &quot;LAMTOR1&quot;       &quot;AC019188.1&quot;    &quot;VAMP3&quot;         &quot;CAD&quot;           &quot;ATAD2&quot;</code></pre>
 <pre class="r"><code># get hpv genes and calc score
 hpv_16_genes = rownames(opscc_hpvPos)[ startsWith(x =rownames(opscc_hpvPos),prefix =  &quot;HPV16&quot;)]
 hpv_score = FetchData(object = opscc_hpvPos,vars = hpv_16_genes,slot = &quot;counts&quot;) %&gt;% rowSums()
@@ -2934,8 +2920,9 @@ opscc_hpvPos$hpv = FetchData(object = opscc_hpvPos,vars = &quot;hpv&quot;) %&gt;
   pull(hpv)</code></pre>
 <pre class="r"><code># add score
 hpv_signature_score = FetchData(object = opscc_hpvPos,vars = hmsc_signatue,slot = &quot;data&quot;) %&gt;% rowMeans()</code></pre>
-<pre><code>## Warning in FetchData(object = opscc_hpvPos, vars = hmsc_signatue, slot = &quot;data&quot;): The following requested variables were not found (10 out of 12
-## shown): AC007250.3, RP5-1102E8.2, AC079337.1, RP11-45P22.1, C19orf10, RP11-665C16.9, RP4-702J19.1, RP4-753D5.4, RP11-259K5.3, GLT25D1</code></pre>
+<pre><code>## Warning in FetchData(object = opscc_hpvPos, vars = hmsc_signatue, slot = &quot;data&quot;): The following requested variables were not found (10
+## out of 12 shown): AC007250.3, RP5-1102E8.2, AC079337.1, RP11-45P22.1, C19orf10, RP11-665C16.9, RP4-702J19.1, RP4-753D5.4, RP11-259K5.3,
+## GLT25D1</code></pre>
 <pre class="r"><code>hpv_signature = data.frame(hpv_signature_score,row.names = names(hpv_signature_score))
 opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = hpv_signature)</code></pre>
 <pre class="r"><code>genes_by_tp = FetchData(object = opscc_hpvPos,vars = c(&quot;hpv&quot;, &quot;hpv_signature_score&quot;,&quot;patient&quot;),slot = &quot;data&quot;) %&gt;%
@@ -3013,10 +3000,9 @@ dev.off()</code></pre>
 Show/Hide
 </button>
 <div id="BlockName" class="collapse">
-<pre class="r"><code>library(devtools)</code></pre>
-<pre><code>## Loading required package: usethis</code></pre>
-<pre class="r"><code>session_info()</code></pre>
-<pre><code>## ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+<pre class="r"><code>library(devtools)
+session_info()</code></pre>
+<pre><code>## ─ Session info ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ##  setting  value
 ##  version  R version 4.4.1 (2024-06-14)
 ##  os       Ubuntu 22.04.5 LTS
@@ -3026,14 +3012,26 @@ Show/Hide
 ##  collate  en_US.UTF-8
 ##  ctype    en_US.UTF-8
 ##  tz       Etc/UTC
-##  date     2025-03-06
+##  date     2025-03-09
 ##  pandoc   3.4 @ /usr/bin/ (via rmarkdown)
 ## 
-## ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+## ─ Packages ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ##  !  package          * version    date (UTC) lib source
 ##     abind              1.4-5      2016-07-21 [1] RSPM (R 4.1.0)
+##     annotate         * 1.84.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
+##     AnnotationDbi    * 1.56.2     2021-11-09 [1] Bioconductor
+##     ape                5.8        2024-04-11 [1] RSPM (R 4.4.0)
+##     aplot              0.1.3      2022-04-01 [1] RSPM (R 4.1.0)
+##     babelgene          22.3       2022-03-30 [1] RSPM (R 4.1.0)
 ##     backports          1.5.0      2024-05-23 [1] RSPM (R 4.4.0)
-##     BiocGenerics       0.52.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
+##     Biobase          * 2.54.0     2021-10-26 [1] Bioconductor
+##     BiocGenerics     * 0.52.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
+##     BiocParallel       1.40.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
+##     Biostrings         2.62.0     2021-10-26 [1] Bioconductor
+##     bit                4.0.4      2020-08-04 [1] RSPM
+##     bit64              4.0.5      2020-08-30 [1] RSPM
+##     bitops             1.0-7      2021-04-24 [1] RSPM
+##     blob               1.2.3      2022-04-10 [1] RSPM
 ##     broom              1.0.7      2024-09-26 [1] RSPM (R 4.4.0)
 ##     bslib              0.3.1      2021-10-06 [1] RSPM
 ##     cachem             1.0.6      2021-08-19 [1] RSPM
@@ -3041,29 +3039,38 @@ Show/Hide
 ##     carData            3.0-5      2022-01-06 [1] RSPM (R 4.4.0)
 ##     cellranger         1.1.0      2016-07-27 [1] RSPM (R 4.4.0)
 ##     chromote           0.3.1      2024-08-30 [1] RSPM (R 4.4.0)
-##     circlize           0.4.16     2024-02-20 [1] RSPM (R 4.4.0)
+##     circlize         * 0.4.16     2024-02-20 [1] RSPM (R 4.4.0)
 ##     cli                3.6.3      2024-06-21 [1] RSPM (R 4.4.0)
 ##     clue               0.3-66     2024-11-13 [1] RSPM (R 4.4.0)
 ##     cluster            2.1.6      2023-12-01 [3] CRAN (R 4.4.1)
+##     clusterProfiler  * 4.2.2      2022-01-13 [1] Bioconductor
 ##     codetools          0.2-20     2024-03-31 [3] CRAN (R 4.4.1)
 ##     colorspace         2.0-3      2022-02-21 [1] RSPM
 ##     ComplexHeatmap   * 2.10.0     2021-10-26 [1] Bioconductor
 ##     conflicted       * 1.2.0      2023-02-01 [1] RSPM (R 4.4.0)
 ##     cowplot            1.1.1      2020-12-30 [1] RSPM (R 4.1.0)
 ##     crayon             1.5.1      2022-03-26 [1] RSPM
+##     curl               6.0.0      2024-11-05 [1] RSPM (R 4.4.0)
 ##     data.table         1.14.2     2021-09-27 [1] RSPM (R 4.1.0)
 ##     DBI                1.2.3      2024-06-02 [1] RSPM (R 4.4.0)
 ##     dbplyr             2.3.4      2023-09-26 [1] RSPM (R 4.4.0)
 ##     deldir             1.0-6      2021-10-23 [1] RSPM (R 4.1.0)
 ##     devtools         * 2.4.3      2021-11-30 [1] RSPM (R 4.1.0)
 ##     digest             0.6.29     2021-12-01 [1] RSPM
+##     DO.db              2.9        2022-11-08 [1] Bioconductor
 ##     doParallel         1.0.17     2022-02-07 [1] RSPM
+##     DOSE               3.20.1     2021-11-18 [1] Bioconductor
+##     downloader         0.4        2015-07-09 [1] RSPM (R 4.1.0)
 ##     dplyr            * 1.1.4      2023-11-17 [1] RSPM (R 4.4.0)
 ##     ellipsis           0.3.2      2021-04-29 [1] RSPM
+##     enrichplot         1.14.2     2022-02-24 [1] Bioconductor
 ##     evaluate           0.15       2022-02-18 [1] RSPM
 ##     fansi              1.0.3      2022-03-24 [1] RSPM
 ##     farver             2.1.0      2021-02-28 [1] RSPM
 ##     fastmap            1.1.1      2023-02-24 [1] RSPM (R 4.4.0)
+##     fastmatch          1.1-4      2023-08-18 [1] RSPM (R 4.4.0)
+##     fdrtool          * 1.2.17     2021-11-13 [1] RSPM (R 4.1.0)
+##     fgsea              1.20.0     2021-10-26 [1] Bioconductor
 ##     fitdistrplus       1.1-8      2022-03-10 [1] RSPM (R 4.1.0)
 ##     forcats          * 1.0.0      2023-01-29 [1] RSPM (R 4.4.0)
 ##     foreach            1.5.2      2022-02-02 [1] RSPM
@@ -3072,34 +3079,51 @@ Show/Hide
 ##     future.apply       1.8.1      2021-08-10 [1] RSPM (R 4.1.0)
 ##     gargle             1.5.2      2023-07-20 [1] RSPM (R 4.4.0)
 ##     generics           0.1.2      2022-01-31 [1] RSPM
+##     GenomeInfoDb       1.30.1     2022-01-30 [1] Bioconductor
+##     GenomeInfoDbData   1.2.7      2024-01-17 [1] Bioconductor
 ##     GetoptLong         1.0.5      2020-12-15 [1] RSPM (R 4.4.0)
+##     ggforce            0.3.3      2021-03-05 [1] RSPM
+##     ggfun              0.0.6      2022-04-01 [1] RSPM (R 4.1.0)
 ##     ggplot2          * 3.5.1      2024-04-23 [1] RSPM (R 4.4.0)
+##     ggplotify          0.1.0      2021-09-02 [1] RSPM (R 4.1.0)
 ##     ggpubr           * 0.4.0      2020-06-27 [1] RSPM (R 4.1.0)
-##     ggrepel            0.9.6      2024-09-07 [1] RSPM (R 4.4.0)
+##     ggraph             2.0.5      2021-02-23 [1] RSPM (R 4.1.0)
+##     ggrepel          * 0.9.6      2024-09-07 [1] RSPM (R 4.4.0)
 ##     ggridges           0.5.3      2021-01-08 [1] RSPM (R 4.1.0)
 ##     ggsignif           0.6.4      2022-10-13 [1] RSPM (R 4.4.0)
+##     ggtree             3.2.1      2021-11-16 [1] Bioconductor
 ##     GlobalOptions      0.1.2      2020-06-10 [1] RSPM (R 4.4.0)
 ##     globals            0.14.0     2020-11-22 [1] RSPM (R 4.1.0)
 ##     glue               1.8.0      2024-09-30 [1] RSPM (R 4.4.0)
+##     GO.db              3.14.0     2022-11-08 [1] Bioconductor
 ##     goftest            1.2-3      2021-10-07 [1] RSPM (R 4.1.0)
 ##     googledrive        2.1.1      2023-06-11 [1] RSPM (R 4.4.0)
 ##     googlesheets4      1.1.1      2023-06-11 [1] RSPM (R 4.4.0)
+##     GOSemSim           2.20.0     2021-10-26 [1] Bioconductor
+##     graph            * 1.72.0     2021-10-26 [1] Bioconductor
+##     graphlayouts       0.8.0      2022-01-03 [1] RSPM (R 4.1.0)
 ##     gridExtra          2.3        2017-09-09 [1] RSPM
+##     gridGraphics       0.5-1      2020-12-13 [1] RSPM (R 4.1.0)
+##     GSEABase         * 1.56.0     2021-10-26 [1] Bioconductor
 ##     gtable             0.3.0      2019-03-25 [1] RSPM
 ##     haven              2.5.4      2023-11-30 [1] RSPM (R 4.4.0)
+##     here               1.0.1      2020-12-13 [1] RSPM (R 4.1.0)
 ##     hms                1.1.3      2023-03-21 [1] RSPM (R 4.4.0)
 ##     htmltools          0.5.4      2022-12-07 [1] RSPM (R 4.4.0)
 ##     htmlwidgets        1.5.4      2021-09-08 [1] RSPM (R 4.1.0)
 ##     httpuv             1.6.5      2022-01-05 [1] RSPM (R 4.1.0)
 ##     httr               1.4.7      2023-08-15 [1] RSPM (R 4.4.0)
+##     hypeR            * 2.0.1      2023-08-27 [1] Github (montilab/hypeR@681dda4)
 ##     ica                1.0-2      2018-05-24 [1] RSPM (R 4.1.0)
 ##  VP igraph           * 1.4.2      2024-10-19 [?] RSPM (R 4.4.0) (on disk 2.1.1)
-##     IRanges            2.40.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
+##     IRanges          * 2.40.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
 ##     irlba              2.3.5      2021-12-06 [1] RSPM (R 4.1.0)
 ##     iterators          1.0.14     2022-02-05 [1] RSPM
 ##     job                0.3.1      2024-05-05 [1] RSPM (R 4.4.0)
 ##     jquerylib          0.1.4      2021-04-26 [1] RSPM
 ##     jsonlite           1.8.9      2024-09-20 [1] RSPM (R 4.4.0)
+##     kableExtra         1.3.4      2021-02-20 [1] RSPM (R 4.1.0)
+##     KEGGREST           1.34.0     2021-10-26 [1] Bioconductor
 ##     KernSmooth         2.23-24    2024-05-17 [3] CRAN (R 4.4.1)
 ##     knitr              1.49       2024-11-08 [1] RSPM (R 4.4.0)
 ##     labeling           0.4.2      2020-10-20 [1] RSPM
@@ -3121,8 +3145,10 @@ Show/Hide
 ##     mime               0.12       2021-09-28 [1] RSPM
 ##     miniUI             0.1.1.1    2018-05-18 [1] RSPM (R 4.1.0)
 ##     modelr             0.1.11     2023-03-22 [1] RSPM (R 4.4.0)
+##     msigdbr          * 7.5.1      2022-03-30 [1] RSPM (R 4.1.0)
 ##     munsell            0.5.0      2018-06-12 [1] RSPM
 ##     nlme               3.1-164    2023-11-27 [3] CRAN (R 4.4.1)
+##     openxlsx           4.2.5      2021-12-14 [1] RSPM (R 4.1.0)
 ##     parallelly         1.31.0     2022-04-07 [1] RSPM (R 4.1.0)
 ##     patchwork          1.3.0      2024-09-16 [1] RSPM (R 4.4.0)
 ##     pbapply            1.5-0      2021-09-16 [1] RSPM (R 4.1.0)
@@ -3139,35 +3165,43 @@ Show/Hide
 ##     promises           1.2.0.1    2021-02-11 [1] RSPM (R 4.1.0)
 ##     ps                 1.9.0      2025-02-18 [1] RSPM (R 4.4.0)
 ##     purrr            * 1.0.2      2023-08-10 [1] RSPM (R 4.4.0)
+##     qvalue             2.26.0     2021-10-26 [1] Bioconductor
 ##     R6                 2.5.1      2021-08-19 [1] RSPM
 ##     RANN               2.6.1      2019-01-08 [1] RSPM (R 4.1.0)
-##     RColorBrewer       1.1-3      2022-04-03 [1] RSPM
+##     rappdirs           0.3.3      2021-01-31 [1] RSPM
+##     RColorBrewer     * 1.1-3      2022-04-03 [1] RSPM
 ##     Rcpp               1.0.8.3    2022-03-17 [1] RSPM
 ##     RcppAnnoy          0.0.19     2021-07-30 [1] RSPM (R 4.1.0)
+##     RCurl            * 1.98-1.6   2022-02-08 [1] RSPM
+##     reactable          0.2.3      2020-10-04 [1] RSPM (R 4.1.0)
 ##     readr            * 2.1.5      2024-01-10 [1] RSPM (R 4.4.0)
 ##     readxl           * 1.4.3      2023-07-06 [1] RSPM (R 4.4.0)
 ##     remotes            2.4.2      2021-11-30 [1] RSPM (R 4.1.0)
 ##     reprex             2.1.1      2024-07-06 [1] RSPM (R 4.4.0)
 ##     reshape2           1.4.4      2020-04-09 [1] RSPM (R 4.1.0)
-##     reticulate         1.24       2022-01-26 [1] CRAN (R 4.1.3)
+##     reticulate       * 1.24       2022-01-26 [1] CRAN (R 4.1.3)
 ##     rjson              0.2.23     2024-09-16 [1] RSPM (R 4.4.0)
 ##     rlang            * 1.1.5      2025-01-17 [1] RSPM (R 4.4.0)
 ##     rmarkdown        * 2.29       2024-11-04 [1] RSPM (R 4.4.0)
 ##     ROCR               1.0-11     2020-05-02 [1] RSPM (R 4.1.0)
 ##     roxygen2           7.1.2      2021-09-08 [1] RSPM (R 4.1.0)
 ##     rpart              4.1.23     2023-12-05 [3] CRAN (R 4.4.1)
+##     rprojroot          2.0.4      2023-11-05 [1] RSPM (R 4.4.0)
+##     RSQLite            2.2.12     2022-04-02 [1] RSPM
 ##     rstatix          * 0.7.0      2021-02-13 [1] RSPM (R 4.1.0)
 ##     rstudioapi         0.17.1     2024-10-22 [1] RSPM (R 4.4.0)
 ##     Rtsne              0.16       2022-04-17 [1] RSPM (R 4.1.0)
 ##     rvest              1.0.4      2024-02-12 [1] RSPM (R 4.4.0)
-##     S4Vectors          0.44.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
+##     S4Vectors        * 0.44.0     2024-10-29 [1] Bioconductor 3.20 (R 4.4.1)
 ##     sass               0.4.1      2022-03-23 [1] RSPM
 ##     scales             1.3.0      2023-11-28 [1] RSPM (R 4.4.0)
 ##     scattermore        0.8        2022-02-14 [1] RSPM (R 4.1.0)
+##     scatterpie         0.1.7      2021-08-20 [1] RSPM (R 4.1.0)
 ##     sctransform        0.3.3      2022-01-13 [1] RSPM (R 4.1.0)
 ##     sessioninfo        1.2.2      2021-12-06 [1] RSPM (R 4.1.0)
 ##     Seurat           * 4.1.0      2022-01-14 [1] RSPM (R 4.1.0)
 ##     SeuratObject     * 4.0.4      2021-11-23 [1] RSPM (R 4.1.0)
+##     shadowtext         0.1.1      2022-01-10 [1] RSPM (R 4.1.0)
 ##     shape              1.4.6.1    2024-02-23 [1] RSPM (R 4.4.0)
 ##     shiny              1.9.1      2024-08-01 [1] RSPM (R 4.4.0)
 ##     SourceFromGithub * 0.1.0      2022-12-07 [1] Github (avishai987/SourceFromGithub@99e0840)
@@ -3180,12 +3214,18 @@ Show/Hide
 ##  VP stringi          * 1.7.12     2024-05-06 [?] RSPM (R 4.4.0) (on disk 1.8.4)
 ##     stringr          * 1.5.1      2023-11-14 [1] RSPM (R 4.4.0)
 ##     survival           3.6-4      2024-04-24 [3] CRAN (R 4.4.1)
+##     svglite            2.1.3      2023-12-08 [1] RSPM (R 4.4.0)
+##     systemfonts        1.1.0      2024-05-15 [1] RSPM (R 4.4.0)
 ##     tensor             1.5        2012-05-05 [1] RSPM (R 4.1.0)
 ##     tibble           * 3.2.1      2023-03-20 [1] RSPM (R 4.4.0)
+##     tidygraph          1.2.1      2022-04-05 [1] RSPM (R 4.1.0)
 ##     tidyr            * 1.3.1      2024-01-24 [1] RSPM (R 4.4.0)
 ##     tidyselect         1.2.1      2024-03-11 [1] RSPM (R 4.4.0)
+##     tidytree           0.3.9      2022-03-04 [1] RSPM (R 4.1.0)
 ##     tidyverse        * 1.3.2      2022-07-18 [1] RSPM (R 4.4.1)
 ##     timechange         0.3.0      2024-01-18 [1] RSPM (R 4.4.0)
+##     treeio             1.18.1     2021-11-14 [1] Bioconductor
+##     tweenr             1.0.2      2021-03-23 [1] RSPM
 ##     tzdb               0.4.0      2023-05-12 [1] RSPM (R 4.4.0)
 ##     ulimit             0.0-3      2022-12-11 [1] Github (krlmlr/ulimit@67199f2)
 ##  VP units            * 0.8-1      2023-11-28 [?] RSPM (R 4.4.0) (on disk 0.8.5)
@@ -3193,13 +3233,21 @@ Show/Hide
 ##     utf8               1.2.2      2021-07-24 [1] RSPM
 ##     uwot               0.1.11     2021-12-02 [1] RSPM (R 4.1.0)
 ##     vctrs              0.6.5      2023-12-01 [1] RSPM (R 4.4.0)
+##     viridis            0.6.2      2021-10-13 [1] RSPM
 ##     viridisLite        0.4.0      2021-04-13 [1] RSPM
+##     visNetwork         2.1.0      2021-09-29 [1] RSPM (R 4.1.0)
+##     webshot            0.5.3      2022-04-14 [1] RSPM (R 4.1.0)
 ##     websocket          1.4.2      2024-07-22 [1] RSPM (R 4.4.0)
 ##     withr              3.0.2      2024-10-28 [1] RSPM (R 4.4.0)
 ##     xfun               0.49       2024-10-31 [1] RSPM (R 4.4.0)
+##     XML              * 3.99-0.9   2022-02-24 [1] RSPM
 ##     xml2               1.3.3      2021-11-30 [1] RSPM (R 4.1.0)
 ##     xtable             1.8-4      2019-04-21 [1] RSPM (R 4.1.0)
+##     XVector            0.34.0     2021-10-26 [1] Bioconductor
 ##     yaml               2.3.5      2022-02-21 [1] RSPM
+##     yulab.utils        0.0.4      2021-10-09 [1] RSPM (R 4.1.0)
+##     zip                2.2.0      2021-05-31 [1] RSPM (R 4.1.0)
+##     zlibbioc           1.40.0     2021-10-26 [1] Bioconductor
 ##     zoo                1.8-10     2022-04-15 [1] RSPM (R 4.1.0)
 ## 
 ##  [1] /sci/labs/yotamd/lab_share/avishai.wizel/R_projects/libs
@@ -3209,7 +3257,15 @@ Show/Hide
 ##  V ── Loaded and on-disk version mismatch.
 ##  P ── Loaded and on-disk path mismatch.
 ## 
-## ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+## ─ Python configuration ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+##  python:         /sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate/bin/python
+##  libpython:      /sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate/lib/libpython3.8.so
+##  pythonhome:     /sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate:/sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate
+##  version:        3.8.15 | packaged by conda-forge | (default, Nov 22 2022, 08:49:35)  [GCC 10.4.0]
+##  numpy:          /sci/home/avishaiw/.local/share/r-miniconda/envs/r-reticulate/lib/python3.8/site-packages/numpy
+##  numpy_version:  1.23.5
+## 
+## ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
 </div>
 </div>
 
