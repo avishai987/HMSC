@@ -292,12 +292,7 @@ DefaultAssay(hmsc_cancer_cells) = "integrated"
 ```
 
 ```{r}
-
-myo_genes =  c("COL16A1" ,"RP1-39G22.4","CD200",   "MYLK","TP63","KCNMB1",  "ADAMTS2", "CLIC3",   "SNCG","ACTA2",   "TAGLN","CNN1" ,"MIR7974",  
- "MYL9","POM121L9P" )
-
-
-myoscore=FetchData(object =hmsc_cancer_cells,vars =  myo_genes) %>% rowMeans()
+myoscore=FetchData(object =hmsc_cancer_cells,vars =  original_myo_genes) %>% rowMeans()
   
 notch_ligands = c("JAG1","JAG2","DLL1")
 
@@ -343,11 +338,8 @@ dev.off()
 
 ```{r}
 
-myo_genes =  c("COL16A1" ,"RP1-39G22.4","CD200",   "MYLK","TP63","KCNMB1",  "ADAMTS2", "CLIC3",   "SNCG","ACTA2",   "TAGLN","CNN1" ,"MIR7974",  
- "MYL9","POM121L9P" )
 
-
-myoscore=FetchData(object =hmsc_cancer_cells,vars =  myo_genes) %>% rowMeans()
+myoscore=FetchData(object =hmsc_cancer_cells,vars =  original_myo_genes) %>% rowMeans()
   
 notch_targets = c("NRARP", "NOTCH3", "HES4", "HEY1",  "HEY2" )
 
