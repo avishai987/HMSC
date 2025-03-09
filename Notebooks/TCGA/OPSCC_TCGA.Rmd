@@ -24,6 +24,7 @@ output:
 params:
   stratify: "M"
   log_tpm: TRUE
+  days_to_show: 1825
   data_out_dir: "./temp_data/" 
 
 ---
@@ -34,6 +35,10 @@ if (interactive()) {
   input = get_input(get_current_path())
   output = get_output(get_current_path())
 }
+```
+
+```{r}
+paged_table(data.frame(value= unlist(params)))
 ```
 
 # Data
@@ -151,7 +156,7 @@ p = TCGAanalyze_survival(
     clusterCol = "gene_status",
     main = "TCGA Set\n GBM",
     height = 10,
-    width=10,filename = NULL,pval.method	=T
+    width=10,filename = NULL,pval.method	=T, xlim = params$days_to_show
 )
 
 p[[1]]/p[[2]]
@@ -701,7 +706,7 @@ p = TCGAanalyze_survival(
     clusterCol = "gene_status",
     main = "TCGA Set\n GBM",
     height = 10,
-    width=10,filename = NULL,pval.method	=T
+    width=10,filename = NULL,pval.method	=T, xlim = params$days_to_show
 )
 
 p[[1]]/p[[2]]
