@@ -1,23 +1,5 @@
 pipeline = list()
 
-
-# pipeline[["test"]] = list(
-#   input = list(
-#     script= "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/test/test.Rmd"
-#   ),
-#   output = list(
-#     report = "./test/my_testt.html"
-#   )
-# )
-# 
-# 
-# make_with_recipe(
-#   recipe = my_render(notebook_path =  "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/test/test.Rmd"),
-#   targets = unlist(get_output( "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/test/test.Rmd")),
-#   dependencies = unlist(get_input( "/sci/labs/yotamd/lab_share/avishai.wizel/R_projects/HMSC/test/test.Rmd")),
-#   label = "create_data",build = F
-# )
-
 ####################################### HMSC-ACC preprocess ####################################################
 
 
@@ -224,6 +206,18 @@ pipeline[["HPV_signature_compare"]] = list(
 )
 
 ####################################### TCGA #####################################################
+
+pipeline[["build_TCGA_datasets"]] = list(
+  input = list(
+    script =  "./Notebooks/TCGA/build_TCGA_datasets.Rmd",
+    ensembl = "./Input_data/hsapiens_gene_ensembl_version_113"
+  ),
+  output = list(
+    report = "./Reports/TCGA/build_TCGA_datasets/build_TCGA_datasets.html",
+    HNSC_TPM = "./Reports/TCGA/build_TCGA_datasets/TCGA_HNSC_TPM.RDS",
+    CESC_TPM = "./Reports/TCGA/build_TCGA_datasets/TCGA_CESC_TPM.RDS")
+)
+
 pipeline[["TCGA_HNSC_analysis"]] = list(
   input = list(
     script =  "./Notebooks/TCGA/OPSCC_TCGA.Rmd",
@@ -405,15 +399,15 @@ make_with_recipe(
 )
 
 
-# #TCGA built datasets
-# notebook_path = "./Notebooks/TCGA/build_TCGA_datasets.Rmd"
-# targets_and_depens = get_targets_and_depens(notebook_path)
-# 
-# make_with_recipe(
-#   recipe = my_render("./Notebooks/TCGA/build_TCGA_datasets.Rmd"),
-#     targets = c(targets_and_depens$targets),
-#     dependencies = c(targets_and_depens$dependencies,notebook_path),
-#   label = "TCGA built datasets")
+#TCGA built datasets
+script = "./Notebooks/TCGA/build_TCGA_datasets.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/TCGA/build_TCGA_datasets.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "TCGA_built_datasets",build = F
+)
+
 
 #HPV signature compare
 script = "./Notebooks/integrative_analysis/HPV_signature_compare.Rmd"

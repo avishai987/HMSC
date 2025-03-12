@@ -7,6 +7,7 @@ output: html_document
 
 
 
+
 ```{r}
   job::job({
     knitr::opts_knit$set(progress = TRUE, verbose = TRUE)
@@ -14,7 +15,6 @@ output: html_document
     source("./pipe.R")
     library(makepipe)
     pipe$build()
-
     job::export("none")
   }, import = NULL, packages = NULL,title = "build_pipeline")
 
