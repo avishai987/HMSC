@@ -24,7 +24,6 @@ output:
 params:
   stratify: "M"
   log_tpm: TRUE
-  days_to_show: 1825
   data_out_dir: "./temp_data/" 
 
 ---
@@ -51,7 +50,7 @@ library(rmarkdown)
 library(readxl)
 source(input$functions)
 source(input$fc_params)
-library(GSEABase)
+suppressWarnings(library(GSEABase))
 library(grid)
 library(ComplexHeatmap)
 library(ggpubr)
@@ -139,6 +138,15 @@ clinical_data = inner_join(x = clinical_data,y = tp53_data,by = c("submitter_id"
 na_patients = clinical_data[is.na(clinical_data$tp53_data), "submitter_id"]
 ```
 
+```{r}
+#set clinical data to max 5 years
+clinical_data = clinical_data %>% mutate(days_to_last_follow_up = as.numeric(days_to_last_follow_up)) %>% 
+  mutate(vital_status = if_else(condition = (days_to_death) > 1825 | is.na(days_to_death) , false = vital_status, true = "Alive")) %>% 
+  mutate(days_to_last_follow_up = if_else(condition = days_to_last_follow_up > 1825, false = days_to_last_follow_up,true = 1825)) %>%
+  mutate(days_to_death = if_else(condition = days_to_death > 1825, false = days_to_death, true = NA))
+
+```
+
 # MYB
 
 ```{r}
@@ -151,12 +159,14 @@ clinical_data_with_scores = clinical_data[clinical_data$submitter_id %in% rownam
 gene_status$patient = rownames(gene_status)
 clinical_data_with_scores = left_join(x = clinical_data_with_scores,y = gene_status, by = c("submitter_id"="patient"))
 
+
 p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
     main = "TCGA Set\n GBM",
     height = 10,
-    width=10,filename = NULL,pval.method	=T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method	=T ,xscale = "d_m",
+     xlab = "Time since diagnosis (months)"
 )
 
 p[[1]]/p[[2]]
@@ -174,7 +184,7 @@ clinical_data_for_hpv = clinical_data  %>% filter(!is.na(hpv_status))
 p = TCGAanalyze_survival(
     data = clinical_data_for_hpv,
     clusterCol = "hpv_status",
-   width=10,filename = NULL,pval.method	=T, xlim = params$days_to_show
+   width=10,filename = NULL,pval.method	=T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 
 p[[1]]/p[[2]]
@@ -324,7 +334,7 @@ clinical_data_with_scores = inner_join(x = clinical_data_with_scores,y = gene_st
 p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
-   width=10,filename = NULL,pval.method	=T, xlim = params$days_to_show
+   width=10,filename = NULL,pval.method	=T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 p[[1]]/p[[2]]
 ```
@@ -346,7 +356,7 @@ clinical_data_with_scores = inner_join(x = clinical_data_with_scores,y = gene_st
 p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
-   width=10,filename = NULL,pval.method	=T, xlim = params$days_to_show
+   width=10,filename = NULL,pval.method	=T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 p[[1]]/p[[2]]
 ```
@@ -370,7 +380,7 @@ p = TCGAanalyze_survival(
     clusterCol = "gene_status",
     main = "TCGA Set\n GBM",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 p[[1]]/p[[2]]
 ```
@@ -428,7 +438,7 @@ p = TCGAanalyze_survival(
     clusterCol = "gene_status",
     main = "TCGA Set\n GBM",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 
 p1 = (p[[1]]+ggtitle("OPSCC samples"))/p[[2]]
@@ -453,7 +463,7 @@ p = TCGAanalyze_survival(
     clusterCol = "gene_status",
     main = "TCGA Set",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 
 p1 = (p[[1]]+ggtitle("OPSCC HPV+ samples"))/p[[2]]
@@ -475,7 +485,7 @@ p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 
 p1 = (p[[1]]+ggtitle("OPSCC HPV- samples"))/p[[2]]
@@ -519,7 +529,7 @@ p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 p1 = (p[[1]]+ggtitle("OPSCC samples"))/p[[2]]
 print_tab(p1,title = "OPSCC samples",subtitle_num = 3)
@@ -541,7 +551,7 @@ p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 p1 = (p[[1]]+ggtitle("OPSCC HPV+ samples"))/p[[2]]
 print_tab(p1,title = "HPV+",subtitle_num = 3)
@@ -563,7 +573,7 @@ p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 p1 = (p[[1]]+ggtitle("OPSCC HPV- samples"))/p[[2]]
 print_tab(p1,title = "HPV-",subtitle_num = 3)
@@ -627,7 +637,7 @@ p = TCGAanalyze_survival(
     clusterCol = "gene_status",
     main = "TCGA Set",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 
 (p[[1]]+ggtitle("OPSCC samples"))/p[[2]]
@@ -656,7 +666,7 @@ p = TCGAanalyze_survival(
     clusterCol = "gene_status",
     main = "TCGA Set",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 
 (p[[1]]+ggtitle("OPSCC HPV+ samples"))/p[[2]]
@@ -684,7 +694,7 @@ p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 (p[[1]]+ggtitle("OPSCC HPV- samples"))/p[[2]]
 ```
@@ -706,7 +716,7 @@ p = TCGAanalyze_survival(
     clusterCol = "gene_status",
     main = "TCGA Set\n GBM",
     height = 10,
-    width=10,filename = NULL,pval.method	=T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method	=T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 
 p[[1]]/p[[2]]
@@ -718,7 +728,7 @@ p[[1]]/p[[2]]
 p = TCGAanalyze_survival(
     data = clinical_data,
     clusterCol = "tp53_status",
-   width=10,filename = NULL,pval.method	=T, xlim = params$days_to_show
+   width=10,filename = NULL,pval.method	=T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 
 p[[1]]/p[[2]]
@@ -765,7 +775,7 @@ p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 (p[[1]]+ggtitle("OPSCC unmutated tp53 samples"))/p[[2]]
 ```
@@ -790,7 +800,7 @@ p = TCGAanalyze_survival(
     data = clinical_data_with_scores,
     clusterCol = "gene_status",
     height = 10,
-    width=10,filename = NULL,pval.method = T, xlim = params$days_to_show
+    width=10,filename = NULL,pval.method = T, xscale = "d_m", xlab = "Time since diagnosis (months)"
 )
 (p[[1]]+ggtitle("OPSCC mutated tp53 samples"))/p[[2]]
 ```
