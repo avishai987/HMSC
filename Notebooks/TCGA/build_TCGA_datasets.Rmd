@@ -23,13 +23,16 @@ output:
 params:
   log_tpm: FALSE
   data_out_dir: "./temp_data/" 
-  input_data: "./Input_data/hsapiens_gene_ensembl_version_113"
-  output_data: !r c("TCGA_HNSC_TPM.RDS","TCGA_CESC_TPM.RDS")
 ---
 
 
-```{r package-options, include=FALSE}
-knitr::opts_knit$set(progress = TRUE, verbose = TRUE)
+
+```{r}
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
 ```
 
 
@@ -38,7 +41,7 @@ library(TCGAbiolinks)
 library(biomaRt)
 library(kableExtra)
 library(rmarkdown)
-ensembl = readRDS(params$input_data)
+ensembl = readRDS(input$ensembl)
 print(getGDCInfo()$data_release)
 ```
 
@@ -130,7 +133,7 @@ project_name = "TCGA-CESC"
 
 ```{r}
 cesc_tpm = build_datasets(project_name = "TCGA-CESC")
-saveRDS(cesc_tpm,file = paste0(params$data_out_dir,"TCGA_CESC_TPM.RDS"))
+saveRDS(cesc_tpm,file = paste0(params$data_out_dir,basename(output$CESC_TPM)))
 
 ```
 
@@ -142,8 +145,7 @@ project_name = "TCGA-HNSC"
 
 ```{r}
 HNSC_tpm = build_datasets(project_name = project_name,filter = list(sample_type = c("Primary Tumor")))
-
-saveRDS(HNSC_tpm,file = paste0(params$data_out_dir,"TCGA_HNSC_TPM.RDS"))
+saveRDS(HNSC_tpm,file = paste0(params$data_out_dir,basename(output$HNSC_TPM)))
 
 ```
 
