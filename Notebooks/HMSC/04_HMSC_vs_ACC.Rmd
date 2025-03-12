@@ -463,53 +463,70 @@ deg %>% filter(avg_log2FC > (volcano_fc) & fdr < volcano_fdr) %>% nrow()
 
 
 # correlation
-```{r}
-acc_pri = FindVariableFeatures(object = acc_pri,nfeatures = 5000,assay = "RNA")
-hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 5000,assay = "RNA")
-
-common_genes = intersect(VariableFeatures(hmsc_cancer_cells,assay = "RNA"),VariableFeatures(acc_pri,assay = "RNA"))
-
-
-all_cells_matrix = cbind(hmsc_cancer_cells@assays$integrated@data[common_genes,],acc_pri@assays$RNA@data[common_genes,]) %>% as.data.frame()
-all_cells_pearson = cor(all_cells_matrix)
-annotation = data.frame(dataset = c(rep("HMSC", ncol(hmsc_cancer_cells)), rep("ACC", ncol(acc_pri))),
-                        row.names  = c(colnames(hmsc_cancer_cells),colnames(acc_pri)))
-row_ha = rowAnnotation(df = annotation, col = list(dataset  = c(HMSC = "red",ACC = "green")))
-
-
-ComplexHeatmap::Heatmap(matrix = all_cells_pearson ,name = "pearson", col = circlize::colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")),show_column_names = F,show_row_names = F,right_annotation = row_ha,clustering_distance_columns = "euclidean",clustering_distance_rows = "euclidean",clustering_method_columns = "ward.D2",clustering_method_rows = "ward.D2")
-```
-
-```{r}
-acc_pri = FindVariableFeatures(object = acc_pri,nfeatures = 5000,assay = "RNA")
-hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 5000,assay = "RNA")
-
-common_genes = intersect(VariableFeatures(hmsc_cancer_cells,assay = "RNA"),VariableFeatures(acc_pri,assay = "RNA"))
-
-
-all_cells_matrix = cbind(hmsc_cancer_cells@assays$integrated@data[common_genes,],acc_pri@assays$RNA@data[common_genes,]) %>% as.data.frame()
-all_cells_pearson = cor(all_cells_matrix)
-annotation = data.frame(dataset = c(rep("HMSC", ncol(hmsc_cancer_cells)), rep("ACC", ncol(acc_pri))),
-                        row.names  = c(colnames(hmsc_cancer_cells),colnames(acc_pri)))
-row_ha = rowAnnotation(df = annotation, col = list(dataset  = c(HMSC = "red",ACC = "green")))
-
-
-ComplexHeatmap::Heatmap(matrix = all_cells_pearson ,name = "pearson", col = circlize::colorRamp2(seq(-1, 1, length = 3), c("blue", "#EEEEEE", "red")),show_column_names = F,show_row_names = F,right_annotation = row_ha,clustering_distance_columns = "pearson",clustering_distance_rows = "pearson",clustering_method_columns = "average",clustering_method_rows = "average")
-```
 
 
 ```{r}
-hmsc_acc_pri_cancer = FindVariableFeatures(hmsc_acc_pri_cancer,assay = "RNA",nfeatures = 15000)
+hmsc_acc_pri_cancer = FindVariableFeatures(hmsc_acc_pri_cancer,nfeatures = 15000)
 cancer_data = FetchData(hmsc_acc_pri_cancer,vars = "orig.ident") %>% mutate(cancer = if_else(
   condition = orig.ident %in% c("ACC.plate2" ,"ACC1.P3"),
   true = "HMSC",
   false = "ACC"  )) %>% select(-orig.ident)
-data = as.data.frame(hmsc_acc_pri_cancer@assays$integrated@data[VariableFeatures(hmsc_acc_pri_cancer,assay = "RNA"),])
-all_cells_pearson = cor(data)
+data = as.data.frame(hmsc_acc_pri_cancer@assays$integrated@data[VariableFeatures(hmsc_acc_pri_cancer),])
+all_cells_pearson = cor(data,method = "spearman")
 row_ha = rowAnnotation(df = cancer_data, col = list(cancer  = c(HMSC = "red",ACC = "green")))
 
 
 ComplexHeatmap::Heatmap(matrix = all_cells_pearson ,name = "pearson", col = circlize::colorRamp2(seq(0, 1, length = 3), c("blue", "#EEEEEE", "red")),show_column_names = F,show_row_names = F,right_annotation = row_ha,clustering_distance_columns = "euclidean",clustering_distance_rows = "euclidean",clustering_method_columns = "average",clustering_method_rows = "average")
 
+```
+
+```{r}
+ComplexHeatmap::Heatmap(matrix = all_cells_pearson ,name = "pearson", col = circlize::colorRamp2(seq(0, 1, length = 3), c("blue", "#EEEEEE", "red")),show_column_names = F,show_row_names = F,right_annotation = row_ha,clustering_distance_columns = "euclidean",clustering_distance_rows = "euclidean",clustering_method_columns = "ward.D2",clustering_method_rows = "ward.D2")
+```
+
+```{r}
+# ACC cells:
+acc_cells_comparisons  <- expand.grid(
+  cell_1 =  rownames(cancer_data[cancer_data$cancer == "ACC",,drop=F]), cell_2 =  rownames(cancer_data[cancer_data$cancer == "ACC",,drop=F]))%>%
+  filter(cell_1 != cell_2) #remove self comparisons 
+
+acc_cells_correlation = c()
+acc_cells_correlation = apply(acc_cells_comparisons, MARGIN = 1, FUN = function(x,matrix){
+  cor_value = matrix[x[1],x[2]]
+  acc_cells_correlation = c(acc_cells_correlation,cor_value)
+  },
+  all_cells_pearson)
+
+# HMSC-ACC cells 
+acc_hmsc_cells_comparisons  <- expand.grid(
+  cell_1 =  rownames(cancer_data[cancer_data$cancer == "ACC",,drop=F]), cell_2 =  rownames(cancer_data[cancer_data$cancer == "HMSC",,drop=F]))
+
+acc_hmsc_cells_correlation = c()
+acc_hmsc_cells_correlation = apply(acc_hmsc_cells_comparisons, MARGIN = 1, FUN = function(x,matrix){
+  cor_value = matrix[x[1],x[2]]
+  acc_hmsc_cells_correlation = c(acc_hmsc_cells_correlation,cor_value)
+  },
+  all_cells_pearson)
+
+# HMSC cells 
+hmsc_cells_comparisons  <- expand.grid(
+  cell_1 =  rownames(cancer_data[cancer_data$cancer == "HMSC",,drop=F]), cell_2 =  rownames(cancer_data[cancer_data$cancer == "HMSC",,drop=F]))%>%
+  filter(cell_1 != cell_2) #remove self comparisons 
+
+hmsc_cells_correlation = c()
+hmsc_cells_correlation = apply(hmsc_cells_comparisons, MARGIN = 1, FUN = function(x,matrix){
+  cor_value = matrix[x[1],x[2]]
+  hmsc_cells_correlation = c(hmsc_cells_correlation,cor_value)
+  },
+  all_cells_pearson)
+
+
+all_correlation  = data.frame(pearson = c(acc_cells_correlation,acc_hmsc_cells_correlation,hmsc_cells_correlation),
+                              dataset = c(rep("ACC-ACC", length(acc_cells_correlation)),rep("ACC-HMSC", length(acc_hmsc_cells_correlation)),
+                                          rep("HMSC-HMSC", length(hmsc_cells_correlation))))
+p = ggplot(all_correlation, aes(x=pearson, color=dataset,fill=dataset)) +
+  geom_histogram( position="identity",alpha=0.5)+
+  scale_y_log10()
+p
 ```
 
