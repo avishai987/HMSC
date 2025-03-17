@@ -147,7 +147,7 @@ p = calculate_score.2(dataset = acc_pri,myo_genes = original_myo_genes,lum_genes
 
 
 ```{r}
-pdf(paste0(params$data_out_dir,"ACC_lum_myo_spectrum_density.pdf"))
+pdf(paste0(params$data_out_dir,"ACC_lum_myo_spectrum_density.pdf"),width = 12,height = 5)
 p
 dev.off()
 ```
