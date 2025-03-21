@@ -531,9 +531,9 @@ dev.off()
 # remove genes:
 genesets_h  = geneIds(getGmt(input$genesets_h))
 message("cc genes in signature:")
-print(hmsc_signatue[hmsc_signatue %in% genesets_h$HALLMARK_E2F_TARGETS])
+print(hmsc_signatue[hmsc_signatue %in% genesets_h$GO_MITOTIC_CELL_CYCLE])
 
-hmsc_signatue_no_cc = hmsc_signatue[!hmsc_signatue %in% genesets_h$HALLMARK_E2F_TARGETS]
+hmsc_signatue_no_cc = hmsc_signatue[!hmsc_signatue %in% genesets_h$GO_MITOTIC_CELL_CYCLE]
 
 #all samples:
 
