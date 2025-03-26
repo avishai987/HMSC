@@ -123,7 +123,7 @@ calculate_score.2 <- function(dataset,myo_genes,lum_genes,lum_threshold =1 , myo
   
     p = data %>% 
     ggplot(aes( x=luminal_over_myo)) + 
-    geom_density() +ylab("Density")+theme(  axis.title=element_text(size=12,face="bold"))+ xlab("Luminal-Myoepithelial spectrum")+ggtitle(paste0("r =",correlation))
+    geom_density() +ylab("Density")+theme(  axis.title=element_text(size=12,face="bold"))+ xlab("Luminal-Myoepithelial spectrum")+ggtitle(paste0("r =",correlation))+scale_x_continuous(limits = c(-10,10))
     print(p)
   
   lum_cells_num = subset(x = dataset,luminal_over_myo >(lum_threshold)) %>% ncol() /ncol(dataset)
