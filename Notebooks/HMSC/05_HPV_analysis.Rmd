@@ -41,7 +41,7 @@ source_from_github(repositoy = "HMSC_functions",version = "0.1.14",script_name =
 source_from_github(repositoy = "sc_general_functions",version = "0.1.34",script_name = "functions.R")
 source(input$fc_params)
 library(hypeR)
-library(GSEABase)
+suppressPackageStartupMessages(library(GSEABase))
 library(grid)
 library(ComplexHeatmap)
 library(ggpubr)
@@ -106,7 +106,6 @@ ggplot(data=data, aes(x=factor(bin,levels = c("0 reads","1 reads","2 reads","3-2
   geom_text(aes(label=count), vjust=-0.5, color="black", size=3.5)
 ```
 
-# MYB comparision
 ```{r}
 hpv33_positive = HPV33 %>% dplyr::mutate(hpv33_positive = case_when(reads >= 10 ~ "positive",
                                                                     reads < 10 ~ "negative")
@@ -117,6 +116,9 @@ hpv33_positive = HPV33 %>% dplyr::mutate(hpv33_positive = case_when(reads >= 10 
 hpv33_positive$reads = NULL
 hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = hpv33_positive)
 ```
+
+# MYB comparision
+
 
 ```{r fig.height=6, fig.width=12}
 DimPlot(object = hmsc_cancer_cells,group.by  = c("hpv33_positive"),pt.size = 2)+
@@ -170,26 +172,26 @@ p
 ```{r}
 # load MYB targets
 library("readxl")
-myb_tergets <- read_excel(input$myb_targets,col_names = T) %>% 
+myb_targets <- read_excel(input$myb_targets,col_names = T) %>% 
   pull(Gene)
 ```
 
-```{r}
 
+```{r}
 # add score
-myb_tergets_score = FetchData(object = hmsc_cancer_cells,vars = myb_tergets,slot = "data") %>% rowMeans()
-myb_tergets_df = data.frame(myb_tergets_score,row.names = names(myb_tergets_score))
-hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = myb_tergets_df)
+myb_targets_score = FetchData(object = hmsc_cancer_cells,vars = myb_targets,slot = "data") %>% rowMeans()
+myb_targets_df = data.frame(myb_targets_score,row.names = names(myb_targets_score))
+hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = myb_targets_df)
 
 ```
 
 
 ```{r}
 
-genes_by_tp = FetchData(object = hmsc_cancer_cells,vars = c("hpv33_positive", "myb_tergets_score"),slot = "data") 
+genes_by_tp = FetchData(object = hmsc_cancer_cells,vars = c("hpv33_positive", "myb_targets_score"),slot = "data") 
 
 # all cells by patient boxplot
-formula <- as.formula("myb_tergets_score ~ hpv33_positive")
+formula <- as.formula("myb_targets_score ~ hpv33_positive")
 
 #plot and split by patient:
 stat.test <- genes_by_tp %>%
@@ -201,12 +203,12 @@ stat.test <- genes_by_tp %>%
 stat.test
 
 
-plt = ggplot(genes_by_tp, aes(x = hpv33_positive, y = myb_tergets_score)) +
+plt = ggplot(genes_by_tp, aes(x = hpv33_positive, y = myb_targets_score)) +
   geom_violin(scale = "width",aes(fill = hpv33_positive)) +
-  geom_boxplot(width = 0.2, outlier.shape = NA) +
   stat_pvalue_manual(stat.test, label = "{p.adj}")  + #add p value
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) + # Add 10% spaces between the p-value labels and the plot border
   geom_jitter()+
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
   labs(title = "Downstream MYB targets within HMSC", y = "MYB target score", fill = "HPV Status")+
   theme(plot.title = element_text(hjust = 0.5),axis.title.x = element_blank()) + theme_minimal()
 plt
