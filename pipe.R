@@ -28,18 +28,7 @@ pipeline[["Cancer_filtering"]] = list(
   )
 )
 
-pipeline[["Cancer_filtering"]] = list(
-  input = list(
-    script= "./Notebooks/HMSC/01_preprocess/02_Cancer_filtering.Rmd",
-    all_cells_seurat= pipeline$create_data$output$all_cells_seurat,
-    kaye_acc_genes = "./Input_data/preprocess/oncotarget-05-12528-s001_acchigh.txt"
-  ),
-  output = list(
-    report = "./Reports/HMSC/01_preprocess/02_Cancer_filtering/02_Cancer_filtering.html",
-    cell_types = "./Reports/HMSC/01_preprocess/02_Cancer_filtering/cell_types.RDS",
-    acc_cancer_cells = "./Reports/HMSC/01_preprocess/02_Cancer_filtering/acc_cancer_cells.RDS"
-  )
-)
+
 
 pipeline[["HMSC_cells_preprocess"]] = list(
   input = list(
