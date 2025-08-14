@@ -11,6 +11,8 @@ output:
       collapsed: FALSE
     number_sections: true
     toc_depth: 1
+params:
+  data_out_dir: "./temp_data/" 
 ---
 
 
@@ -22,14 +24,16 @@ output:
 # Data
 
 ```{r}
-script_name = rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")
-output_dir_path = paste0("./Data_out/",script_name,"_",Sys.Date())
-dir.create(output_dir_path)
-
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
 ```
 
 ```{r}
-hmsc_cancer_cells = readRDS("./Data_out/03_HMSC_cells_preprocess_2024-05-12/acc1_cancer_cells_2500features_integrated_V5.RDS")
+hmsc_cancer_cells = readRDS(input$hmsc_cancer_cells)
+output_dir_path = params$data_out_dir
 ```
 
 ```{r}
@@ -84,34 +88,36 @@ rm(gene_expression)
 ```
 
 ```{python}
+os.mkdir(r.output_dir_path + "preprocess_output")
 p = Preprocess(random_seed=14)
 adata = r.adata
-(adata_c, adata_tp10k, hvgs) = p.preprocess_for_cnmf(adata, harmony_vars='orig.ident', n_top_rna_genes = 2000,max_scaled_thresh = 50, quantile_thresh = .9999,theta = 2, makeplots=True,save_output_base=r.output_dir_path + "/preprocess_output")
+(adata_c, adata_tp10k, hvgs) = p.preprocess_for_cnmf(adata, harmony_vars='orig.ident', n_top_rna_genes = 2000,max_scaled_thresh = 50, quantile_thresh = .9999,theta = 2, makeplots=True,save_output_base=r.output_dir_path + "preprocess_output/hmsc")
 ```
 
 
 
 ```{python}
-cnmf_obj_corrected = cNMF(output_dir='./Data/cNMF/batch_corrected_cnmf/', name='BatchCorrected_NMF')
+cnmf_obj_corrected = cNMF(output_dir=r.output_dir_path , name='HMSC_BatchCorrected_NMF')
 cnmf_obj_corrected.prepare(
-  counts_fn='./Data/cNMF/batch_corrected_cnmf/preprocess_output.Corrected.HVG.Varnorm.h5ad',
-  tpm_fn='./Data/cNMF/batch_corrected_cnmf/preprocess_output.TP10K.h5ad', genes_file='./Data/cNMF/batch_corrected_cnmf/preprocess_output.Corrected.HVGs.txt',components=np.arange(3,11), n_iter=20, seed=14, num_highvar_genes=2000)
+  counts_fn=r.output_dir_path + 'preprocess_output/hmsc.Corrected.HVG.Varnorm.h5ad',
+  tpm_fn=r.output_dir_path + 'preprocess_output/hmsc.TP10K.h5ad', 
+  genes_file=r.output_dir_path + 'preprocess_output/hmsc.Corrected.HVGs.txt',
+  components=np.arange(3,11), n_iter=20, seed=14, num_highvar_genes=2000)
 ```
 
 ```{python}
 cnmf_obj_corrected.factorize(worker_i=0, total_workers=1)
 cnmf_obj_corrected.combine()
 ```
+
 ```{python}
-cnmf_obj.k_selection_plot()
+cnmf_obj_corrected.k_selection_plot()
 ```
 
 ```{python}
 import pickle
-with open('./Data/cNMF/batch_corrected_cnmf/cnmf_obj.pkl', 'wb') as file: 
+with open(r.output_dir_path + "HMSC_BatchCorrected_NMF/" + "cnmf_obj.pkl", 'wb') as file: 
     # A new file will be created 
     pickle.dump(cnmf_obj_corrected, file) 
-
-
 ```
 

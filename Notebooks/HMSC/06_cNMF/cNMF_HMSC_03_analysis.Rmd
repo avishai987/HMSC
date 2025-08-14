@@ -29,9 +29,14 @@ params:
 # Functions
 
 ```{r warning=FALSE}
+suppressMessages(library(GSEABase))
+
 source_from_github(repositoy = "DEG_functions",version = "0.2.54")
 genesets_h  = getGmt("./Input_data/h.all.v7.0.symbols.pluscc.gmt")
-
+library(hypeR)
+library(grid)
+library(ggpubr)
+library(ComplexHeatmap)
 ```
 
 # Data
@@ -46,7 +51,23 @@ gep_scores = read.table(file = "./Rendered_notebooks/cNMF/cNMF_HMSC_02_get_resul
 
 ## Harmony results {.tabset}
 
+```{r fig.height=8, fig.width=10, results='asis'}
+# Make metagene names
+for (i in 1:ncol(all_metagenes)) {
+  colnames(all_metagenes)[i] = "metagene." %>% paste0(i)
+}
 
+#add each metagene to metadata
+for (i in 1:ncol(all_metagenes)) {
+  metage_metadata = all_metagenes %>% select(i)
+  hmsc_cancer_cells = AddMetaData(object = hmsc_cancer_cells,metadata = metage_metadata)
+}
+
+
+p = FeaturePlot(object = hmsc_cancer_cells,features = colnames(all_metagenes),combine = T)
+
+p
+```
 
 ```{r fig.height=8, fig.width=10, results='asis'}
 # Make metagene names

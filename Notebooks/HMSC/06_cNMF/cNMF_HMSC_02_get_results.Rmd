@@ -20,15 +20,24 @@ output:
     number_sections: true
     toc_depth: 2
 params: 
-  data_out_dir: "./Data_out/" 
+  data_out_dir: "./temp_data/" 
 ---
 
+```{r}
+if (interactive()) {
+  source("./pipe.R")
+  input = get_input(get_current_path())
+  output = get_output(get_current_path())
+}
+```
 
 ```{r}
 library(reticulate)
+library(stringr)
 use_virtualenv("/sci/labs/yotamd/lab_share/avishai.wizel/python_envs/Virtual_env/cnmf_dev/",required = T)
 py_config() # if you see that r-reticulate has been loaded, terminate r and try again
 ```
+
 # Functions
 
 ```{r warning=FALSE}
@@ -37,7 +46,8 @@ py_config() # if you see that r-reticulate has been loaded, terminate r and try 
 # Data
 
 ```{r}
-
+output_dir_path = params$data_out_dir
+cnmf_object_path = input$cnmf_object
 ```
 
 
@@ -48,7 +58,7 @@ py_config() # if you see that r-reticulate has been loaded, terminate r and try 
 ```{python}
 from cnmf import cNMF
 import pickle
-f = open('./Data/cNMF/batch_corrected_cnmf/cnmf_obj.pkl', 'rb')
+f = open(r.cnmf_object_path , 'rb')
 cnmf_obj = pickle.load(f)
 f.close()
 ```
@@ -56,10 +66,12 @@ f.close()
 
 
 ```{r fig.height=7, fig.width=10}
-img = png::readPNG("./Data/cNMF/batch_corrected_cnmf/BatchCorrected_NMF/BatchCorrected_NMF.k_selection.png")
+img = png::readPNG(dirname(cnmf_object_path) %s+% "HMSC_BatchCorrected_NMF.k_selection.png")
 plot.new() 
 rasterImage(img,  0, 0, 1, 1)
 ```
+
+
 
 ```{python}
 selected_k = 3
