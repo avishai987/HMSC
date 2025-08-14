@@ -6,7 +6,8 @@ pipeline = list()
 pipeline[["create_data"]] = list(
   input = list(
     script= "./Notebooks/HMSC/01_preprocess/01_create_data.Rmd",
-    counts= "Input_data/all.txt"
+    acc_counts = "Input_data/GSE210171_acc_scrnaseq_counts.txt",
+    hmsc_counts = "Input_data/hmsc_scrnaseq_counts.txt.gz"
   ),
   output = list(
     report = "./Reports/HMSC/01_preprocess/01_create_data/01_create_data.html",

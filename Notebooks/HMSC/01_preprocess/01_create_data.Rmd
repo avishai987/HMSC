@@ -1,16 +1,9 @@
 ---
-title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+title: 'Create Data' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
 output: 
-  html_notebook: 
-    code_folding: hide
-    toc: true
-    toc_collapse: true
-    toc_float:
-      collapsed: false
-    number_sections: true
-    toc_depth: 1
+
   html_document: 
     code_folding: hide
     toc: yes
@@ -43,12 +36,16 @@ if (interactive()) {
 ## Parameters:
 
 
-
 read data
 ```{r}
-acc.data <- read.delim(input$counts,skip=0,header=T, 
-                       sep="\t",stringsAsFactors=F,row.names=1)
+acc.data <- read.delim(input$acc_counts,skip=0,header=T, sep="\t",stringsAsFactors=F,row.names=1)
+hmsc.data <- read.delim(input$hmsc_counts,skip=0,header=T, sep="\t",stringsAsFactors=F,row.names=1)
+colnames(hmsc.data) = colnames(hmsc.data) %>% 
+  gsub(pattern = "HMSC.P3", replacement = "ACC1.P3") %>% #replace with origin plates names for name convention 
+  gsub(pattern = "HMSC.plate2", replacement = "ACC.plate2")
 
+acc.data = acc.data %>% dplyr::select(-c("Chr", "Start", "End", "Strand", "Length")) # already in hmsc
+all_data = cbind(hmsc.data,acc.data)
 ```
 
 pre process
@@ -59,33 +56,32 @@ tpm <- function(counts, lengths) {
   rpk/coef
 }
 
-rownames(acc.data)=make.unique(acc.data$gene_name)
-lengths = acc.data[,5]
-omitgenes= startsWith(rownames(acc.data),"ERCC-")
-acc.data=acc.data[!omitgenes,]
-acc.data=acc.data[,7:ncol(acc.data)]
+rownames(all_data)=make.unique(all_data$gene_name)
+lengths = all_data[,5]
+omitgenes= startsWith(rownames(all_data),"ERCC-")
+all_data=all_data[!omitgenes,]
+all_data=all_data[,7:ncol(all_data)]
 
 
-cell.labels <- gsub(".gene_counts.tsv","",colnames(acc.data))
+cell.labels <- gsub(".gene_counts.tsv","",colnames(all_data))
 cell.labels <- gsub(".sort.bam","",cell.labels)
 cell.labels <- gsub("_",".",cell.labels)
 cell.labels <- gsub(".S[0-9]*","",cell.labels)
 well=regmatches(cell.labels, regexpr("[A-H][0-9]*$", cell.labels))
 plate=substr(cell.labels,1,nchar(cell.labels)-nchar(well)-1)
 
-colnames(acc.data)=paste(plate,well,sep="_")
+colnames(all_data)=paste(plate,well,sep="_")
 
 clus_res=1
-subgroup=!(startsWith(colnames(acc.data),"ACC4.")|startsWith(colnames(acc.data),"ACC6."))
-acc.data = acc.data[,subgroup]
 
-acc.tpm=apply(acc.data, 2, function(x) tpm(x, lengths[!omitgenes]))
+
+acc.tpm=apply(all_data, 2, function(x) tpm(x, lengths[!omitgenes]))
 
 ```
 
 Create Seurat
 ```{r}
-acc.count_seurat <- CreateSeuratObject(counts = acc.data, project = "acc", min.cells = 3, min.features = 2000)
+acc.count_seurat <- CreateSeuratObject(counts = all_data, project = "acc", min.cells = 3, min.features = 2000)
 acc.tpm_seurat <- CreateSeuratObject(counts = log2(acc.tpm+1), project = "acc", min.cells = 3, min.features = 2000)
 
 
