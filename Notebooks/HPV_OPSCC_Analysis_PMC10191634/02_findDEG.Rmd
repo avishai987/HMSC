@@ -46,6 +46,20 @@ hpv_neg<-c("OP10","OP12","OP16","OP19","OP8")
 hpv_pos = unique(metadata$Patient)[! unique(metadata$Patient) %in% hpv_neg]
 opscc_hpvPos = subset(opscc,subset = patient %in% hpv_pos)
 ```
+```{r}
+# get hpv genes and calc score
+hpv_16_genes = rownames(opscc_hpvPos)[ startsWith(x =rownames(opscc_hpvPos),prefix =  "HPV16")]
+hpv_score = FetchData(object = opscc_hpvPos,vars = hpv_16_genes,slot = "counts") %>% rowSums()
+hpv_score_df = data.frame(hpv_score,row.names = names(hpv_score))
+opscc_hpvPos = AddMetaData(object = opscc_hpvPos,metadata = hpv_score_df)
+```
+
+```{r}
+#set HPV to consider + if hpv_score>3
+opscc_hpvPos$hpv = FetchData(object = opscc_hpvPos,vars = "hpv") %>%
+ mutate(hpv = if_else(condition = hpv_score>=3,true = "HPV+",false = "HPV-")) %>% 
+  pull(hpv)
+```
 
 ```{r}
 opscc_hpvPos = SetIdent(object = opscc_hpvPos,value = "hpv")
