@@ -2839,7 +2839,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">04_HMSC_vs_ACC</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2025-03-26 12:50:11.413457</h4>
+<h4 class="date">2025-08-14 17:50:01.687053</h4>
 
 </div>
 
@@ -3027,11 +3027,10 @@ score &lt;- apply(acc_pri@assays$RNA@scale.data[geneIds,],2,mean)
 acc_pri=AddMetaData(acc_pri,score,hallmark_name)
 
 hmsc_cancer_cells = FindVariableFeatures(object = hmsc_cancer_cells,nfeatures = 15000)</code></pre>
-<pre><code>## Warning in FindVariableFeatures.Assay(object = assay.data, selection.method = selection.method, : selection.method set
-## to &#39;vst&#39; but count slot is empty; will use data slot instead</code></pre>
+<pre><code>## Warning in FindVariableFeatures.Assay(object = assay.data, selection.method = selection.method, : selection.method set to &#39;vst&#39; but count slot is
+## empty; will use data slot instead</code></pre>
 <pre><code>## Warning in eval(predvars, data, env): NaNs produced</code></pre>
-<pre><code>## Warning in hvf.info$variance.expected[not.const] &lt;- 10^fit$fitted: number of items to replace is not a multiple of
-## replacement length</code></pre>
+<pre><code>## Warning in hvf.info$variance.expected[not.const] &lt;- 10^fit$fitted: number of items to replace is not a multiple of replacement length</code></pre>
 <pre class="r"><code>hmsc_cancer_cells = ScaleData(object = hmsc_cancer_cells,features = VariableFeatures(hmsc_cancer_cells))</code></pre>
 <pre><code>## Centering and scaling data matrix</code></pre>
 <pre class="r"><code>geneIds= genesets_h[[hallmark_name]]@geneIds %&gt;% intersect(VariableFeatures(hmsc_cancer_cells)) 
@@ -3139,8 +3138,7 @@ dev.off()</code></pre>
 <pre class="r"><code>all_acc_cancer_cells_ccFiltered = SetIdent(all_acc_cancer_cells_ccFiltered, value =&quot;patient.ident&quot;)
 all_acc_cancer_cells_ccFiltered = FindVariableFeatures(all_acc_cancer_cells_ccFiltered,nfeatures = 15000,assay = &quot;integrated&quot;)</code></pre>
 <pre><code>## Warning in eval(predvars, data, env): NaNs produced</code></pre>
-<pre><code>## Warning in hvf.info$variance.expected[not.const] &lt;- 10^fit$fitted: number of items to replace is not a multiple of
-## replacement length</code></pre>
+<pre><code>## Warning in hvf.info$variance.expected[not.const] &lt;- 10^fit$fitted: number of items to replace is not a multiple of replacement length</code></pre>
 <pre class="r"><code>deg &lt;-
   FindMarkers(
     all_acc_cancer_cells_ccFiltered,

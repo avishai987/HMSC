@@ -12,7 +12,7 @@
 <meta name="author" content="Avishai Wizel" />
 
 
-<title>makepipe</title>
+<title>03_HMSC_cells_preprocess</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -2837,9 +2837,9 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">makepipe</h1>
+<h1 class="title toc-ignore">03_HMSC_cells_preprocess</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2025-03-03 11:43:55.780986</h4>
+<h4 class="date">2025-08-14 17:40:57.953169</h4>
 
 </div>
 
@@ -2999,7 +2999,7 @@ Show/Hide
 <pre class="r"><code>library(devtools)</code></pre>
 <pre><code>## Loading required package: usethis</code></pre>
 <pre class="r"><code>session_info()</code></pre>
-<pre><code>## ─ Session info ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+<pre><code>## ─ Session info ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ##  setting  value
 ##  version  R version 4.4.1 (2024-06-14)
 ##  os       Ubuntu 22.04.5 LTS
@@ -3009,15 +3009,15 @@ Show/Hide
 ##  collate  en_US.UTF-8
 ##  ctype    en_US.UTF-8
 ##  tz       Etc/UTC
-##  date     2025-03-03
+##  date     2025-08-14
 ##  pandoc   3.4 @ /usr/bin/ (via rmarkdown)
 ## 
-## ─ Packages ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+## ─ Packages ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ##  !  package          * version    date (UTC) lib source
 ##     abind              1.4-5      2016-07-21 [1] RSPM (R 4.1.0)
 ##     backports          1.5.0      2024-05-23 [1] RSPM (R 4.4.0)
 ##     broom              1.0.7      2024-09-26 [1] RSPM (R 4.4.0)
-##     bslib              0.3.1      2021-10-06 [1] RSPM
+##     bslib              0.9.0      2025-01-30 [1] RSPM (R 4.4.0)
 ##     cachem             1.0.6      2021-08-19 [1] RSPM
 ##     car                3.0-12     2021-11-06 [1] RSPM (R 4.1.0)
 ##     carData            3.0-5      2022-01-06 [1] RSPM (R 4.4.0)
@@ -3063,7 +3063,7 @@ Show/Hide
 ##     gtable             0.3.0      2019-03-25 [1] RSPM
 ##     haven              2.5.4      2023-11-30 [1] RSPM (R 4.4.0)
 ##     hms                1.1.3      2023-03-21 [1] RSPM (R 4.4.0)
-##     htmltools          0.5.4      2022-12-07 [1] RSPM (R 4.4.0)
+##     htmltools          0.5.8.1    2024-04-04 [1] RSPM (R 4.4.0)
 ##     htmlwidgets        1.5.4      2021-09-08 [1] RSPM (R 4.1.0)
 ##     httpuv             1.6.5      2022-01-05 [1] RSPM (R 4.1.0)
 ##     httr               1.4.7      2023-08-15 [1] RSPM (R 4.4.0)
@@ -3085,6 +3085,7 @@ Show/Hide
 ##     lmtest             0.9-40     2022-03-21 [1] RSPM (R 4.1.0)
 ##     lubridate          1.9.3      2023-09-27 [1] RSPM (R 4.4.0)
 ##     magrittr         * 2.0.3      2022-03-30 [1] RSPM (R 4.4.0)
+##     makepipe         * 0.2.2      2025-01-07 [1] RSPM (R 4.4.0)
 ##     MASS               7.3-60.2   2024-04-26 [3] CRAN (R 4.4.1)
 ##     Matrix           * 1.4-0      2021-12-08 [1] CRAN (R 4.2.2)
 ##     matrixStats        1.4.1      2024-09-08 [1] RSPM (R 4.4.0)
@@ -3122,17 +3123,18 @@ Show/Hide
 ##     remotes            2.4.2      2021-11-30 [1] RSPM (R 4.1.0)
 ##     reprex             2.1.1      2024-07-06 [1] RSPM (R 4.4.0)
 ##     reshape2           1.4.4      2020-04-09 [1] RSPM (R 4.1.0)
-##     reticulate         1.24       2022-01-26 [1] CRAN (R 4.1.3)
+##     reticulate         1.42.0     2025-03-25 [1] RSPM (R 4.4.0)
 ##     rlang            * 1.1.5      2025-01-17 [1] RSPM (R 4.4.0)
 ##     rmarkdown        * 2.29       2024-11-04 [1] RSPM (R 4.4.0)
 ##     ROCR               1.0-11     2020-05-02 [1] RSPM (R 4.1.0)
+##     roxygen2           7.1.2      2021-09-08 [1] RSPM (R 4.1.0)
 ##     rpart              4.1.23     2023-12-05 [3] CRAN (R 4.4.1)
 ##     RSpectra           0.16-0     2019-12-01 [1] RSPM (R 4.1.0)
 ##     rstatix            0.7.0      2021-02-13 [1] RSPM (R 4.1.0)
 ##     rstudioapi         0.17.1     2024-10-22 [1] RSPM (R 4.4.0)
 ##     Rtsne              0.16       2022-04-17 [1] RSPM (R 4.1.0)
 ##     rvest              1.0.4      2024-02-12 [1] RSPM (R 4.4.0)
-##     sass               0.4.1      2022-03-23 [1] RSPM
+##     sass               0.4.10     2025-04-11 [1] RSPM (R 4.4.0)
 ##     scales             1.3.0      2023-11-28 [1] RSPM (R 4.4.0)
 ##     scattermore        0.8        2022-02-14 [1] RSPM (R 4.1.0)
 ##     sctransform        0.3.3      2022-01-13 [1] RSPM (R 4.1.0)
@@ -3147,7 +3149,7 @@ Show/Hide
 ##     spatstat.random    3.1-5      2024-10-15 [1] Github (spatstat/spatstat.random@9528a39)
 ##     spatstat.sparse    3.0-1      2024-10-15 [1] Github (spatstat/spatstat.sparse@5fa3d52)
 ##     spatstat.utils     3.0-3      2024-10-15 [1] Github (spatstat/spatstat.utils@4e97cc3)
-##  R  stringi          * 1.7.12     &lt;NA&gt;       [?] &lt;NA&gt;
+##  VP stringi          * 1.7.12     2024-05-06 [?] RSPM (R 4.4.0) (on disk 1.8.4)
 ##     stringr          * 1.5.1      2023-11-14 [1] RSPM (R 4.4.0)
 ##     survival           3.6-4      2024-04-24 [3] CRAN (R 4.4.1)
 ##     tensor             1.5        2012-05-05 [1] RSPM (R 4.1.0)
@@ -3156,7 +3158,7 @@ Show/Hide
 ##     tidyselect         1.2.1      2024-03-11 [1] RSPM (R 4.4.0)
 ##     tidyverse        * 1.3.2      2022-07-18 [1] RSPM (R 4.4.1)
 ##     timechange         0.3.0      2024-01-18 [1] RSPM (R 4.4.0)
-##     tzdb               0.4.0      2023-05-12 [1] RSPM (R 4.4.0)
+##     tzdb               0.5.0      2025-03-15 [1] RSPM (R 4.4.0)
 ##     ulimit             0.0-3      2022-12-11 [1] Github (krlmlr/ulimit@67199f2)
 ##  VP units            * 0.8-1      2023-11-28 [?] RSPM (R 4.4.0) (on disk 0.8.5)
 ##     usethis          * 2.1.5      2021-12-09 [1] RSPM (R 4.1.0)
@@ -3166,7 +3168,7 @@ Show/Hide
 ##     viridisLite        0.4.0      2021-04-13 [1] RSPM
 ##     websocket          1.4.2      2024-07-22 [1] RSPM (R 4.4.0)
 ##     withr              3.0.2      2024-10-28 [1] RSPM (R 4.4.0)
-##     xfun               0.49       2024-10-31 [1] RSPM (R 4.4.0)
+##     xfun               0.52       2025-04-02 [1] RSPM (R 4.4.0)
 ##     xml2               1.3.3      2021-11-30 [1] RSPM (R 4.1.0)
 ##     xtable             1.8-4      2019-04-21 [1] RSPM (R 4.1.0)
 ##     yaml               2.3.5      2022-02-21 [1] RSPM
@@ -3175,12 +3177,12 @@ Show/Hide
 ##  [1] /sci/labs/yotamd/lab_share/avishai.wizel/R_projects/libs
 ##  [2] /usr/local/lib/R/site-library
 ##  [3] /usr/local/lib/R/library
+##  [4] /sci/home/avishaiw/R/x86_64-pc-linux-gnu-library/4.4
 ## 
 ##  V ── Loaded and on-disk version mismatch.
 ##  P ── Loaded and on-disk path mismatch.
-##  R ── Package was removed from disk.
 ## 
-## ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+## ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
 </div>
 </div>
 
