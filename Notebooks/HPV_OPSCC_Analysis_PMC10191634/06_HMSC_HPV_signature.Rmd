@@ -174,6 +174,59 @@ plt
 dev.off()
 ```
 
+
+```{r}
+#TODO add clinical to input paths
+clinial = read.csv(file = "./Input_data/HPV_OPSCC_Analysis_PMC10191634/clinical.csv",row.names = 1)
+clinial$patient = c("OP20", "OP4", "OP5", "OP14", 
+"OP17", "OP34", "OP33", "OP35", 
+"OP6", "OP9", "OP13")
+
+data =  FetchData(object = opscc_hpvPos,vars = c("hpv_signature_score","patient"),slot = "data") %>% 
+  filter (patient != "OP13") %>% 
+  group_by(patient) %>% 
+  dplyr::summarise(mean_hpv_score = mean(hpv_signature_score, na.rm = TRUE), .groups = "drop")
+
+  
+all_data = left_join(data,clinial,by = c('patient' = 'patient'))
+all_data$Overall.stage = factor(as.character(all_data$Overall.stage),levels = c("1","2","3"))
+all_data 
+```
+
+```{r}
+ggplot(all_data) +
+  aes(x = Overall.stage, y = mean_hpv_score, fill = Overall.stage) +
+  geom_boxplot() +
+  geom_jitter()+
+  theme(legend.position = "none")
+```
+```{r fig.height=5, fig.width=7}
+
+library(ggstatsplot)
+jitter <- position_jitter(width = 0.1)
+
+ggbetweenstats(
+  data = all_data,
+  x = Overall.stage,
+  y = mean_hpv_score,
+  type = "nonparametric", # ANOVA or Kruskal-Wallis
+  plot.type = "box",
+  pairwise.comparisons = TRUE,
+  pairwise.display = "all",
+  centrality.plotting = FALSE,
+  bf.message = FALSE,
+  p.adjust.method = "fdr",
+  point.args = list(alpha = 1,position = jitter),
+  violin.args = list(width = 0)
+  
+)
+```
+
+```{r}
+all_data %>% filter(Overall.stage %in% c(1,2)) %>% 
+  wilcox_test(mean_hpv_score ~ Overall.stage)
+```
+
 # session info
 <button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName"> Show/Hide </button>  
 <div id="BlockName" class="collapse">  
