@@ -1,5 +1,5 @@
 ---
-title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+title: '03_volcano_plot' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
 output:
@@ -36,7 +36,7 @@ if (interactive()) {
 # Functions
 
 ```{r warning=FALSE}
-source_from_github(repositoy = "DEG_functions",version = "0.2.54")
+source_from_github(repositoy = "DEG_functions",version = "0.2.58")
 source(input$fc_params)
 ```
 
@@ -65,11 +65,13 @@ plt = volcano_plot(
   ident1 = "HPV positive",
   ident2 = "HPV negative",
   top_genes_text = 0,
-  show_gene_names = c(opscc_top_up,opscc_top_down)
+  show_gene_names = c(opscc_top_up,opscc_top_down),
+  padding = 0.5, min.segment.length = 0.2
   ) +
   ggtitle("Differential Gene Expression by HPV Status")  + 
   expand_limits(y = c(0, 4))+
   coord_cartesian(clip = "off")
+
 
 plt
 
