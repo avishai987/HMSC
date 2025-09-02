@@ -1,5 +1,5 @@
 pipeline = list()
-
+#
 ####################################### HMSC-ACC preprocess ####################################################
 
 
@@ -88,8 +88,9 @@ pipeline[["run_cnmf"]] = list(
     script = "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_01_run.Rmd",
     hmsc_cancer_cells = pipeline$HMSC_cells_preprocess$output$hmsc_integrated
   ),
-  output = list(report = "./Reports/HMSC/06_cNMF/cNMF_HMSC_01_run.html",
-                cnmf_object = "./Reports/HMSC/06_cNMF/HMSC_BatchCorrected_NMF/cnmf_obj.pkl")
+  output = list(report = "./Reports/HMSC/06_cNMF/cNMF_HMSC_01_run/cNMF_HMSC_01_run.html",
+                cnmf_object = "./Reports/HMSC/06_cNMF/cNMF_HMSC_01_run/HMSC_BatchCorrected_NMF/cnmf_obj.pkl"
+                )
 )
 
 pipeline[["cnmf_get_results"]] = list(
@@ -97,9 +98,26 @@ pipeline[["cnmf_get_results"]] = list(
     script = "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_02_get_results.Rmd",
     cnmf_object = pipeline$run_cnmf$output$cnmf_object
   ),
-  output = list(report = "./Reports/HMSC/06_cNMF/cNMF_HMSC_02_get_results.html",
-                cnmf_object = "./Reports/HMSC/06_cNMF/HMSC_BatchCorrected_NMF/cnmf_obj.pkl")
+  output = list(
+    report = "./Reports/HMSC/06_cNMF/cNMF_HMSC_02_get_results/cNMF_HMSC_02_get_results.html",
+    gep_scores = "./Reports/HMSC/06_cNMF/cNMF_HMSC_02_get_results/gep_scores.csv",
+    all_metagenes = "./Reports/HMSC/06_cNMF/cNMF_HMSC_02_get_results/all_metagenes.csv"
+  )
 )
+
+pipeline[["cnmf_analysis"]] = list(
+  input = list(
+    script = "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_03_analysis.Rmd",
+    hmsc_cancer_cells = pipeline$HMSC_cells_preprocess$output$hmsc_integrated,
+    genesets_h = "./Input_data/h.all.v7.0.symbols.pluscc.gmt",
+    gep_scores = pipeline$cnmf_get_results$output$gep_scores,
+    all_metagenes = pipeline$cnmf_get_results$output$all_metagenes
+  ),
+  output = list(
+    report = "./Reports/HMSC/06_cNMF/cNMF_HMSC_03_analysis/cNMF_HMSC_03_analysis.html"
+  )
+)
+
 
 #############################################OPSCC###############################
 pipeline[["OPSCC_preprocess"]] = list(
@@ -336,6 +354,34 @@ make_with_recipe(
   dependencies = unlist(get_input(script)),
   label = "HPV_analysis",build = F
 )
+
+#06_HMSC_cNMF run
+script = "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_01_run.Rmd"
+make_with_recipe(
+  recipe = my_render( "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_01_run.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "cNMF_HMSC_run",build = F
+)
+
+#07_HMSC_cNMF get_results
+script = "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_02_get_results.Rmd"
+make_with_recipe(
+  recipe = my_render( "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_02_get_results.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "cNMF_HMSC_get_results",build = F
+)
+
+#08_HMSC_cNMF get_results
+script = "./Notebooks/HMSC/06_cNMF/cNMF_HMSC_03_analysis.Rmd"
+make_with_recipe(
+  recipe = my_render("./Notebooks/HMSC/06_cNMF/cNMF_HMSC_03_analysis.Rmd"),
+  targets = unlist(get_output(script)),
+  dependencies = unlist(get_input(script)),
+  label = "cNMF_HMSC_analysis",build = F
+)
+
 
 #OPSCC preprocess
 script = "./Notebooks/HPV_OPSCC_Analysis_PMC10191634/01_preprocess.Rmd"
