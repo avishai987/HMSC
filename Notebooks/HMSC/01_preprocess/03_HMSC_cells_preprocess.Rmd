@@ -1,16 +1,16 @@
 ---
-title: '`r rstudioapi::getSourceEditorContext()$path %>% basename() %>% gsub(pattern = "\\.Rmd",replacement = "")`' 
+title: '03_HMSC_cells_preprocess' 
 author: "Avishai Wizel"
 date: '`r Sys.time()`'
 output: 
-  html_notebook: 
-    code_folding: hide
-    toc: true
-    toc_collapse: true
-    toc_float:
-      collapsed: false
-    number_sections: true
-    toc_depth: 1
+  # html_notebook: 
+  #   code_folding: hide
+  #   toc: true
+  #   toc_collapse: true
+  #   toc_float:
+  #     collapsed: false
+  #   number_sections: true
+  #   toc_depth: 1
   html_document: 
     code_folding: hide
     toc: yes
