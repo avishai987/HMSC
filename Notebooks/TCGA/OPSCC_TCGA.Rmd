@@ -139,13 +139,14 @@ na_patients = clinical_data[is.na(clinical_data$tp53_data), "submitter_id"]
 ```
 
 ```{r}
-#set clinical data to max 5 years
-clinical_data = clinical_data %>% mutate(days_to_last_follow_up = as.numeric(days_to_last_follow_up)) %>% 
-  mutate(vital_status = if_else(condition = (days_to_death) > 1825 | is.na(days_to_death) , false = vital_status, true = "Alive")) %>% 
-  mutate(days_to_last_follow_up = if_else(condition = days_to_last_follow_up > 1825, false = days_to_last_follow_up,true = 1825)) %>%
-  mutate(days_to_death = if_else(condition = days_to_death > 1825, false = days_to_death, true = NA))
+# #set clinical data to max 5 years
+# clinical_data = clinical_data %>% mutate(days_to_last_follow_up = as.numeric(days_to_last_follow_up)) %>% 
+#   mutate(vital_status = if_else(condition = (days_to_death) > 1825 | is.na(days_to_death) , false = vital_status, true = "Alive")) %>% 
+#   mutate(days_to_last_follow_up = if_else(condition = days_to_last_follow_up > 1825, false = days_to_last_follow_up,true = 1825)) %>%
+#   mutate(days_to_death = if_else(condition = days_to_death > 1825, false = days_to_death, true = NA))
 
 ```
+
 
 # MYB
 
@@ -275,6 +276,8 @@ bxp +
 
 ```
 
+
+
 # MYB- HPV T test
 
 ```{r}
@@ -320,6 +323,9 @@ pdf(paste0(params$data_out_dir,"violin_MYB_HPV_OPSCC_TCGA.pdf"),width = 7,height
 plt
 dev.off()
 ```
+
+
+
 # MYB and HPV survival plot
 
 ## HPV + tumors
@@ -642,6 +648,144 @@ bxp <- ggboxplot(gene_status, x = "hpv_status", y = "score", fill = "#00AFBB")+
 stat.test <- stat.test %>% add_xy_position(x = "hpv_status")
 bxp + 
   stat_pvalue_manual(stat.test,  label = "T-test, p = {p}") 
+
+```
+# HPV signature ~ stage
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data,genes = hmsc_signatue,tpm_data_frame = HNSC_tpm,stratify = params$stratify)
+gene_status$patient = rownames(gene_status)
+gene_status = inner_join(x = gene_status,y = clinical_data[,c("submitter_id","ajcc_clinical_stage","hpv_status")],by = c("patient"="submitter_id"))
+gene_status = gene_status %>% filter(!is.na(ajcc_clinical_stage))
+paged_table(gene_status)
+gene_status$ajcc_clinical_stage = factor(gene_status$ajcc_clinical_stage,levels = c("Stage I", "Stage II", "Stage III","Stage IVA", "Stage IVB", 
+"Stage IVC"))
+
+
+```
+
+
+```{r}
+my_comparisons <- list( c("Stage I", "Stage II"),c("Stage II", "Stage III"),c("Stage III", "Stage IVA"),c("Stage IVA", "Stage IVB"),c("Stage IVB", "Stage IVC") )
+
+p_list = list()
+for (subset_name in list("HPV+","HPV-",c("HPV+","HPV-"))) {
+  gene_status_subset = gene_status %>% filter(hpv_status %in% subset_name)
+  
+  stat.test <-  
+  compare_means(score ~ ajcc_clinical_stage,data = gene_status_subset,
+                method = "wilcox.test") %>%
+  filter(paste(group1, group2) %in% unlist(lapply(my_comparisons, paste, collapse = " "))) %>% 
+    mutate(p = round(p, 3))
+
+  stat.test = stat.test %>% add_y_position(formula = score ~ ajcc_clinical_stage,data = gene_status_subset,comparisons = my_comparisons,step.increase = 0)
+  
+  p <- ggboxplot(gene_status_subset, x = "ajcc_clinical_stage", y = "score",
+                 color = "ajcc_clinical_stage", palette = "npg",
+                add = "jitter",)+
+      stat_pvalue_manual(stat.test, label = "p = {p}",bracket.shorten = 0.1)+
+      ylab("HMSC_HPV_score")+
+    ggtitle("OPSCC TCGA " %s+% paste0(subset_name,collapse = " and ") %s+% " samples")+
+    theme(legend.position = "none")
+  p_list[[paste0(subset_name,collapse = " and ")]] = p
+  print(p)
+}
+
+```
+
+
+```{r}
+pdf(file = params$data_out_dir %s+% "HPV_signature_score-stage_OPSCC_TCGA.pdf")
+lapply(p_list,function(x) {x})
+dev.off()
+```
+
+# E2F ~ MYB
+
+```{r fig.height=7, fig.width=5}
+clinical_data_hpv_pos = clinical_data  %>% filter(hpv_status == "HPV+")
+clinical_data_hpv_neg = clinical_data  %>% filter(hpv_status == "HPV-")
+
+all_figs = list()
+for (gene in c("E2F1","E2F2","E2F3")) {
+  opscc_tpm = HNSC_tpm[,colnames(HNSC_tpm) %in% clinical_data_hpv_pos$submitter_id] #filter for OPSCC tissues as in clinical data
+  opscc_tpm = opscc_tpm[c("MYB",gene),] %>% t()
+  
+  sp1 <- ggscatter(opscc_tpm, x = "MYB", y = gene,
+     add = "reg.line",  # Add regressin line
+     add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+     conf.int = TRUE # Add confidence interval
+     ) +
+    stat_cor(method = "pearson")+ # Add correlation coefficient
+    ggtitle("OPSCC TCGA HPV+ samples")+
+    ylab(gene %s+% " log(TPM)")+
+    xlab("MYB log(TPM)")
+  sp1
+  
+  
+  # with seperate HPV- cell analysis
+  # opscc_tpm = HNSC_tpm[,colnames(HNSC_tpm) %in% clinical_data_hpv_neg$submitter_id] #filter for OPSCC tissues as in clinical data
+  # opscc_tpm = opscc_tpm[c("MYB",gene),] %>% t()
+  # 
+  # sp2 <- ggscatter(opscc_tpm, x = "MYB", y = gene,
+  #    add = "reg.line",  # Add regressin line
+  #    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+  #    conf.int = TRUE # Add confidence interval
+  #    ) +
+  #   stat_cor(method = "pearson")+ # Add correlation coefficient
+  #   ggtitle("OPSCC TCGA HPV- samples")+
+  #   ylab(gene %s+% " log(TPM)")+
+  #   xlab("MYB log(TPM)")
+  # sp2
+  # all_figs[[gene]] = sp1/sp2
+  all_figs[[gene]] = sp1
+
+}
+
+
+```
+
+```{r}
+pdf(file = params$data_out_dir %s+% "TCGA MYB-ETF correlation_HPV_pos.pdf",height = 5,width = 6)
+lapply(all_figs,function(x) {x})
+dev.off()
+```
+
+
+# MYB ~ RBL1
+```{r}
+clinical_data_hpv_pos = clinical_data  %>% filter(hpv_status == "HPV+")
+
+opscc_tpm = HNSC_tpm[,colnames(HNSC_tpm) %in% clinical_data_hpv_pos$submitter_id] #filter for OPSCC tissues as in clinical data
+opscc_tpm = opscc_tpm[c("MYB","RBL1"),] %>% t()
+
+sp <- ggscatter(opscc_tpm, x = "MYB", y = "RBL1",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) +
+  stat_cor(method = "pearson")+ # Add correlation coefficient
+  ggtitle("OPSCC TCGA samples")+
+  ylab("E2F1 log(TPM)")+
+  xlab("MYB log(TPM)")
+sp
+
+
+clinical_data_hpv_neg = clinical_data  %>% filter(hpv_status == "HPV-")
+
+opscc_tpm = HNSC_tpm[,colnames(HNSC_tpm) %in% clinical_data_hpv_neg$submitter_id] #filter for OPSCC tissues as in clinical data
+opscc_tpm = opscc_tpm[c("MYB","RBL1"),] %>% t()
+
+sp <- ggscatter(opscc_tpm, x = "MYB", y = "RBL1",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) +
+  stat_cor(method = "pearson")+ # Add correlation coefficient
+  ggtitle("OPSCC TCGA samples")+
+  ylab("E2F1 log(TPM)")+
+  xlab("MYB log(TPM)")
+sp
 
 ```
 
