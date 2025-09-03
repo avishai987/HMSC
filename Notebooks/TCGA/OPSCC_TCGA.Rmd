@@ -700,6 +700,57 @@ lapply(p_list,function(x) {x})
 dev.off()
 ```
 
+## HPV signature ~ stage no CC genes
+
+```{r}
+gene_status = set_clinical_data(clin_data = clinical_data,genes = hmsc_signatue_no_cc,tpm_data_frame = HNSC_tpm,stratify = params$stratify)
+gene_status$patient = rownames(gene_status)
+gene_status = inner_join(x = gene_status,y = clinical_data[,c("submitter_id","ajcc_clinical_stage","hpv_status")],by = c("patient"="submitter_id"))
+gene_status = gene_status %>% filter(!is.na(ajcc_clinical_stage))
+paged_table(gene_status)
+gene_status$ajcc_clinical_stage = factor(gene_status$ajcc_clinical_stage,levels = c("Stage I", "Stage II", "Stage III","Stage IVA", "Stage IVB", 
+"Stage IVC"))
+
+
+```
+
+
+```{r}
+my_comparisons <- list( c("Stage I", "Stage II"),c("Stage II", "Stage III"),c("Stage III", "Stage IVA"),c("Stage IVA", "Stage IVB"),c("Stage IVB", "Stage IVC") )
+
+p_list = list()
+for (subset_name in list("HPV+","HPV-",c("HPV+","HPV-"))) {
+  gene_status_subset = gene_status %>% filter(hpv_status %in% subset_name)
+  
+  stat.test <-  
+  compare_means(score ~ ajcc_clinical_stage,data = gene_status_subset,
+                method = "wilcox.test") %>%
+  filter(paste(group1, group2) %in% unlist(lapply(my_comparisons, paste, collapse = " "))) %>% 
+    mutate(p = round(p, 3))
+
+  stat.test = stat.test %>% add_y_position(formula = score ~ ajcc_clinical_stage,data = gene_status_subset,comparisons = my_comparisons,step.increase = 0)
+  
+  p <- ggboxplot(gene_status_subset, x = "ajcc_clinical_stage", y = "score",
+                 color = "ajcc_clinical_stage", palette = "npg",
+                add = "jitter",)+
+      stat_pvalue_manual(stat.test, label = "p = {p}",bracket.shorten = 0.1)+
+      ylab("HMSC_HPV_score_no_CC")+
+    ggtitle("OPSCC TCGA " %s+% paste0(subset_name,collapse = " and ") %s+% " samples")+
+    theme(legend.position = "none")
+  p_list[[paste0(subset_name,collapse = " and ")]] = p
+  print(p)
+}
+
+```
+
+
+```{r}
+pdf(file = params$data_out_dir %s+% "HPV_signature_score-stage_OPSCC_TCGA_no_cc.pdf")
+lapply(p_list,function(x) {x})
+dev.off()
+```
+
+
 # E2F ~ MYB
 
 ```{r fig.height=7, fig.width=5}
