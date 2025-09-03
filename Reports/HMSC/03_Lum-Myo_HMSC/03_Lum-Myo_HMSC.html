@@ -2839,7 +2839,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">03_Lum-Myo_HMSC</h1>
 <h4 class="author">Avishai Wizel</h4>
-<h4 class="date">2025-08-14 17:49:13.193403</h4>
+<h4 class="date">2025-09-03 11:26:25.96292</h4>
 
 </div>
 
@@ -2852,22 +2852,171 @@ border-radius: 0px;
 <div id="functions" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Functions</h1>
 <pre class="r"><code>source_from_github(repositoy = &quot;DEG_functions&quot;,version = &quot;0.2.54&quot;)</code></pre>
+<pre><code>## Loading required package: devtools</code></pre>
+<pre><code>## Loading required package: usethis</code></pre>
 <pre><code>## ℹ SHA-1 hash of file is ee1432006d2446b41e3bbd7e217de81ee047abc7</code></pre>
-<pre><code>## [36mℹ[39m Targets are out of date. Updating...</code></pre>
+<pre><code>## [36mℹ[39m Targets are out of date. Updating...
+## Registered S3 method overwritten by &#39;ggforce&#39;:
+##   method           from 
+##   scale_type.units units
+## Registered S3 method overwritten by &#39;ggtree&#39;:
+##   method      from 
+##   identify.gg ggfun
+## clusterProfiler v4.2.2  For help: https://yulab-smu.top/biomedical-knowledge-mining-book/
+## 
+## If you use clusterProfiler in published research, please cite:
+## T Wu, E Hu, S Xu, M Chen, P Guo, Z Dai, T Feng, L Zhou, W Tang, L Zhan, X Fu, S Liu, X Bo, and G Yu. clusterProfiler 4.0: A universal enrichment tool for interpreting omics data. The Innovation. 2021, 2(3):100141</code></pre>
 <pre class="r"><code>source_from_github(repositoy = &quot;HMSC_functions&quot;,version = &quot;0.1.14&quot;,script_name = &quot;functions.R&quot;)</code></pre>
 <pre><code>## ℹ SHA-1 hash of file is 9ec21e2e1fdc9a7b465400b3111b50804a136cf3
 ## [36mℹ[39m Targets are out of date. Updating...</code></pre>
 <pre class="r"><code>source_from_github(repositoy = &quot;cNMF_functions&quot;,version = &quot;0.4.04&quot;,script_name = &quot;cnmf_functions_V3.R&quot;)</code></pre>
 <pre><code>## ℹ SHA-1 hash of file is a735d9bfb5bc55fcb203f83a7240b9713fc080d3
-## [36mℹ[39m Targets are out of date. Updating...Loading required package: reticulate</code></pre>
+## [36mℹ[39m Targets are out of date. Updating...</code></pre>
 <pre class="r"><code>source_from_github(repositoy = &quot;sc_general_functions&quot;,version = &quot;0.1.34&quot;,script_name = &quot;functions.R&quot;)</code></pre>
 <pre><code>## ℹ SHA-1 hash of file is 55839fb7db3fdb3e61d8d423b0b3129bfa1d777b
-## [36mℹ[39m Targets are out of date. Updating...</code></pre>
+## [36mℹ[39m Targets are out of date. Updating...Loading required package: RColorBrewer</code></pre>
 <pre class="r"><code>library(hypeR)
-library(GSEABase)
-library(grid)
-library(ComplexHeatmap)
-library(ggpubr)</code></pre>
+library(GSEABase)</code></pre>
+<pre><code>## Loading required package: BiocGenerics
+## 
+## Attaching package: &#39;BiocGenerics&#39;
+## 
+## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     combine, intersect, setdiff, union
+## 
+## The following objects are masked from &#39;package:igraph&#39;:
+## 
+##     normalize, path, union
+## 
+## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     IQR, mad, sd, var, xtabs
+## 
+## The following objects are masked from &#39;package:base&#39;:
+## 
+##     anyDuplicated, aperm, append, as.data.frame, basename, cbind, colnames, dirname, do.call, duplicated, eval, evalq, Filter,
+##     Find, get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+##     Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff, table, tapply, union, unique, unsplit, which.max, which.min
+## 
+## Loading required package: Biobase
+## Welcome to Bioconductor
+## 
+##     Vignettes contain introductory material; view with &#39;browseVignettes()&#39;. To cite Bioconductor, see &#39;citation(&quot;Biobase&quot;)&#39;, and
+##     for packages &#39;citation(&quot;pkgname&quot;)&#39;.
+## 
+## 
+## Attaching package: &#39;Biobase&#39;
+## 
+## The following object is masked from &#39;package:rlang&#39;:
+## 
+##     exprs
+## 
+## Loading required package: annotate
+## Loading required package: AnnotationDbi
+## Loading required package: stats4
+## Loading required package: IRanges
+## Loading required package: S4Vectors
+## 
+## Attaching package: &#39;S4Vectors&#39;
+## 
+## The following object is masked from &#39;package:clusterProfiler&#39;:
+## 
+##     rename
+## 
+## The following object is masked from &#39;package:plyr&#39;:
+## 
+##     rename
+## 
+## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     first, rename
+## 
+## The following object is masked from &#39;package:tidyr&#39;:
+## 
+##     expand
+## 
+## The following objects are masked from &#39;package:Matrix&#39;:
+## 
+##     expand, unname
+## 
+## The following object is masked from &#39;package:utils&#39;:
+## 
+##     findMatches
+## 
+## The following objects are masked from &#39;package:base&#39;:
+## 
+##     expand.grid, I, unname
+## 
+## 
+## Attaching package: &#39;IRanges&#39;
+## 
+## The following object is masked from &#39;package:clusterProfiler&#39;:
+## 
+##     slice
+## 
+## The following object is masked from &#39;package:plyr&#39;:
+## 
+##     desc
+## 
+## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     collapse, desc, slice
+## 
+## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     reduce
+## 
+## 
+## Attaching package: &#39;AnnotationDbi&#39;
+## 
+## The following object is masked from &#39;package:clusterProfiler&#39;:
+## 
+##     select
+## 
+## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     select
+## 
+## Loading required package: XML
+## Loading required package: graph
+## 
+## Attaching package: &#39;graph&#39;
+## 
+## The following object is masked from &#39;package:XML&#39;:
+## 
+##     addNode
+## 
+## The following object is masked from &#39;package:plyr&#39;:
+## 
+##     join
+## 
+## The following object is masked from &#39;package:stringr&#39;:
+## 
+##     boundary
+## 
+## The following objects are masked from &#39;package:igraph&#39;:
+## 
+##     degree, edges, intersection</code></pre>
+<pre class="r"><code>library(grid)
+library(ComplexHeatmap)</code></pre>
+<pre><code>## ========================================
+## ComplexHeatmap version 2.10.0
+## Bioconductor page: http://bioconductor.org/packages/ComplexHeatmap/
+## Github page: https://github.com/jokergoo/ComplexHeatmap
+## Documentation: http://jokergoo.github.io/ComplexHeatmap-reference
+## 
+## If you use it in published research, please cite:
+## Gu, Z. Complex heatmaps reveal patterns and correlations in multidimensional 
+##   genomic data. Bioinformatics 2016.
+## 
+## The new InteractiveComplexHeatmap package can directly export static 
+## complex heatmaps into an interactive Shiny app with zero effort. Have a try!
+## 
+## This message can be suppressed by:
+##   suppressPackageStartupMessages(library(ComplexHeatmap))
+## ========================================</code></pre>
+<pre class="r"><code>library(ggpubr)</code></pre>
 </div>
 <div id="data" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> Data</h1>
